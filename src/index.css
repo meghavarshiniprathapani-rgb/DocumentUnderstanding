@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --burgundy-950: #3b0910;
+    --burgundy-900: #58101c;
+    --burgundy-800: #701a28;
+    --burgundy-700: #8b2034;
+    --burgundy-600: #a92a42;
+    --burgundy-50: #fdf2f4;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Burgundy branding utilities */
+.bg-burgundy-900 {
+  background-color: #58101c;
+}
+.bg-burgundy-800 {
+  background-color: #701a28;
+}
+.bg-burgundy-700 {
+  background-color: #8b2034;
+}
+.bg-burgundy-50 {
+  background-color: #fdf2f4;
+}
+.text-burgundy-900 {
+  color: #58101c;
+}
+.text-burgundy-800 {
+  color: #701a28;
+}
+.text-burgundy-700 {
+  color: #8b2034;
+}
+.border-burgundy-800 {
+  border-color: #701a28;
+}
+.border-burgundy-200 {
+  border-color: #fecdd3;
+}
+.border-burgundy-100 {
+  border-color: #ffe4e6;
+}
+.focus-ring-burgundy:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(112, 26, 40, 0.2);
+}
+
+/* Smooth transitions & Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Bounding box visual highlighting styles */
+.bbox-text {
+  background-color: rgba(59, 130, 246, 0.12);
+  border: 1.5px dashed #2563eb;
+}
+.bbox-table {
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1.5px dashed #059669;
+}
+.bbox-heading {
+  background-color: rgba(112, 26, 40, 0.15);
+  border: 1.5px dashed #701a28;
+}
+.bbox-figure {
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1.5px dashed #d97706;
+}
