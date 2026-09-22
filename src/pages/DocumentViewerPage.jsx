@@ -63,13 +63,8 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
           </div>
         </div>
 
-        {/* Header Right: Sample BBox Badge */}
+        {/* Header Right: Spatial Score Badge */}
         <div className="flex items-center space-x-3 justify-end">
-          <div className="hidden sm:flex items-center space-x-1.5 bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-lg text-xs font-semibold">
-            <Info className="w-3.5 h-3.5 text-amber-700" />
-            <span>Sample Bounding Box Prototype</span>
-          </div>
-
           <Badge variant="burgundy" size="sm">
             {currentDoc.parsingAccuracy}% Spatial Score
           </Badge>

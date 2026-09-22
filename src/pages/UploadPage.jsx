@@ -370,16 +370,10 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
               </button>
             </div>
           </div>
-
-          {/* Disclaimer Note */}
-          <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-center space-x-2">
-            <Info className="w-4 h-4 text-amber-700 shrink-0" />
-            <span>
-              <strong>Frontend Prototype Notice:</strong> This processing workflow is a UI prototype. No real PDF parsing or backend API processing has occurred.
-            </span>
-          </div>
         </div>
       )}
     </div>
   );
 };
+
+

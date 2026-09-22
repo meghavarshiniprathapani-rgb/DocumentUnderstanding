@@ -23,18 +23,8 @@ import { MOCK_OVERVIEW_METRICS, MOCK_DOCUMENTS } from '../mockData/documentsData
 export const DashboardPage = ({ setActiveTab, setSelectedDocId }) => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-fade-in">
-      {/* Sample Data Alert / System Banner */}
-      <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 px-4 flex items-center justify-between text-xs text-amber-900 shadow-xs">
-        <div className="flex items-center space-x-2.5">
-          <Info className="w-4 h-4 text-amber-700 shrink-0" />
-          <span>
-            <strong className="font-bold">Demonstration Environment:</strong> Displaying simulated sample data for frontend UI/UX evaluation. AI backend integration ready.
-          </span>
-        </div>
-        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300 uppercase shrink-0 hidden sm:inline-block">
-          Sample Data Mode
-        </span>
-      </div>
+      {/* 1. Overview Cards (4 Cards) */}
+
 
       {/* 1. Overview Cards (4 Cards) */}
       <div className="space-y-3">

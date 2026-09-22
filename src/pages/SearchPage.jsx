@@ -233,18 +233,6 @@ export const SearchPage = ({
         )}
       </div>
 
-      {/* Sample Data Disclaimer Banner */}
-      <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between shadow-xs">
-        <div className="flex items-center space-x-2">
-          <Info className="w-4 h-4 text-amber-700 shrink-0" />
-          <span>
-            <strong>Frontend Service Layer:</strong> Relevance scores and snippet matches use simulated vector search metrics for UI testing.
-          </span>
-        </div>
-        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-300 uppercase shrink-0 hidden sm:inline-block">
-          Sample Data
-        </span>
-      </div>
 
       {/* 5. States Rendering */}
 
