@@ -30,10 +30,10 @@ export const ProfilePage = ({ user, onLogout }) => {
   // Editable form state initialized from props
   const [profileData, setProfileData] = useState({
     fullName: user?.name || 'Meghavarshini Prathapani',
-    email: user?.email || 'meghavarshini@docusense.ai',
+    email: user?.email || 'meghavarshini@retrieva.ai',
     role: user?.role || 'Lead CSE Researcher',
     department: 'Computer Science & Engineering',
-    institution: user?.institution || 'DocuSense AI',
+    institution: user?.institution || 'Retrieva AI',
     bio: 'Building AI-driven document understanding and multi-modal spatial retrieval systems for enterprise PDF intelligence.'
   });
 

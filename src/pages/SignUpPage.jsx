@@ -110,7 +110,7 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
   const handleFillDemo = () => {
     setFormData({
       fullName: 'Meghavarshini Prathapani',
-      email: 'meghavarshini@docusense.ai',
+      email: 'meghavarshini@retrieva.ai',
       password: 'password123',
       confirmPassword: 'password123',
       agreeTerms: true
@@ -141,7 +141,7 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
               </div>
               <div>
                 <div className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1">
-                  Docu<span className="text-rose-300">Sense</span>
+                  Retri<span className="text-rose-300">eva</span>
                 </div>
                 <div className="text-xs text-rose-200/80 font-medium">
                   Document Intelligence Platform
@@ -158,7 +158,7 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
                 Start analyzing PDFs with spatial AI precision
               </h2>
               <p className="text-xs sm:text-sm text-rose-100/80 leading-relaxed font-normal">
-                Join DocuSense to parse, index, search, and visualize document layout coordinates with high fidelity.
+                Join Retrieva to parse, index, search, and visualize document layout coordinates with high fidelity.
               </p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
 
           {/* Footer info */}
           <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-rose-300/80 font-mono">
-            <span>DocuSense v2.4</span>
+            <span>Retrieva v2.4</span>
             <span>No Credit Card Required</span>
           </div>
         </div>
@@ -195,7 +195,7 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
                 Create an account
               </h3>
               <p className="text-xs sm:text-sm text-slate-500">
-                Get started with your DocuSense document intelligence workspace.
+                Get started with your Retrieva document intelligence workspace.
               </p>
             </div>
 

@@ -110,7 +110,7 @@ export const SettingsPage = () => {
         {/* Save Actions */}
         <div className="flex items-center justify-between pt-2">
           <div className="text-xs text-slate-400">
-            DocuSense System v1.0.0
+            Retrieva System v1.0.0
           </div>
 
           <button

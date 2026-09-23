@@ -5,7 +5,7 @@ export const Footer = () => {
   return (
     <footer className="bg-white border-t border-slate-200 py-4 px-6 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div className="flex items-center space-x-2">
-        <span className="font-semibold text-slate-700">DocMind AI</span>
+        <span className="font-semibold text-slate-700">Retrieva AI</span>
         <span>•</span>
         <span>Document Understanding for Retrieval</span>
         <span>•</span>

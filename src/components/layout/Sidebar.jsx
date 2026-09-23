@@ -55,7 +55,7 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
 
   const sidebarContent = (
     <div className="h-full flex flex-col justify-between p-4 bg-white border-r border-slate-200/80">
-      {/* Top Header Logo: DocuSense */}
+      {/* Top Header Logo: Retrieva */}
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center space-x-3">
@@ -64,7 +64,7 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
             </div>
             <div>
               <div className="text-base font-extrabold text-slate-900 tracking-tight leading-none flex items-center gap-1">
-                Docu<span className="text-rose-900 font-extrabold">Sense</span>
+                Retri<span className="text-rose-900 font-extrabold">eva</span>
               </div>
               <div className="text-[10px] font-medium text-slate-400 mt-0.5">
                 Doc Intelligence AI

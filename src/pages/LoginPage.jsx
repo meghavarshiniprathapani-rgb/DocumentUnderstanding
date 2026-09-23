@@ -94,7 +94,7 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
 
   const handleFillDemo = () => {
     setFormData({
-      email: 'meghavarshini@docusense.ai',
+      email: 'meghavarshini@retrieva.ai',
       password: 'password123',
       rememberMe: true
     });
@@ -124,7 +124,7 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
               </div>
               <div>
                 <div className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1">
-                  Docu<span className="text-rose-300">Sense</span>
+                  Retri<span className="text-rose-300">eva</span>
                 </div>
                 <div className="text-xs text-rose-200/80 font-medium">
                   Document Intelligence Platform
@@ -164,7 +164,7 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
 
           {/* Footer badge */}
           <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-rose-300/80 font-mono">
-            <span>DocuSense v2.4</span>
+            <span>Retrieva v2.4</span>
             <span>FastAPI Connected</span>
           </div>
         </div>

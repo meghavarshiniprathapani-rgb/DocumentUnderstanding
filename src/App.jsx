@@ -23,20 +23,20 @@ export default function App() {
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const saved = localStorage.getItem('docusense_auth');
+    const saved = localStorage.getItem('retrieva_auth');
     return saved !== null ? JSON.parse(saved) : true; // Default authenticated for smooth capstone demo
   });
 
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('docusense_user');
+    const savedUser = localStorage.getItem('retrieva_user');
     if (savedUser) {
       try { return JSON.parse(savedUser); } catch (e) {}
     }
     return {
       name: 'Meghavarshini Prathapani',
-      email: 'meghavarshini@docusense.ai',
+      email: 'meghavarshini@retrieva.ai',
       role: '',
-      institution: 'DocuSense AI'
+      institution: 'Retrieva AI'
     };
   });
 
@@ -74,20 +74,20 @@ export default function App() {
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
-    localStorage.setItem('docusense_user', JSON.stringify(userData));
-    localStorage.setItem('docusense_auth', JSON.stringify(true));
+    localStorage.setItem('retrieva_user', JSON.stringify(userData));
+    localStorage.setItem('retrieva_auth', JSON.stringify(true));
   };
 
   const handleSignUpSuccess = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
-    localStorage.setItem('docusense_user', JSON.stringify(userData));
-    localStorage.setItem('docusense_auth', JSON.stringify(true));
+    localStorage.setItem('retrieva_user', JSON.stringify(userData));
+    localStorage.setItem('retrieva_auth', JSON.stringify(true));
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.setItem('docusense_auth', JSON.stringify(false));
+    localStorage.setItem('retrieva_auth', JSON.stringify(false));
     navigate('/login');
   };
 

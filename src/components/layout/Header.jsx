@@ -113,7 +113,7 @@ export const Header = ({
               <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-fade-in space-y-1">
                 <div className="px-4 py-2 border-b border-slate-100">
                   <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Researcher'}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{user?.email || 'user@docusense.ai'}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{user?.email || 'user@retrieva.ai'}</p>
                 </div>
 
                 <button

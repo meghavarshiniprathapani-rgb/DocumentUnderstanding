@@ -18,7 +18,7 @@ export const MOCK_SYSTEM_METRICS = {
   avgQueryLatencyMs: 38,
   capstoneProject: {
     title: "Document Understanding for Retrieval",
-    institution: "DocuSense AI Platform",
+    institution: "Retrieva AI Platform",
     department: "Computer Science & Engineering",
     year: "2026"
   }
