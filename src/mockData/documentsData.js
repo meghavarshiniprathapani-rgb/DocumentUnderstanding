@@ -16,9 +16,9 @@ export const MOCK_SYSTEM_METRICS = {
   averageParsingAccuracy: 98.2,
   vectorIndexSize: "1.42 GB",
   avgQueryLatencyMs: 38,
-  klUniversityProject: {
+  capstoneProject: {
     title: "Document Understanding for Retrieval",
-    institution: "KL University",
+    institution: "DocuSense AI Platform",
     department: "Computer Science & Engineering",
     year: "2026"
   }

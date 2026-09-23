@@ -9,7 +9,7 @@ export const Footer = () => {
         <span>•</span>
         <span>Document Understanding for Retrieval</span>
         <span>•</span>
-        <span className="text-rose-900 font-medium">{MOCK_SYSTEM_METRICS.klUniversityProject.institution}</span>
+        <span className="text-rose-900 font-medium">{MOCK_SYSTEM_METRICS.capstoneProject.institution}</span>
       </div>
       <div className="flex items-center space-x-4">
         <span className="text-slate-400">Frontend SaaS Console</span>

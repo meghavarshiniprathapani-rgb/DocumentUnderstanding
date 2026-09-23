@@ -8,30 +8,113 @@ import { SearchPage } from './pages/SearchPage';
 import { DocumentViewerPage } from './pages/DocumentViewerPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { LoginPage } from './pages/LoginPage';
+import { SignUpPage } from './pages/SignUpPage';
 
 export default function App() {
+  // Navigation & Router State
+  const [currentPath, setCurrentPath] = useState(window.location.pathname || '/');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDocId, setSelectedDocId] = useState('doc-001');
   const [selectedSegmentId, setSelectedSegmentId] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const saved = localStorage.getItem('docusense_auth');
+    return saved !== null ? JSON.parse(saved) : true; // Default authenticated for smooth capstone demo
+  });
+
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('docusense_user');
+    if (savedUser) {
+      try { return JSON.parse(savedUser); } catch (e) {}
+    }
+    return {
+      name: 'Meghavarshini Prathapani',
+      email: 'meghavarshini@docusense.ai',
+      role: '',
+      institution: 'DocuSense AI'
+    };
+  });
+
+  // Client-side Router Navigation Helper
+  const navigate = (path) => {
+    window.history.pushState(null, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Sync with browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Global keyboard shortcut for search (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
+        if (currentPath === '/login' || currentPath === '/signup') {
+          navigate('/');
+        }
         setActiveTab('search');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [currentPath]);
+
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    localStorage.setItem('docusense_user', JSON.stringify(userData));
+    localStorage.setItem('docusense_auth', JSON.stringify(true));
+  };
+
+  const handleSignUpSuccess = (userData) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    localStorage.setItem('docusense_user', JSON.stringify(userData));
+    localStorage.setItem('docusense_auth', JSON.stringify(true));
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.setItem('docusense_auth', JSON.stringify(false));
+    navigate('/login');
+  };
 
   const handleUploadComplete = (fileName) => {
     setSelectedDocId('doc-001');
   };
 
+  // Route Handler: Render Auth Pages if path matches /login or /signup
+  if (currentPath === '/login') {
+    return (
+      <LoginPage 
+        onNavigate={navigate}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
+  if (currentPath === '/signup') {
+    return (
+      <SignUpPage 
+        onNavigate={navigate}
+        onSignUpSuccess={handleSignUpSuccess}
+      />
+    );
+  }
+
+  // Render Main Dashboard Layout
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-rose-900 selection:text-white">
       {/* Top Header Navigation */}
@@ -42,6 +125,10 @@ export default function App() {
         setSearchQuery={setSearchQuery}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
+        user={user}
+        isAuthenticated={isAuthenticated}
+        onNavigate={navigate}
+        onLogout={handleLogout}
       />
 
       {/* Main Container: Sidebar + Active Page Viewport */}
@@ -98,6 +185,13 @@ export default function App() {
 
           {activeTab === 'settings' && (
             <SettingsPage />
+          )}
+
+          {activeTab === 'profile' && (
+            <ProfilePage 
+              user={user}
+              onLogout={handleLogout}
+            />
           )}
         </main>
       </div>

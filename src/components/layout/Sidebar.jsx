@@ -9,7 +9,8 @@ import {
   Sparkles,
   ChevronRight,
   X,
-  FileText
+  FileText,
+  User
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) => {
@@ -43,6 +44,12 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
       label: 'Settings',
       icon: Settings,
       description: 'System & API preferences'
+    },
+    {
+      id: 'profile',
+      label: 'User Profile',
+      icon: User,
+      description: 'Account & usage overview'
     }
   ];
 
