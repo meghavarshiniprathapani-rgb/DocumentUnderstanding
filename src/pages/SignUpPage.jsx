@@ -7,6 +7,7 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
+  ArrowLeft,
   Sparkles, 
   CheckCircle2, 
   ShieldCheck, 
@@ -140,8 +141,8 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
                 <Layers className="w-6 h-6 text-rose-200" />
               </div>
               <div>
-                <div className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1">
-                  Retri<span className="text-rose-300">eva</span>
+                <div className="text-xl font-extrabold tracking-tight text-white">
+                  Retrieva <span className="text-rose-300">AI</span>
                 </div>
                 <div className="text-xs text-rose-200/80 font-medium">
                   Document Intelligence Platform
@@ -189,6 +190,19 @@ export const SignUpPage = ({ onNavigate, onSignUpSuccess }) => {
         {/* Right Side: Sign Up Form (7 cols) */}
         <div className="lg:col-span-7 bg-white p-8 sm:p-12 flex flex-col justify-between">
           <div>
+            {/* Top Navigation Back Button */}
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('/')}
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-rose-950 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-rose-200 transition-all cursor-pointer group shadow-2xs"
+                title="Return to Dashboard"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-rose-900" />
+                <span>Back to Dashboard</span>
+              </button>
+            </div>
+
             {/* Header Title */}
             <div className="space-y-2 mb-6">
               <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">

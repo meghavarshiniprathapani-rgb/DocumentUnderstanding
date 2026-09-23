@@ -54,6 +54,7 @@ export const LibraryPage = ({ setActiveTab, setSelectedDocId }) => {
         title="Documents Library"
         description="Manage, search, and inspect processed enterprise PDF documents in your mock repository."
         icon={FolderKanban}
+        onBack={() => setActiveTab && setActiveTab('dashboard')}
         action={
           <button
             onClick={() => setActiveTab('upload')}

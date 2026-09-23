@@ -127,6 +127,7 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
         title="Upload Documents"
         description="Upload enterprise PDF documents for future layout analysis and intelligent retrieval."
         icon={UploadCloud}
+        onBack={() => setActiveTab && setActiveTab('dashboard')}
       />
 
       {/* 2. Drag & Drop Upload Zone (Empty / Initial State) */}

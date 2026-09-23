@@ -63,11 +63,11 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
               <Layers className="w-5.5 h-5.5 text-rose-100" />
             </div>
             <div>
-              <div className="text-base font-extrabold text-slate-900 tracking-tight leading-none flex items-center gap-1">
-                Retri<span className="text-rose-900 font-extrabold">eva</span>
+              <div className="text-base font-extrabold text-slate-900 tracking-tight leading-none">
+                Retrieva <span className="text-rose-900 font-extrabold">AI</span>
               </div>
               <div className="text-[10px] font-medium text-slate-400 mt-0.5">
-                Doc Intelligence AI
+                Doc Intelligence Platform
               </div>
             </div>
           </div>

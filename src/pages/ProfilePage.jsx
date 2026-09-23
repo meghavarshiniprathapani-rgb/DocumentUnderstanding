@@ -24,7 +24,7 @@ import { Badge } from '../components/common/Badge';
 import { StatCard } from '../components/common/StatCard';
 import { MOCK_OVERVIEW_METRICS } from '../mockData/documentsData';
 
-export const ProfilePage = ({ user, onLogout }) => {
+export const ProfilePage = ({ user, onLogout, setActiveTab }) => {
   const fullNameInputRef = useRef(null);
 
   // Editable form state initialized from props
@@ -111,6 +111,7 @@ export const ProfilePage = ({ user, onLogout }) => {
         title="User Profile & Account"
         description="Manage your researcher profile, view usage statistics, and monitor recent account activity."
         icon={User}
+        onBack={() => setActiveTab && setActiveTab('dashboard')}
       />
 
       {/* 2. Top Profile Summary Hero Banner */}

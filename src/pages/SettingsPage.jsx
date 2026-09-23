@@ -9,7 +9,7 @@ import {
 import { Badge } from '../components/common/Badge';
 import { PageHeader } from '../components/common/PageHeader';
 
-export const SettingsPage = () => {
+export const SettingsPage = ({ setActiveTab }) => {
   const [fastApiEndpoint, setFastApiEndpoint] = useState('http://localhost:8000/api/v1');
   const [ocrEngine, setOcrEngine] = useState('layoutlmv3');
   const [vectorDb, setVectorDb] = useState('faiss');
@@ -28,6 +28,7 @@ export const SettingsPage = () => {
         title="Settings"
         description="Configure Python FastAPI backend endpoint, OCR model parameters, and vector database indices."
         icon={Settings}
+        onBack={() => setActiveTab && setActiveTab('dashboard')}
       />
 
       {/* Settings Form Card */}

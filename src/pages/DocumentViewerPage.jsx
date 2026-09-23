@@ -3,6 +3,7 @@ import {
   FileText, 
   ChevronLeft, 
   ChevronRight, 
+  ArrowLeft,
   Layers, 
   Search, 
   Filter,
@@ -38,8 +39,18 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
     <div className="space-y-4 animate-fade-in">
       {/* Page Header Banner */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Document Selector & Title */}
+        {/* Back Button & Document Selector */}
         <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-rose-950 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-rose-200 transition-all cursor-pointer group shadow-2xs shrink-0"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-rose-900" />
+            <span>Back</span>
+          </button>
+
           <div className="p-2 bg-rose-50 text-rose-900 border border-rose-200 rounded-xl shrink-0">
             <FileText className="w-5 h-5" />
           </div>

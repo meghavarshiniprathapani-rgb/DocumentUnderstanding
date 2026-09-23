@@ -14,8 +14,10 @@ import {
   HelpCircle,
   FileCheck,
   Zap,
-  Tag
+  Tag,
+  LayoutDashboard
 } from 'lucide-react';
+import { PageHeader } from '../components/common/PageHeader';
 import { StatCard } from '../components/common/StatCard';
 import { Badge } from '../components/common/Badge';
 import { MOCK_OVERVIEW_METRICS, MOCK_DOCUMENTS } from '../mockData/documentsData';
@@ -23,7 +25,13 @@ import { MOCK_OVERVIEW_METRICS, MOCK_DOCUMENTS } from '../mockData/documentsData
 export const DashboardPage = ({ setActiveTab, setSelectedDocId }) => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-fade-in">
-      {/* 1. Overview Cards (4 Cards) */}
+      {/* 1. Page Header */}
+      <PageHeader
+        title="Dashboard Overview"
+        description="Multi-modal layout parsing, spatial indexing metrics, and quick action shortcuts."
+        icon={LayoutDashboard}
+        onBack={() => window.history.back()}
+      />
 
 
       {/* 1. Overview Cards (4 Cards) */}
