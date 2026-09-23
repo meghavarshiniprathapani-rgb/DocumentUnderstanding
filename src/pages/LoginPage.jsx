@@ -292,7 +292,7 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
                   className="w-4 h-4 rounded text-rose-900 border-slate-300 focus:ring-rose-900 cursor-pointer"
                 />
                 <label htmlFor="rememberMe" className="text-xs text-slate-600 cursor-pointer font-medium">
-                  Remember this device for 30 days
+                  Remember me
                 </label>
               </div>
 
