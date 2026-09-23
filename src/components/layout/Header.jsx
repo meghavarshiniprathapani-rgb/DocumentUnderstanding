@@ -45,11 +45,8 @@ export const Header = ({
 
         {/* Page Title & Description */}
         <div>
-          <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight flex items-center gap-2">
-            <span>Document Intelligence</span>
-            <span className="hidden xl:inline-flex items-center text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-900 border border-rose-200 rounded-full">
-              v2.4 Live
-            </span>
+          <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">
+            Document Intelligence
           </h1>
           <p className="text-xs text-slate-500 hidden sm:block">
             Understand, search, and explore complex PDF documents.
