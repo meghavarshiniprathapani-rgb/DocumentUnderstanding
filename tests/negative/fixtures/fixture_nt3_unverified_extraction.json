@@ -1,0 +1,19 @@
+{
+  "fixture_id": "NT3-FIXTURE-UNVERIFIED-EXTRACTION",
+  "name": "Controlled Unverified Intermediate Extraction Score",
+  "anomaly_type": "missing_downstream_retrieval_check",
+  "description": "Evaluation run claiming benchmark accuracy based solely on extractor character match and Kendall tau, omitting mandatory KPI-3 downstream retrieval grounding.",
+  "extractor_name": "Docling_Raw_Intermediate",
+  "extractor_version": "2.144.0",
+  "config_id": "O3-v1.0.0-UNVERIFIED",
+  "intermediate_scores": {
+    "character_accuracy": 0.984,
+    "kendall_tau": 0.962,
+    "mean_iou": 0.915
+  },
+  "downstream_retrieval_checked": false,
+  "retrieval_metrics": {},
+  "kpi3_summary": null,
+  "acceptance_certified": false
+}
+

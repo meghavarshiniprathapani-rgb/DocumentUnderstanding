@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { isDemoMode } from '../../services/api';
 import { 
   Search, 
   Menu, 
-  Bell, 
   User, 
   Sparkles,
   LogOut,
@@ -45,9 +45,17 @@ export const Header = ({
 
         {/* Page Title & Description */}
         <div>
-          <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">
-            Document Intelligence
-          </h1>
+          <div className="flex items-center space-x-2">
+            <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">
+              Document Intelligence
+            </h1>
+            {isDemoMode() && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] font-mono font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+                Demo Mode
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 hidden sm:block">
             Understand, search, and explore complex PDF documents.
           </p>

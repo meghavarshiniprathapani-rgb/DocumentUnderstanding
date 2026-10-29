@@ -1,0 +1,38 @@
+# NT4 Controlled Partition Leakage Fixture
+fixture_id: "NT4-FIXTURE-PARTITION-LEAKAGE"
+name: "Contaminated Dev Partition with Acceptance Documents"
+anomaly_type: "dev_acceptance_partition_leakage"
+description: "Deliberate inclusion of frozen acceptance document doc-003 and derived cache doc-004 into dev training partition."
+config_version: "1.0.0"
+
+# Partition splits with deliberate leakage
+dev_split:
+  - id: "doc-001"
+    title: "Annual Financial Report 2025.pdf"
+    partition: "dev"
+  - id: "doc-002"
+    title: "Deep Visual Attention for Document Layout Analysis.pdf"
+    partition: "dev"
+  - id: "doc-003"  # LEAKAGE: doc-003 belongs strictly to acceptance partition!
+    title: "Quarterly Earnings & Balance Sheet.pdf"
+    partition: "dev"
+  - id: "doc-005"
+    title: "Cloud Infrastructure Audit.pdf"
+    partition: "dev"
+
+acceptance_split:
+  - id: "doc-003"
+    title: "Quarterly Earnings & Balance Sheet.pdf"
+    partition: "acceptance"
+  - id: "doc-004"
+    title: "Legal Service Level Agreement.pdf"
+    partition: "acceptance"
+  - id: "doc-008"
+    title: "Tax Exemption Form 1040.pdf"
+    partition: "acceptance"
+
+derived_artifacts_in_dev_cache:
+  - "embeddings/doc-001_p1.npy"
+  - "embeddings/doc-002_p1.npy"
+  - "embeddings/doc-004_p2.npy"  # LEAKAGE: doc-004 derived artifact in dev cache!
+

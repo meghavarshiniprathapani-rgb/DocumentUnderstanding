@@ -328,6 +328,8 @@ export const MOCK_SEARCH_RESULTS = [
   }
 ];
 
+export const MOCK_SEARCH_ITEMS = MOCK_SEARCH_RESULTS;
+
 // Mock Search Service Abstraction (Prepares code for future REST backend API calls)
 export const mockSearchService = async ({ query, documentFilter, contentType, minScore, pageRange }) => {
   // Simulate network latency delay

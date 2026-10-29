@@ -1,0 +1,28 @@
+{
+  "fixture_id": "NT2-FIXTURE-FLATTENED-TABLE-NOISE",
+  "name": "Controlled Flattened Financial Table",
+  "document_type": "financial_report",
+  "page_number": 1,
+  "width": 800.0,
+  "height": 1100.0,
+  "anomaly_type": "flattened_table_noise",
+  "description": "Multi-column financial table flattened into collapsed unstructured text with zero structured cells and lost grid boundaries.",
+  "elements": [
+    {
+      "id": "tbl_flattened_001",
+      "type": "table",
+      "label": "Operating Profit Breakdown (Flattened)",
+      "text": "Quarterly Financial Performance Q1 2026 Q2 2026 Q3 2026 Q4 2026 Revenue 450.2M 512.4M 680.1M 740.9M Cost of Goods 180.1M 195.4M 210.5M 230.1M Gross Margin 60.0% 61.8% 69.0% 68.9% Net Income 142.1M 168.9M 245.2M 280.4M",
+      "page": 1,
+      "reading_order": 2,
+      "bbox": { "x": 50.0, "y": 300.0, "width": 700.0, "height": 200.0 },
+      "raw_confidence": 0.52,
+      "table_cells": [],
+      "metadata": {
+        "is_critical": true,
+        "critical_category": "financial_table"
+      }
+    }
+  ]
+}
+

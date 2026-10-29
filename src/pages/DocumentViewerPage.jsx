@@ -1,39 +1,104 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
-  ChevronLeft, 
-  ChevronRight, 
   ArrowLeft,
-  Layers, 
-  Search, 
-  Filter,
-  CheckCircle2,
-  Info
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
 import { DocumentCanvas } from '../components/viewer/DocumentCanvas';
 import { DocumentInspectorPanel } from '../components/viewer/DocumentInspectorPanel';
-import { MOCK_DOCUMENTS } from '../mockData/documentsData';
 import { Badge } from '../components/common/Badge';
+import { api, isDemoMode } from '../services/api';
 
 export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSegmentId, setSelectedSegmentId }) => {
-  const [docId, setDocId] = useState(selectedDocId || MOCK_DOCUMENTS[0].id);
+  const [documents, setDocuments] = useState([]);
+  const [docId, setDocId] = useState(selectedDocId || '');
+  const [currentDoc, setCurrentDoc] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSegments, setPageSegments] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [activeSegmentId, setActiveSegmentId] = useState(selectedSegmentId || null);
+  const [prevSelectedSegmentId, setPrevSelectedSegmentId] = useState(selectedSegmentId);
+  const [loading, setLoading] = useState(true);
 
+  if (selectedSegmentId !== prevSelectedSegmentId) {
+    setPrevSelectedSegmentId(selectedSegmentId);
+    setActiveSegmentId(selectedSegmentId);
+  }
+
+  // 1. Load document list from backend API / demo repository
   useEffect(() => {
-    if (selectedDocId) {
-      setDocId(selectedDocId);
+    let isMounted = true;
+    async function loadDocs() {
+      try {
+        const docs = await api.listDocuments();
+        if (!isMounted) return;
+        setDocuments(docs);
+        if (docs.length > 0) {
+          const targetId = selectedDocId || docs[0].id;
+          setDocId(targetId);
+        }
+      } catch (err) {
+        console.warn("Failed to load documents list:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+    loadDocs();
+    return () => { isMounted = false; };
   }, [selectedDocId]);
 
+  // 2. Load selected document details
   useEffect(() => {
-    if (selectedSegmentId) {
-      setActiveSegmentId(selectedSegmentId);
-    }
-  }, [selectedSegmentId]);
+    let isMounted = true;
+    if (!docId) return;
 
-  const currentDoc = MOCK_DOCUMENTS.find(d => d.id === docId) || MOCK_DOCUMENTS[0];
+    async function loadDocDetails() {
+      try {
+        const doc = await api.getDocument(docId);
+        if (isMounted) setCurrentDoc(doc);
+      } catch (err) {
+        console.warn(`Failed to fetch doc ${docId}:`, err);
+      }
+    }
+    loadDocDetails();
+    return () => { isMounted = false; };
+  }, [docId]);
+
+  // 3. Load page layout segments when document or page changes
+  useEffect(() => {
+    let isMounted = true;
+    if (!docId) return;
+
+    async function loadPageSegments() {
+      try {
+        const segs = await api.getPageLayout(docId, currentPage);
+        if (!isMounted) return;
+        setPageSegments(segs);
+      } catch (err) {
+        console.warn(`Failed to fetch page segments for ${docId} page ${currentPage}:`, err);
+      }
+    }
+    loadPageSegments();
+    return () => { isMounted = false; };
+  }, [docId, currentPage]);
+
+  const activeSegment = pageSegments.find(s => s.id === activeSegmentId) || pageSegments[0] || null;
+  const pdfUrl = docId ? api.getPdfFileUrl(docId) : null;
+
+  if (loading && !currentDoc) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex items-center space-x-3 text-rose-900">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-sm font-bold">Loading Document Inspector...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const effectiveAccuracy = currentDoc?.parsingAccuracy ?? currentDoc?.parsing_accuracy ?? 98.2;
+  const isDocDegraded = currentDoc?.isDegraded ?? currentDoc?.is_degraded ?? false;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -55,17 +120,23 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Document Inspector</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>Document Inspector</span>
+              {isDemoMode() && (
+                <span className="font-mono text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">Demo Mode</span>
+              )}
+            </div>
             <select
               value={docId}
               onChange={(e) => {
-                setDocId(e.target.value);
-                setSelectedDocId(e.target.value);
+                const newId = e.target.value;
+                setDocId(newId);
+                if (setSelectedDocId) setSelectedDocId(newId);
                 setCurrentPage(1);
               }}
               className="bg-transparent text-sm font-extrabold text-slate-900 focus:outline-none cursor-pointer hover:text-rose-900 transition-colors"
             >
-              {MOCK_DOCUMENTS.map((doc) => (
+              {documents.map((doc) => (
                 <option key={doc.id} value={doc.id}>
                   {doc.title} ({doc.category})
                 </option>
@@ -74,10 +145,16 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
           </div>
         </div>
 
-        {/* Header Right: Spatial Score Badge */}
+        {/* Header Right: Degradation warning & Spatial Score Badge */}
         <div className="flex items-center space-x-3 justify-end">
-          <Badge variant="burgundy" size="sm">
-            {currentDoc.parsingAccuracy}% Spatial Score
+          {isDocDegraded && (
+            <Badge variant="warning" size="sm" className="font-bold flex items-center gap-1">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Degraded Path Active</span>
+            </Badge>
+          )}
+          <Badge variant="burgundy" size="sm" className="font-mono font-bold">
+            {typeof effectiveAccuracy === 'number' ? effectiveAccuracy.toFixed(1) : effectiveAccuracy}% Spatial Score
           </Badge>
         </div>
       </div>
@@ -96,13 +173,15 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
             }}
             filterType={filterType}
             setFilterType={setFilterType}
+            pdfUrl={pdfUrl}
+            segments={pageSegments}
           />
         </div>
 
         <div className="h-full">
           <DocumentInspectorPanel
             document={currentDoc}
-            activeSegmentId={activeSegmentId}
+            activeSegment={activeSegment}
             onSelectSegment={(id) => {
               setActiveSegmentId(id);
               if (setSelectedSegmentId) setSelectedSegmentId(id);

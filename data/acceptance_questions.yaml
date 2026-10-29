@@ -1,0 +1,135 @@
+# ==============================================================================
+# Retrieva AI — Frozen Acceptance Downstream Retrieval Question Set
+# Version: 1.0.0
+# Description: Standardized benchmark questions mapped to gold ground-truth
+#              acceptance documents (doc-003, doc-004, doc-008).
+# ==============================================================================
+
+version: "1.0.0"
+benchmark_name: "retrieva_downstream_retrieval_acceptance"
+created_date: "2026-10-29"
+total_questions: 9
+
+questions:
+  - question_id: "q-acc-001"
+    query: "What is mandatory for administrative elevation under the zero-trust policy in doc-003?"
+    gold_doc_id: "doc-003"
+    gold_page: 1
+    gold_element_id: "elem-303"
+    gold_element_type: "text"
+    question_type: "prose_fact_lookup"
+    subgroup: "small_case"
+    expected_answer: "Multi-factor hardware security tokens are mandatory for administrative elevation."
+    target_keywords:
+      - "Multi-factor hardware security tokens"
+      - "administrative elevation"
+
+  - question_id: "q-acc-002"
+    query: "What must endpoints do when zero-trust control planes encounter network partitions?"
+    gold_doc_id: "doc-003"
+    gold_page: 1
+    gold_element_id: "elem-304"
+    gold_element_type: "text"
+    question_type: "prose_fact_lookup"
+    subgroup: "critical_case"
+    expected_answer: "endpoints must enter safe degraded mode with audit isolation rather than silently failing open"
+    target_keywords:
+      - "degraded mode"
+      - "audit isolation"
+      - "silently failing open"
+
+  - question_id: "q-acc-003"
+    query: "What is the mathematical formulation for relative spatial attention bias in doc-004?"
+    gold_doc_id: "doc-004"
+    gold_page: 1
+    gold_element_id: "elem-405"
+    gold_element_type: "formula"
+    question_type: "formula_query"
+    subgroup: "rare_case"
+    expected_answer: "Bias(i, j) = b_x(x_i - x_j) + b_y(y_i - y_j)"
+    target_keywords:
+      - "Bias"
+      - "b_x"
+      - "b_y"
+
+  - question_id: "q-acc-004"
+    query: "What technical mechanism is required for floating layout sidebars in doc-004?"
+    gold_doc_id: "doc-004"
+    gold_page: 1
+    gold_element_id: "elem-403"
+    gold_element_type: "text"
+    question_type: "multi_column_text"
+    subgroup: "rare_case"
+    expected_answer: "Floating layout sidebars require spatial topological clustering to prevent interleaving into body column reading streams."
+    target_keywords:
+      - "spatial topological clustering"
+      - "interleaving"
+      - "sidebars"
+
+  - question_id: "q-acc-005"
+    query: "What Reading Order Accuracy was achieved by the Vanilla Transformer in Table 1 of doc-004?"
+    gold_doc_id: "doc-004"
+    gold_page: 1
+    gold_element_id: "elem-406"
+    gold_element_type: "table"
+    question_type: "table_lookup"
+    subgroup: "critical_case"
+    expected_answer: "0.718"
+    target_keywords:
+      - "0.718"
+      - "Vanilla Transformer"
+
+  - question_id: "q-acc-006"
+    query: "What is the ANLS formula specified in doc-008 for DocVQA visual question evaluation?"
+    gold_doc_id: "doc-008"
+    gold_page: 1
+    gold_element_id: "elem-805"
+    gold_element_type: "formula"
+    question_type: "formula_query"
+    subgroup: "rare_case"
+    expected_answer: "ANLS = (1 / N) * sum_{i=1}^N max_j s(a_i, q_ij)"
+    target_keywords:
+      - "ANLS"
+      - "max_j"
+      - "sum"
+
+  - question_id: "q-acc-007"
+    query: "What DocVQA ANLS (%) score did Retrieva 2D Spatial O3 achieve in Table 1 of doc-008?"
+    gold_doc_id: "doc-008"
+    gold_page: 1
+    gold_element_id: "elem-806"
+    gold_element_type: "table"
+    question_type: "table_lookup"
+    subgroup: "critical_case"
+    expected_answer: "84.6"
+    target_keywords:
+      - "84.6"
+      - "Retrieva 2D Spatial O3"
+
+  - question_id: "q-acc-008"
+    query: "Why is robust confidence calibration essential according to 3-Column Section C of doc-008?"
+    gold_doc_id: "doc-008"
+    gold_page: 1
+    gold_element_id: "elem-804"
+    gold_element_type: "text"
+    question_type: "multi_column_text"
+    subgroup: "rare_case"
+    expected_answer: "to route ambiguous visual questions to human-in-the-loop review queues instead of generating hallucinated answers"
+    target_keywords:
+      - "confidence calibration"
+      - "human-in-the-loop"
+      - "hallucinated answers"
+
+  - question_id: "q-acc-009"
+    query: "Under what license is the DocVQA benchmark distributed according to the footnote in doc-008?"
+    gold_doc_id: "doc-008"
+    gold_page: 1
+    gold_element_id: "elem-807"
+    gold_element_type: "text"
+    question_type: "prose_fact_lookup"
+    subgroup: "small_case"
+    expected_answer: "Creative Commons Attribution 4.0 International"
+    target_keywords:
+      - "Creative Commons Attribution 4.0 International"
+      - "CC-BY"
+

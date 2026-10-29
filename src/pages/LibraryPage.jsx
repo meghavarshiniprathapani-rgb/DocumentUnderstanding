@@ -15,14 +15,31 @@ import {
 import { Badge } from '../components/common/Badge';
 import { PageHeader } from '../components/common/PageHeader';
 import { EmptyState } from '../components/common/EmptyState';
-import { MOCK_DOCUMENTS } from '../mockData/documentsData';
+import { api } from '../services/api';
 
 export const LibraryPage = ({ setActiveTab, setSelectedDocId }) => {
-  const [documents, setDocuments] = useState(MOCK_DOCUMENTS);
+  const [documents, setDocuments] = useState([]);
+  const [_loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState('grid'); // grid or list
   const [deleteTarget, setDeleteTarget] = useState(null); // document object to delete
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function fetchDocs() {
+      try {
+        const docs = await api.listDocuments();
+        if (isMounted) setDocuments(docs);
+      } catch (err) {
+        console.warn("Failed to load documents in LibraryPage:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    fetchDocs();
+    return () => { isMounted = false; };
+  }, []);
 
   // Filter documents by name and processing status
   const filteredDocs = documents.filter(doc => {

@@ -1,0 +1,22 @@
+{
+  "fixture_id": "NT5-FIXTURE-OVERLOAD-WORKLOAD",
+  "name": "Controlled Stress Workload Envelope Breach",
+  "anomaly_type": "throughput_and_memory_envelope_failure",
+  "description": "Synthetic workload profile exceeding declared page count, file size, query latency, and memory allocation budgets.",
+  "declared_budget_limits": {
+    "max_pages": 100,
+    "max_upload_size_mb": 50,
+    "max_p95_latency_ms": 5.0,
+    "max_peak_memory_mb": 150.0
+  },
+  "workload_profile": {
+    "document_id": "doc-stress-999",
+    "pages_count": 240,
+    "file_size_mb": 85.4,
+    "latency_p95_ms": 28.5,
+    "peak_memory_mb": 210.8,
+    "concurrent_queries": 150,
+    "timestamp": "2026-10-29T14:30:00Z"
+  }
+}
+

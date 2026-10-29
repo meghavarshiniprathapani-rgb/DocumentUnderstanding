@@ -1,0 +1,741 @@
+{
+  "timestamp": "20261029_055735",
+  "benchmark": "downstream_retrieval_evaluation",
+  "total_questions": 14,
+  "corpus_documents": [
+    "doc-001",
+    "doc-002",
+    "doc-005",
+    "doc-006",
+    "doc-007"
+  ],
+  "pipelines": [
+    "Naive_Ingestion",
+    "O2_Reference",
+    "O2_Plus_O3"
+  ],
+  "pipeline_metrics": {
+    "Naive_Ingestion": {
+      "num_queries": 14,
+      "hit_at_1": {
+        "mean": 0.6429,
+        "ci_95_lower": 0.3571,
+        "ci_95_upper": 0.8571
+      },
+      "hit_at_3": {
+        "mean": 0.7143,
+        "ci_95_lower": 0.5,
+        "ci_95_upper": 0.9286
+      },
+      "hit_at_5": {
+        "mean": 0.7143,
+        "ci_95_lower": 0.5,
+        "ci_95_upper": 0.9286
+      },
+      "mrr": {
+        "mean": 0.6786,
+        "ci_95_lower": 0.4643,
+        "ci_95_upper": 0.8929
+      },
+      "answer_grounding": {
+        "mean": 0.6429,
+        "ci_95_lower": 0.3571,
+        "ci_95_upper": 0.8571
+      },
+      "per_condition_breakdown": {
+        "question_type": {
+          "form_field_lookup": {
+            "sample_count": 1,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "formula_query": {
+            "sample_count": 1,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "header_lookup": {
+            "sample_count": 1,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "multi_column_text": {
+            "sample_count": 4,
+            "mean": 0.75,
+            "ci_95_lower": 0.25,
+            "ci_95_upper": 1.0
+          },
+          "prose_fact_lookup": {
+            "sample_count": 3,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "table_lookup": {
+            "sample_count": 4,
+            "mean": 0.0,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 0.0
+          }
+        }
+      },
+      "latency_p50_ms": 0.49,
+      "latency_p95_ms": 0.56,
+      "kpi3_summary": {
+        "mean_kpi3_score": 38.46,
+        "rater_1_mean": 37.45,
+        "rater_2_mean": 39.46,
+        "cohens_kappa_unweighted": 0.5714,
+        "cohens_kappa_quadratically_weighted": 0.5714,
+        "condition_wise_scores": {
+          "table_lookup": {
+            "mean_score": 26.2,
+            "std_dev": 1.54,
+            "count": 4
+          },
+          "prose_fact_lookup": {
+            "mean_score": 46.65,
+            "std_dev": 0.92,
+            "count": 3
+          },
+          "formula_query": {
+            "mean_score": 48.85,
+            "std_dev": 0.0,
+            "count": 1
+          },
+          "multi_column_text": {
+            "mean_score": 37.98,
+            "std_dev": 4.48,
+            "count": 4
+          },
+          "header_lookup": {
+            "mean_score": 46.8,
+            "std_dev": 0.0,
+            "count": 1
+          },
+          "form_field_lookup": {
+            "mean_score": 46.1,
+            "std_dev": 0.0,
+            "count": 1
+          }
+        }
+      }
+    },
+    "O2_Reference": {
+      "num_queries": 14,
+      "hit_at_1": {
+        "mean": 0.7143,
+        "ci_95_lower": 0.4286,
+        "ci_95_upper": 0.9286
+      },
+      "hit_at_3": {
+        "mean": 0.9286,
+        "ci_95_lower": 0.7857,
+        "ci_95_upper": 1.0
+      },
+      "hit_at_5": {
+        "mean": 0.9286,
+        "ci_95_lower": 0.7857,
+        "ci_95_upper": 1.0
+      },
+      "mrr": {
+        "mean": 0.8095,
+        "ci_95_lower": 0.631,
+        "ci_95_upper": 0.9643
+      },
+      "answer_grounding": {
+        "mean": 0.7143,
+        "ci_95_lower": 0.4286,
+        "ci_95_upper": 0.9286
+      },
+      "per_condition_breakdown": {
+        "question_type": {
+          "form_field_lookup": {
+            "sample_count": 1,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "formula_query": {
+            "sample_count": 1,
+            "mean": 0.0,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 0.0
+          },
+          "header_lookup": {
+            "sample_count": 1,
+            "mean": 0.0,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 0.0
+          },
+          "multi_column_text": {
+            "sample_count": 4,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "prose_fact_lookup": {
+            "sample_count": 3,
+            "mean": 0.6667,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 1.0
+          },
+          "table_lookup": {
+            "sample_count": 4,
+            "mean": 0.75,
+            "ci_95_lower": 0.25,
+            "ci_95_upper": 1.0
+          }
+        }
+      },
+      "latency_p50_ms": 0.51,
+      "latency_p95_ms": 1.2,
+      "kpi3_summary": {
+        "mean_kpi3_score": 64.95,
+        "rater_1_mean": 64.04,
+        "rater_2_mean": 65.85,
+        "cohens_kappa_unweighted": 0.4815,
+        "cohens_kappa_quadratically_weighted": 0.641,
+        "condition_wise_scores": {
+          "table_lookup": {
+            "mean_score": 64.74,
+            "std_dev": 15.03,
+            "count": 4
+          },
+          "prose_fact_lookup": {
+            "mean_score": 65.55,
+            "std_dev": 7.74,
+            "count": 3
+          },
+          "formula_query": {
+            "mean_score": 41.8,
+            "std_dev": 0.0,
+            "count": 1
+          },
+          "multi_column_text": {
+            "mean_score": 72.41,
+            "std_dev": 0.9,
+            "count": 4
+          },
+          "header_lookup": {
+            "mean_score": 52.55,
+            "std_dev": 0.0,
+            "count": 1
+          },
+          "form_field_lookup": {
+            "mean_score": 69.65,
+            "std_dev": 0.0,
+            "count": 1
+          }
+        }
+      }
+    },
+    "O2_Plus_O3": {
+      "num_queries": 14,
+      "hit_at_1": {
+        "mean": 0.7143,
+        "ci_95_lower": 0.4286,
+        "ci_95_upper": 0.9286
+      },
+      "hit_at_3": {
+        "mean": 0.9286,
+        "ci_95_lower": 0.7857,
+        "ci_95_upper": 1.0
+      },
+      "hit_at_5": {
+        "mean": 0.9286,
+        "ci_95_lower": 0.7857,
+        "ci_95_upper": 1.0
+      },
+      "mrr": {
+        "mean": 0.8214,
+        "ci_95_lower": 0.6429,
+        "ci_95_upper": 0.9643
+      },
+      "answer_grounding": {
+        "mean": 0.7143,
+        "ci_95_lower": 0.4286,
+        "ci_95_upper": 0.9286
+      },
+      "per_condition_breakdown": {
+        "question_type": {
+          "form_field_lookup": {
+            "sample_count": 1,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "formula_query": {
+            "sample_count": 1,
+            "mean": 0.0,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 0.0
+          },
+          "header_lookup": {
+            "sample_count": 1,
+            "mean": 0.0,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 0.0
+          },
+          "multi_column_text": {
+            "sample_count": 4,
+            "mean": 1.0,
+            "ci_95_lower": 1.0,
+            "ci_95_upper": 1.0
+          },
+          "prose_fact_lookup": {
+            "sample_count": 3,
+            "mean": 0.6667,
+            "ci_95_lower": 0.0,
+            "ci_95_upper": 1.0
+          },
+          "table_lookup": {
+            "sample_count": 4,
+            "mean": 0.75,
+            "ci_95_lower": 0.25,
+            "ci_95_upper": 1.0
+          }
+        }
+      },
+      "latency_p50_ms": 0.44,
+      "latency_p95_ms": 0.5,
+      "kpi3_summary": {
+        "mean_kpi3_score": 86.4,
+        "rater_1_mean": 85.68,
+        "rater_2_mean": 87.12,
+        "cohens_kappa_unweighted": 1.0,
+        "cohens_kappa_quadratically_weighted": 1.0,
+        "condition_wise_scores": {
+          "table_lookup": {
+            "mean_score": 86.33,
+            "std_dev": 15.04,
+            "count": 4
+          },
+          "prose_fact_lookup": {
+            "mean_score": 86.97,
+            "std_dev": 7.54,
+            "count": 3
+          },
+          "formula_query": {
+            "mean_score": 63.2,
+            "std_dev": 0.0,
+            "count": 1
+          },
+          "multi_column_text": {
+            "mean_score": 93.84,
+            "std_dev": 0.66,
+            "count": 4
+          },
+          "header_lookup": {
+            "mean_score": 73.45,
+            "std_dev": 0.0,
+            "count": 1
+          },
+          "form_field_lookup": {
+            "mean_score": 91.4,
+            "std_dev": 0.0,
+            "count": 1
+          }
+        }
+      }
+    }
+  },
+  "per_question_results": {
+    "q-001": {
+      "query": "What was the Enterprise Cloud revenue in 2025 ($M)?",
+      "question_type": "table_lookup",
+      "expected_answer": "189.5",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.2406,
+          "first_hit_rank": null,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT In Q3 2026, edge computing nodes achieved a median network transit laten",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.3333,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Table 1.1: Consolidated Revenue Breakdown ($ Millions)  | Segment | 2024 ($M) | 2025 ($M) | YoY Growth | | --- | --- | -",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.5303,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Table 1.1: Consolidated Revenue Breakdown ($ Millions)  | Segment | 2024 ($M) | 2025 ($M) | YoY Growth | | --- | --- | -",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-002": {
+      "query": "Which business segment experienced negative YoY growth of -8.9% in 2025?",
+      "question_type": "table_lookup",
+      "expected_answer": "Hardware & IoT",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.3017,
+          "first_hit_rank": null,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "((Q K^T) / sqrt(d_k)) V Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimen",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.2723,
+          "first_hit_rank": 3,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinat",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.4731,
+          "first_hit_rank": 2,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinat",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-003": {
+      "query": "By what percentage did consolidated revenue expand in fiscal year 2025?",
+      "question_type": "prose_fact_lookup",
+      "expected_answer": "18.4%",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.4155,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "ANNUAL FINANCIAL REPORT & BALANCES During fiscal year 2025, consolidated revenue expanded by 18.4% year-over-year to $41",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.376,
+          "first_hit_rank": 2,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "Table 1.1: Consolidated Revenue Breakdown ($ Millions)  | Segment | 2024 ($M) | 2025 ($M) | YoY Growth | | --- | --- | -",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.5602,
+          "first_hit_rank": 2,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "Table 1.1: Consolidated Revenue Breakdown ($ Millions)  | Segment | 2024 ($M) | 2025 ($M) | YoY Growth | | --- | --- | -",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-004": {
+      "query": "How many basis points did the gross margin improve due to operational efficiency?",
+      "question_type": "prose_fact_lookup",
+      "expected_answer": "240 basis points",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.4136,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": ": Consolidated Revenue Breakdown ($ Millions) Operating income expanded proportionally with gross margin improvement of ",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.4384,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Operating income expanded proportionally with gross margin improvement of 240 basis points, driven by operational automa",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.5894,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Operating income expanded proportionally with gross margin improvement of 240 basis points, driven by operational automa",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-005": {
+      "query": "What is the scaled dot-product attention formula in the architecture?",
+      "question_type": "formula_query",
+      "expected_answer": "Attention(Q, K, V) = softmax((Q K^T) / sqrt(d_k)) V",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.3193,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens Abstract: Multi-modal document understanding requi",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.2868,
+          "first_hit_rank": null,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens  Abstract: Multi-modal document understanding requ",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.4832,
+          "first_hit_rank": null,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens  Abstract: Multi-modal document understanding requ",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-006": {
+      "query": "How are relative positional biases modeled across 2D visual layouts?",
+      "question_type": "multi_column_text",
+      "expected_answer": "two-dimensional spatial coordinate embeddings derived from bounding box tuples",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.3197,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "((Q K^T) / sqrt(d_k)) V Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimen",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.3634,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinat",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.5369,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinat",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-007": {
+      "query": "How does the visual backbone extract patch tokens without Faster R-CNN?",
+      "question_type": "multi_column_text",
+      "expected_answer": "linear projection of non-overlapping image patches",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.4176,
+          "first_hit_rank": 2,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "on-overlapping image patches, bypassing expensive faster R-CNN visual backbones.",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.3726,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinat",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.5433,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinat",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-008": {
+      "query": "What is the document title of the academic research paper in doc-002?",
+      "question_type": "header_lookup",
+      "expected_answer": "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.2147,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens Abstract: Multi-modal document understanding requi",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.2203,
+          "first_hit_rank": 2,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT  In Q3 2026, edge computing nodes achieved a median network transit late",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.4367,
+          "first_hit_rank": 2,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT  In Q3 2026, edge computing nodes achieved a median network transit late",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-009": {
+      "query": "What was the median network latency for the US-East (N. Virginia) region zone?",
+      "question_type": "table_lookup",
+      "expected_answer": "3.8ms",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.4179,
+          "first_hit_rank": null,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT In Q3 2026, edge computing nodes achieved a median network transit laten",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.471,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Table 5.1: Regional Cloud Latency & Uptime Benchmarks  | Region Zone | Median Latency | p99 Latency | Availability Uptim",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.6267,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Table 5.1: Regional Cloud Latency & Uptime Benchmarks  | Region Zone | Median Latency | p99 Latency | Availability Uptim",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-010": {
+      "query": "What was the availability uptime percentage achieved in the EU-Central region?",
+      "question_type": "table_lookup",
+      "expected_answer": "99.992%",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.4351,
+          "first_hit_rank": null,
+          "answer_grounding": 0.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT In Q3 2026, edge computing nodes achieved a median network transit laten",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.4745,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Table 5.1: Regional Cloud Latency & Uptime Benchmarks  | Region Zone | Median Latency | p99 Latency | Availability Uptim",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.6291,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Table 5.1: Regional Cloud Latency & Uptime Benchmarks  | Region Zone | Median Latency | p99 Latency | Availability Uptim",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-011": {
+      "query": "What was the overall median transit latency achieved across 14 global availability zones?",
+      "question_type": "prose_fact_lookup",
+      "expected_answer": "4.8ms",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.5791,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT In Q3 2026, edge computing nodes achieved a median network transit laten",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.6474,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT  In Q3 2026, edge computing nodes achieved a median network transit late",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.7357,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "QUARTERLY CLOUD INFRASTRUCTURE & LATENCY REPORT  In Q3 2026, edge computing nodes achieved a median network transit late",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-012": {
+      "query": "What is the Employer Identification Number (EIN) for Retrieva Technology Solutions LLC?",
+      "question_type": "form_field_lookup",
+      "expected_answer": "84-2940192",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.5866,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Form W-9: Request for Taxpayer Identification Number and Certification Entity Legal Name: Retrieva Technology Solutions ",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.5262,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Form W-9: Request for Taxpayer Identification Number and Certification  Entity Legal Name: Retrieva Technology Solutions",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.6508,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Form W-9: Request for Taxpayer Identification Number and Certification  Entity Legal Name: Retrieva Technology Solutions",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-013": {
+      "query": "What billing service credit applies if monthly availability drops below 99.00%?",
+      "question_type": "multi_column_text",
+      "expected_answer": "30% credit",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.5316,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "inancial Service Credits: If monthly availability falls below 99.90% but exceeds 99.00%, Customer shall receive a 15% bi",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.5396,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Section 4.2 Financial Service Credits: If monthly availability falls below 99.90% but exceeds 99.00%, Customer shall rec",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.6745,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "Section 4.2 Financial Service Credits: If monthly availability falls below 99.90% but exceeds 99.00%, Customer shall rec",
+          "has_provenance": true
+        }
+      }
+    },
+    "q-014": {
+      "query": "What is the maximum allowed scheduled maintenance duration per calendar month?",
+      "question_type": "multi_column_text",
+      "expected_answer": "2 hours per calendar month",
+      "pipeline_runs": {
+        "Naive_Ingestion": {
+          "rank_1_score": 0.3239,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "MASTER CLOUD SAAS SERVICE LEVEL AGREEMENT (SLA) Section 4.1 Service Availability: The Provider commits to delivering 99.",
+          "has_provenance": false
+        },
+        "O2_Reference": {
+          "rank_1_score": 0.3558,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "MASTER CLOUD SAAS SERVICE LEVEL AGREEMENT (SLA)  Section 4.1 Service Availability: The Provider commits to delivering 99",
+          "has_provenance": false
+        },
+        "O2_Plus_O3": {
+          "rank_1_score": 0.5458,
+          "first_hit_rank": 1,
+          "answer_grounding": 1.0,
+          "top_chunk_text_preview": "MASTER CLOUD SAAS SERVICE LEVEL AGREEMENT (SLA)  Section 4.1 Service Availability: The Provider commits to delivering 99",
+          "has_provenance": true
+        }
+      }
+    }
+  },
+  "kpi3_inter_rater_agreement": {}
+}

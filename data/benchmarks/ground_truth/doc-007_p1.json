@@ -1,0 +1,42 @@
+{
+  "page_id": "doc-007_p1",
+  "document_id": "doc-007",
+  "page_number": 1,
+  "width": 800.0,
+  "height": 1100.0,
+  "metadata": {
+    "annotator_id": "oracle-team-01",
+    "verified": true,
+    "created_at": "2026-10-28T18:20:00Z"
+  },
+  "elements": [
+    {
+      "id": "elem-701",
+      "type": "heading",
+      "bbox": { "x": 50.0, "y": 60.0, "width": 700.0, "height": 45.0 },
+      "reading_order": 0,
+      "text": "MASTER CLOUD SAAS SERVICE LEVEL AGREEMENT (SLA)",
+      "is_critical": true,
+      "critical_category": "document_header"
+    },
+    {
+      "id": "elem-702",
+      "type": "text",
+      "bbox": { "x": 50.0, "y": 120.0, "width": 330.0, "height": 300.0 },
+      "reading_order": 1,
+      "text": "Section 4.1 Service Availability: The Provider commits to delivering 99.99% monthly service uptime. Scheduled maintenance windows shall not exceed 2 hours per calendar month and require 7 days advance notice.",
+      "is_critical": true,
+      "critical_category": "contract_term"
+    },
+    {
+      "id": "elem-703",
+      "type": "text",
+      "bbox": { "x": 410.0, "y": 120.0, "width": 330.0, "height": 300.0 },
+      "reading_order": 2,
+      "text": "Section 4.2 Financial Service Credits: If monthly availability falls below 99.90% but exceeds 99.00%, Customer shall receive a 15% billing credit. If uptime drops below 99.00%, a 30% credit shall apply.",
+      "is_critical": true,
+      "critical_category": "contract_term"
+    }
+  ]
+}
+

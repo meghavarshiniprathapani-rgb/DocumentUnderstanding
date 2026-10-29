@@ -1,0 +1,4 @@
+# Retrieva AI — Backend Dependencies
+# Pinned for Python 3.11 reproducible builds
+-r ../requirements.txt
+

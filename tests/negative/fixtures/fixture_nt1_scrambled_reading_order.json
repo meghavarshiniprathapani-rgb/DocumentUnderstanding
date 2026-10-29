@@ -1,0 +1,74 @@
+{
+  "fixture_id": "NT1-FIXTURE-SCRAMBLED-READING-ORDER",
+  "name": "Controlled Multi-Column Horizontal Scramble",
+  "document_type": "academic_report",
+  "layout_type": "multi_column",
+  "page_number": 1,
+  "width": 800.0,
+  "height": 1100.0,
+  "anomaly_type": "scrambled_reading_order",
+  "description": "Two-column text with horizontal cross-column interleaving reading order that breaks column-first flow.",
+  "elements": [
+    {
+      "id": "el_col1_line1",
+      "type": "text",
+      "text": "During the fiscal third quarter of 2026, Retrieva AI initiated comprehensive deployment",
+      "page": 1,
+      "reading_order": 0,
+      "bbox": { "x": 50.0, "y": 100.0, "width": 320.0, "height": 45.0 },
+      "column": 0,
+      "raw_confidence": 0.94
+    },
+    {
+      "id": "el_col2_line1",
+      "type": "text",
+      "text": "operating expenses rose across all cloud regions as GPU cluster utilization surged",
+      "page": 1,
+      "reading_order": 1,
+      "bbox": { "x": 430.0, "y": 100.0, "width": 320.0, "height": 45.0 },
+      "column": 1,
+      "raw_confidence": 0.93
+    },
+    {
+      "id": "el_col1_line2",
+      "type": "text",
+      "text": "of the new dense multimodal vector indexing pipeline across all institutional repositories.",
+      "page": 1,
+      "reading_order": 2,
+      "bbox": { "x": 50.0, "y": 165.0, "width": 320.0, "height": 45.0 },
+      "column": 0,
+      "raw_confidence": 0.95
+    },
+    {
+      "id": "el_col2_line2",
+      "type": "text",
+      "text": "by 84% year-over-year to support real-time mathematical formula extraction and indexing.",
+      "page": 1,
+      "reading_order": 3,
+      "bbox": { "x": 430.0, "y": 165.0, "width": 320.0, "height": 45.0 },
+      "column": 1,
+      "raw_confidence": 0.92
+    },
+    {
+      "id": "el_col1_line3",
+      "type": "text",
+      "text": "Preliminary benchmarks demonstrated sub-millisecond retrieval latency with 100% lineage.",
+      "page": 1,
+      "reading_order": 4,
+      "bbox": { "x": 50.0, "y": 230.0, "width": 320.0, "height": 45.0 },
+      "column": 0,
+      "raw_confidence": 0.96
+    },
+    {
+      "id": "el_col2_line3",
+      "type": "text",
+      "text": "Capital expenditures remained within approved boundaries while gross margins expanded.",
+      "page": 1,
+      "reading_order": 5,
+      "bbox": { "x": 430.0, "y": 230.0, "width": 320.0, "height": 45.0 },
+      "column": 1,
+      "raw_confidence": 0.91
+    }
+  ]
+}
+

@@ -1,0 +1,163 @@
+# ==============================================================================
+# Retrieva AI — Document Evidence Manifest
+# Version: 1.0.0
+# Description: Authoritative inventory of document records, provenance, layout,
+#              modality flags, and KPI associations prior to modelling.
+# ==============================================================================
+
+version: "1.0.0"
+created_date: "2026-10-28"
+custodian: "Retrieva AI Research Group"
+schema_version: "1.0"
+
+documents:
+  - id: "doc-001"
+    title: "Annual Financial Report 2025.pdf"
+    file_path: "data/sample_documents/doc-001.pdf"
+    source_url: "https://www.sec.gov/edgar/searchedgar/companysearch"
+    access_date: "2026-09-20"
+    licence: "Public Domain (US SEC EDGAR Filings)"
+    owner_custodian: "SEC EDGAR / Enterprise Registrant"
+    document_type: "financial report"
+    layout_type: "multi-column"
+    has_tables: true
+    has_formulas: false
+    pages_count: 42
+    kpi: "table_extraction_f1"
+    description: "Consolidated enterprise annual earnings, balance sheet statements, and operational expense matrices."
+
+  - id: "doc-002"
+    title: "LayoutLMv3 Multi-Modal Research Paper.pdf"
+    file_path: "data/sample_documents/doc-002.pdf"
+    source_url: "https://arxiv.org/abs/2204.08387"
+    access_date: "2026-09-21"
+    licence: "CC-BY-4.0"
+    owner_custodian: "Cornell University arXiv / Authors"
+    document_type: "academic paper"
+    layout_type: "multi-column"
+    has_tables: true
+    has_formulas: true
+    pages_count: 18
+    kpi: "spatial_bbox_iou"
+    description: "Foundational academic paper on multi-modal pre-training for document AI with text, spatial, and visual tokens."
+
+  - id: "doc-003"
+    title: "Enterprise Zero-Trust Security Policy.pdf"
+    file_path: "data/sample_documents/doc-003.pdf"
+    source_url: "https://csrc.nist.gov/publications/detail/sp/800-207/final"
+    access_date: "2026-09-22"
+    licence: "NIST Public Domain"
+    owner_custodian: "National Institute of Standards and Technology"
+    document_type: "compliance policy"
+    layout_type: "single-column"
+    has_tables: false
+    has_formulas: false
+    pages_count: 26
+    kpi: "text_retrieval_mrr"
+    description: "Standard operating procedures and zero-trust data access governance policies across enterprise services."
+
+  - id: "doc-004"
+    title: "Transformer Spatial Attention Architecture.pdf"
+    file_path: "data/sample_documents/doc-004.pdf"
+    source_url: "https://arxiv.org/abs/2105.02356"
+    access_date: "2026-09-22"
+    licence: "CC-BY-NC-SA-4.0"
+    owner_custodian: "Open Access AI Research Repository"
+    document_type: "technical whitepaper"
+    layout_type: "multi-column"
+    has_tables: true
+    has_formulas: true
+    pages_count: 34
+    kpi: "spatial_bbox_iou"
+    description: "Deep dive into 2D relative spatial position embeddings for transformers parsing multi-column document layouts."
+
+  - id: "doc-005"
+    title: "Quarterly Cloud Revenue & Operations Report.pdf"
+    file_path: "data/sample_documents/doc-005.pdf"
+    source_url: "https://investor.sample-cloud.com/reports/2026-q3"
+    access_date: "2026-09-23"
+    licence: "Open Commercial Disclosure"
+    owner_custodian: "Cloud Infrastructure Operations Bureau"
+    document_type: "financial report"
+    layout_type: "mixed"
+    has_tables: true
+    has_formulas: false
+    pages_count: 22
+    kpi: "table_extraction_f1"
+    description: "Quarterly operational KPIs, cloud server latency distributions, and revenue allocation matrices."
+
+  - id: "doc-006"
+    title: "Corporate W-9 Tax Compliance Form.pdf"
+    file_path: "data/sample_documents/doc-006.pdf"
+    source_url: "https://www.irs.gov/pub/irs-pdf/fw9.pdf"
+    access_date: "2026-09-24"
+    licence: "US Government Works (17 U.S.C. 105)"
+    owner_custodian: "Internal Revenue Service"
+    document_type: "form"
+    layout_type: "form-grid"
+    has_tables: true
+    has_formulas: false
+    pages_count: 6
+    kpi: "form_key_value_f1"
+    description: "Standardized taxpayer identification request form with tabular checkbox grids and field boundaries."
+
+  - id: "doc-007"
+    title: "Master Services Agreement Template.pdf"
+    file_path: "data/sample_documents/doc-007.pdf"
+    source_url: "https://contracts.onecle.com/sample/msa-template"
+    access_date: "2026-09-25"
+    licence: "Creative Commons Zero (CC0)"
+    owner_custodian: "Open Legal Document Repository"
+    document_type: "legal"
+    layout_type: "single-column"
+    has_tables: false
+    has_formulas: false
+    pages_count: 14
+    kpi: "text_retrieval_mrr"
+    description: "Commercial bilateral terms of service, indemnification covenants, and intellectual property provisions."
+
+  - id: "doc-008"
+    title: "DocVQA Visual Question Answering Benchmark.pdf"
+    file_path: "data/sample_documents/doc-008.pdf"
+    source_url: "https://www.docvqa.org/datasets/task-1"
+    access_date: "2026-09-26"
+    licence: "CC-BY-4.0"
+    owner_custodian: "Computer Vision Center / CVC Barcelona"
+    document_type: "academic paper"
+    layout_type: "multi-column"
+    has_tables: true
+    has_formulas: true
+    pages_count: 12
+    kpi: "visual_qa_anls"
+    description: "Academic benchmark specification for visual question answering on complex document layouts."
+
+  - id: "doc-009"
+    title: "Vendor Cyber Risk Questionnaire.pdf"
+    file_path: "data/sample_documents/doc-009.pdf"
+    source_url: "https://www.cisa.gov/resources-tools/resources/cyber-assessment"
+    access_date: "2026-09-27"
+    licence: "Public Domain / CISA"
+    owner_custodian: "Cybersecurity & Infrastructure Security Agency"
+    document_type: "form"
+    layout_type: "form-grid"
+    has_tables: true
+    has_formulas: false
+    pages_count: 8
+    kpi: "form_key_value_f1"
+    description: "Supply chain cybersecurity assessment form with matrix scoring and requirement checklists."
+
+  - id: "doc-010"
+    title: "ESG Environmental Impact Disclosure.pdf"
+    file_path: "data/sample_documents/doc-010.pdf"
+    source_url: "https://www.globalreporting.org/standards"
+    access_date: "2026-09-28"
+    licence: "GRI Standard Open Use"
+    owner_custodian: "Global Reporting Initiative"
+    document_type: "legal"
+    layout_type: "single-column"
+    has_tables: true
+    has_formulas: false
+    pages_count: 20
+    kpi: "text_retrieval_mrr"
+    description: "Corporate sustainability reporting directive disclosure with carbon emissions tables and statutory audit text."
+

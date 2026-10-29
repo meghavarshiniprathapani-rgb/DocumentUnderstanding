@@ -1,0 +1,108 @@
+{
+  "page_id": "doc-008_p1",
+  "document_id": "doc-008",
+  "page_number": 1,
+  "width": 800.0,
+  "height": 1100.0,
+  "metadata": {
+    "annotator_id": "oracle-acceptance-team",
+    "verified": true,
+    "partition": "frozen_acceptance",
+    "document_type": "academic_paper",
+    "layout_type": "three_column_table",
+    "created_at": "2026-10-28T18:00:00Z"
+  },
+  "elements": [
+    {
+      "id": "elem-801",
+      "type": "heading",
+      "bbox": { "x": 50.0, "y": 60.0, "width": 700.0, "height": 45.0 },
+      "reading_order": 0,
+      "text": "DOCVQA: MULTI-MODAL VISUAL QUESTION ANSWERING BENCHMARK SPECIFICATION",
+      "is_critical": true,
+      "critical_category": "document_header"
+    },
+    {
+      "id": "elem-802",
+      "type": "text",
+      "bbox": { "x": 50.0, "y": 120.0, "width": 220.0, "height": 130.0 },
+      "reading_order": 1,
+      "text": "3-Column Section A: The DocVQA task emphasizes spatial scene reasoning, wherein questions necessitate grounding answers across multiple structural table cells and headings.",
+      "is_critical": false,
+      "metadata": { "subgroup": "rare_case", "column": 0 }
+    },
+    {
+      "id": "elem-803",
+      "type": "text",
+      "bbox": { "x": 290.0, "y": 120.0, "width": 220.0, "height": 130.0 },
+      "reading_order": 2,
+      "text": "3-Column Section B: Documents exhibit diverse typographical hierarchies, requiring reading order recovery to decouple body paragraphs from floating figures and data matrices.",
+      "is_critical": false,
+      "metadata": { "subgroup": "rare_case", "column": 1 }
+    },
+    {
+      "id": "elem-804",
+      "type": "text",
+      "bbox": { "x": 530.0, "y": 120.0, "width": 220.0, "height": 130.0 },
+      "reading_order": 3,
+      "text": "3-Column Section C: Robust confidence calibration is essential to route ambiguous visual questions to human-in-the-loop review queues instead of generating hallucinated answers.",
+      "is_critical": false,
+      "metadata": { "subgroup": "rare_case", "column": 2 }
+    },
+    {
+      "id": "elem-805",
+      "type": "formula",
+      "bbox": { "x": 50.0, "y": 270.0, "width": 700.0, "height": 60.0 },
+      "reading_order": 4,
+      "text": "ANLS = (1 / N) * sum_{i=1}^N max_j s(a_i, q_ij)",
+      "is_critical": true,
+      "critical_category": "primary_theorem",
+      "metadata": { "subgroup": "rare_case" },
+      "formula": {
+        "latex": "\\text{ANLS} = \\frac{1}{N} \\sum_{i=1}^{N} \\max_{j} s(a_i, q_{ij})",
+        "text": "ANLS = (1 / N) * sum_{i=1}^N max_j s(a_i, q_ij)",
+        "formula_type": "display"
+      }
+    },
+    {
+      "id": "elem-806",
+      "type": "table",
+      "bbox": { "x": 50.0, "y": 350.0, "width": 700.0, "height": 260.0 },
+      "reading_order": 5,
+      "text": "Table 1: State-of-the-Art Evaluation on DocVQA and FUNSD Benchmarks",
+      "is_critical": true,
+      "critical_category": "benchmark_metric",
+      "table": {
+        "num_rows": 5,
+        "num_cols": 4,
+        "cells": [
+          { "cell_id": "c8-0-0", "row_index": 0, "col_index": 0, "row_span": 1, "col_span": 2, "content": "Model Architecture Family", "is_header": true },
+          { "cell_id": "c8-0-2", "row_index": 0, "col_index": 2, "row_span": 1, "col_span": 1, "content": "DocVQA ANLS (%)", "is_header": true },
+          { "cell_id": "c8-0-3", "row_index": 0, "col_index": 3, "row_span": 1, "col_span": 1, "content": "FUNSD F1 (%)", "is_header": true },
+          { "cell_id": "c8-1-0", "row_index": 1, "col_index": 0, "row_span": 1, "col_span": 2, "content": "Baseline ResNet + BERT", "is_header": false },
+          { "cell_id": "c8-1-2", "row_index": 1, "col_index": 2, "row_span": 1, "col_span": 1, "content": "67.4", "is_header": false },
+          { "cell_id": "c8-1-3", "row_index": 1, "col_index": 3, "row_span": 1, "col_span": 1, "content": "78.2", "is_header": false },
+          { "cell_id": "c8-2-0", "row_index": 2, "col_index": 0, "row_span": 1, "col_span": 2, "content": "LayoutLMv1 Baseline", "is_header": false },
+          { "cell_id": "c8-2-2", "row_index": 2, "col_index": 2, "row_span": 1, "col_span": 1, "content": "72.8", "is_header": false },
+          { "cell_id": "c8-2-3", "row_index": 2, "col_index": 3, "row_span": 1, "col_span": 1, "content": "82.5", "is_header": false },
+          { "cell_id": "c8-3-0", "row_index": 3, "col_index": 0, "row_span": 1, "col_span": 2, "content": "LayoutLMv2 Reference", "is_header": false },
+          { "cell_id": "c8-3-2", "row_index": 3, "col_index": 2, "row_span": 1, "col_span": 1, "content": "78.1", "is_header": false },
+          { "cell_id": "c8-3-3", "row_index": 3, "col_index": 3, "row_span": 1, "col_span": 1, "content": "89.4", "is_header": false },
+          { "cell_id": "c8-4-0", "row_index": 4, "col_index": 0, "row_span": 1, "col_span": 2, "content": "Retrieva 2D Spatial O3", "is_header": false },
+          { "cell_id": "c8-4-2", "row_index": 4, "col_index": 2, "row_span": 1, "col_span": 1, "content": "84.6", "is_header": false },
+          { "cell_id": "c8-4-3", "row_index": 4, "col_index": 3, "row_span": 1, "col_span": 1, "content": "94.8", "is_header": false }
+        ]
+      }
+    },
+    {
+      "id": "elem-807",
+      "type": "text",
+      "bbox": { "x": 50.0, "y": 630.0, "width": 700.0, "height": 35.0 },
+      "reading_order": 6,
+      "text": "Dataset License Note: Benchmark distributed under Creative Commons Attribution 4.0 International.",
+      "is_critical": false,
+      "metadata": { "subgroup": "small_case" }
+    }
+  ]
+}
+

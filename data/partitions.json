@@ -1,0 +1,24 @@
+{
+  "config_version": "1.0.0",
+  "seed": 42,
+  "acceptance_ratio": 0.3,
+  "total_documents": 10,
+  "dev_count": 7,
+  "acceptance_count": 3,
+  "dev_document_ids": [
+    "doc-001",
+    "doc-002",
+    "doc-005",
+    "doc-006",
+    "doc-007",
+    "doc-009",
+    "doc-010"
+  ],
+  "acceptance_document_ids": [
+    "doc-003",
+    "doc-004",
+    "doc-008"
+  ],
+  "acceptance_hash": "a5f7bfbcfbe9c39efadaae06c1c4812842ab6e2127af357ce6e183ed5e517bdf",
+  "created_at": "2026-10-28T17:54:08.035775+00:00"
+}

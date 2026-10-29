@@ -1,0 +1,62 @@
+{
+  "page_id": "doc-002_p1",
+  "document_id": "doc-002",
+  "page_number": 1,
+  "width": 800.0,
+  "height": 1100.0,
+  "metadata": {
+    "annotator_id": "oracle-team-02",
+    "verified": true,
+    "created_at": "2026-10-28T18:05:00Z"
+  },
+  "elements": [
+    {
+      "id": "elem-201",
+      "type": "heading",
+      "bbox": { "x": 60.0, "y": 70.0, "width": 680.0, "height": 50.0 },
+      "reading_order": 0,
+      "text": "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens",
+      "is_critical": true,
+      "critical_category": "academic_title"
+    },
+    {
+      "id": "elem-202",
+      "type": "text",
+      "bbox": { "x": 60.0, "y": 135.0, "width": 680.0, "height": 110.0 },
+      "reading_order": 1,
+      "text": "Abstract: Multi-modal document understanding requires joint modeling of textual content, 2D spatial layouts, and visual features within a unified transformer architecture.",
+      "is_critical": false
+    },
+    {
+      "id": "elem-203",
+      "type": "formula",
+      "bbox": { "x": 100.0, "y": 270.0, "width": 600.0, "height": 60.0 },
+      "reading_order": 2,
+      "text": "Attention(Q, K, V) = softmax((Q K^T) / sqrt(d_k)) V",
+      "is_critical": true,
+      "critical_category": "primary_theorem",
+      "formula": {
+        "latex": "\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{Q K^T}{\\sqrt{d_k}}\\right) V",
+        "text": "Attention(Q, K, V) = softmax( (Q K^T) / sqrt(d_k) ) V",
+        "formula_type": "display"
+      }
+    },
+    {
+      "id": "elem-204",
+      "type": "text",
+      "bbox": { "x": 60.0, "y": 350.0, "width": 320.0, "height": 300.0 },
+      "reading_order": 3,
+      "text": "Column 1: To capture relative positional bias across 2D visual layouts, we incorporate two-dimensional spatial coordinate embeddings derived from bounding box tuples.",
+      "is_critical": false
+    },
+    {
+      "id": "elem-205",
+      "type": "text",
+      "bbox": { "x": 420.0, "y": 350.0, "width": 320.0, "height": 300.0 },
+      "reading_order": 4,
+      "text": "Column 2: Visual patch tokens are extracted directly via linear projection of non-overlapping image patches, bypassing expensive faster R-CNN visual backbones.",
+      "is_critical": false
+    }
+  ]
+}
+

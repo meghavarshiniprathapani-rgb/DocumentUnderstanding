@@ -8,6 +8,7 @@ import { SearchPage } from './pages/SearchPage';
 import { DocumentViewerPage } from './pages/DocumentViewerPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { EvaluationPage } from './pages/EvaluationPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
@@ -30,7 +31,7 @@ export default function App() {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('retrieva_user');
     if (savedUser) {
-      try { return JSON.parse(savedUser); } catch (e) {}
+      try { return JSON.parse(savedUser); } catch {}
     }
     return {
       name: 'Meghavarshini Prathapani',
@@ -91,8 +92,8 @@ export default function App() {
     navigate('/login');
   };
 
-  const handleUploadComplete = (fileName) => {
-    setSelectedDocId('doc-001');
+  const handleUploadComplete = (fileName, docId) => {
+    if (docId) setSelectedDocId(docId);
   };
 
   // Route Handler: Render Auth Pages if path matches /login or /signup
@@ -180,6 +181,12 @@ export default function App() {
             <LibraryPage 
               setActiveTab={setActiveTab}
               setSelectedDocId={setSelectedDocId}
+            />
+          )}
+
+          {activeTab === 'evaluation' && (
+            <EvaluationPage 
+              setActiveTab={setActiveTab}
             />
           )}
 

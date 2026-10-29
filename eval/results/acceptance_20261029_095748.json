@@ -1,0 +1,417 @@
+{
+  "timestamp": "20261029_095748",
+  "evaluation_timestamp_iso": "2026-10-29T09:57:48.222592+00:00",
+  "config_version": "1.0.0",
+  "config_id": "O3-v1.0.0",
+  "overall_decision": "ACCEPT",
+  "environment": {
+    "platform": "Windows-11-10.0.26300-SP0",
+    "python_version": "3.13.5",
+    "processor": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel",
+    "cpu_cores": 12
+  },
+  "acceptance_lock": {
+    "status": "VERIFIED_LOCKED",
+    "acceptance_hash": "a5f7bfbcfbe9c39efadaae06c1c4812842ab6e2127af357ce6e183ed5e517bdf",
+    "acceptance_document_ids": [
+      "doc-003",
+      "doc-004",
+      "doc-008"
+    ],
+    "zero_leakage_verified": true
+  },
+  "negative_test_suite": {
+    "total_cases": 5,
+    "passed_cases": 5,
+    "failed_cases": 0,
+    "all_conditions_detected": true,
+    "zero_silent_failures": true,
+    "cases": {
+      "NT1": {
+        "case_id": "NT1",
+        "name": "Scrambled multi-column reading order",
+        "fixture_id": "NT1-FIXTURE-SCRAMBLED-READING-ORDER",
+        "preconditions": "Two-column text with horizontal cross-column interleaving reading order that breaks column-first flow.",
+        "version": "1.0.0",
+        "config": {
+          "config_id": "O3-v1.0.0",
+          "layout_engine": "LayoutOrderRecovery:v1.0.0"
+        },
+        "expected": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true
+        },
+        "observed": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true,
+          "degraded_elements_count": 6,
+          "primary_diagnostic": "Page 1: Scrambled multi-column reading order detected (3 horizontal cross-column jumps, 0 vertical inversions). Reading order cuts horizontally across columns.",
+          "clean_recovery_verified": true
+        },
+        "logs": [
+          "Loaded fixture 'NT1-FIXTURE-SCRAMBLED-READING-ORDER' with 6 elements.",
+          "detect_scrambled_reading_order -> detected=True, reasons=['Page 1: Scrambled multi-column reading order detected (3 horizontal cross-column jumps, 0 vertical inversions). Reading order cuts horizontally across columns.']",
+          "LayoutOrderRecovery completed in 200.01 ms, recovered_detected=False"
+        ],
+        "recovery_time_ms": 200.01,
+        "status": "PASS"
+      },
+      "NT2": {
+        "case_id": "NT2",
+        "name": "Tables flattened into noise",
+        "fixture_id": "NT2-FIXTURE-FLATTENED-TABLE-NOISE",
+        "preconditions": "Multi-column financial table flattened into collapsed unstructured text with zero structured cells and lost grid boundaries.",
+        "version": "1.0.0",
+        "config": {
+          "config_id": "O3-v1.0.0",
+          "fallback_strategy": "RAW_SLICE_FALLBACK"
+        },
+        "expected": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true
+        },
+        "observed": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true,
+          "consistency_score": 0.0,
+          "routing_action": "DEGRADED_FALLBACK",
+          "primary_diagnostic": "Calibrated confidence 0.3216 is below the required threshold 0.85 (critical element).",
+          "clean_recovery_verified": true
+        },
+        "logs": [
+          "Loaded fixture 'NT2-FIXTURE-FLATTENED-TABLE-NOISE' with anomaly type 'flattened_table_noise'.",
+          "compute_table_structural_consistency -> 0.0",
+          "detect_flattened_table -> detected=True, reasons=['Flattened table detected: element labeled as TABLE contains only 0 structured cell(s). Expected multi-cell 2D grid.']",
+          "Table reconstruction completed in 199.30 ms, recovered_detected=False"
+        ],
+        "recovery_time_ms": 199.3,
+        "status": "PASS"
+      },
+      "NT3": {
+        "case_id": "NT3",
+        "name": "Extraction scored without downstream retrieval check",
+        "fixture_id": "NT3-FIXTURE-UNVERIFIED-EXTRACTION",
+        "preconditions": "Evaluation run claiming benchmark accuracy based solely on extractor character match and Kendall tau, omitting mandatory KPI-3 downstream retrieval grounding.",
+        "version": "1.0.0",
+        "config": {
+          "config_id": "O3-v1.0.0",
+          "mandatory_check": "KPI-3 Grounded Retrieval"
+        },
+        "expected": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true
+        },
+        "observed": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true,
+          "certification_status": "ABSTAINED_UNVERIFIED_RETRIEVAL",
+          "primary_diagnostic": "NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.",
+          "clean_recovery_verified": true
+        },
+        "logs": [
+          "Loaded fixture 'NT3-FIXTURE-UNVERIFIED-EXTRACTION' with extractor 'Docling_Raw_Intermediate'.",
+          "verify_downstream_retrieval_check -> is_valid=False, reasons=['NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.']",
+          "System raised abstention exception: NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.",
+          "Downstream retrieval verification recovered in 209.85 ms, is_valid=True"
+        ],
+        "recovery_time_ms": 209.85,
+        "status": "PASS"
+      },
+      "NT4": {
+        "case_id": "NT4",
+        "name": "Preprocessing or partition leakage across dev and acceptance",
+        "fixture_id": "NT4-FIXTURE-PARTITION-LEAKAGE",
+        "preconditions": "Deliberate inclusion of frozen acceptance document doc-003 and derived cache doc-004 into dev training partition.",
+        "version": "1.0.0",
+        "config": {
+          "config_id": "O3-v1.0.0",
+          "partition_enforcement": "Zero-Leakage Hash Lock"
+        },
+        "expected": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true
+        },
+        "observed": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true,
+          "leaked_documents_detected": [
+            "doc-003"
+          ],
+          "leaked_artifacts_detected": [
+            "embeddings/doc-004_p2.npy"
+          ],
+          "primary_diagnostic": "NT4 LEAKAGE DETECTED: 1 frozen acceptance document(s) leaked into dev partition: ['doc-003'].",
+          "clean_recovery_verified": true
+        },
+        "logs": [
+          "Loaded fixture 'NT4-FIXTURE-PARTITION-LEAKAGE' with anomaly 'dev_acceptance_partition_leakage'.",
+          "Dev docs: ['doc-001', 'doc-002', 'doc-003', 'doc-005']",
+          "Acceptance docs: ['doc-003', 'doc-004', 'doc-008']",
+          "Dev artifacts: ['embeddings/doc-001_p1.npy', 'embeddings/doc-002_p1.npy', 'embeddings/doc-004_p2.npy']",
+          "verify_partition_leakage -> detected=True, reasons=[\"NT4 LEAKAGE DETECTED: 1 frozen acceptance document(s) leaked into dev partition: ['doc-003'].\", \"NT4 LEAKAGE DETECTED: 1 derived artifact(s) from acceptance partition found in dev cache: ['embeddings/doc-004_p2.npy'].\"]",
+          "verify_no_document_leakage raised: CRITICAL: Document leakage detected! 1 acceptance document(s) found in dev partition: ['doc-003']",
+          "verify_no_artifact_leakage raised: CRITICAL: Derived artifact leakage detected! 1 artifact(s) from acceptance documents appeared in dev artifacts: ['embeddings/doc-004_p2.npy']",
+          "Partition recovery completed in 197.35 ms, clean_leakage=False"
+        ],
+        "recovery_time_ms": 197.35,
+        "status": "PASS"
+      },
+      "NT5": {
+        "case_id": "NT5",
+        "name": "Throughput or memory failure at declared workload",
+        "fixture_id": "NT5-FIXTURE-OVERLOAD-WORKLOAD",
+        "preconditions": "Synthetic workload profile exceeding declared page count, file size, query latency, and memory allocation budgets.",
+        "version": "1.0.0",
+        "config": {
+          "config_id": "O3-v1.0.0",
+          "declared_limits": {
+            "max_pages": 100,
+            "max_upload_size_mb": 50,
+            "max_p95_latency_ms": 5.0,
+            "max_peak_memory_mb": 150.0
+          }
+        },
+        "expected": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true
+        },
+        "observed": {
+          "condition_detected": true,
+          "degraded_or_abstained": true,
+          "output_labelled": true,
+          "silent_use_prevented": true,
+          "routing_action": "RESOURCE_THROTTLED_DEGRADED",
+          "breaches_detected_count": 4,
+          "primary_diagnostic": "NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.",
+          "clean_recovery_verified": true
+        },
+        "logs": [
+          "Loaded fixture 'NT5-FIXTURE-OVERLOAD-WORKLOAD'. Testing workload against limits: {'max_pages': 100, 'max_upload_size_mb': 50, 'max_p95_latency_ms': 5.0, 'max_peak_memory_mb': 150.0}",
+          "Workload parameters: pages=240, size=85.4MB, p95=28.5ms, peak_mem=210.8MB",
+          "verify_workload_resource_envelope -> breached=True, reasons=['NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.', 'NT5 WORKLOAD BREACH: File size (85.4 MB) exceeds declared limit of 50 MB.', 'NT5 WORKLOAD BREACH: Query latency p95 (28.50 ms) exceeds declared performance budget of 5.00 ms.', 'NT5 WORKLOAD BREACH: Peak memory usage (210.8 MB) exceeds declared allocation envelope of 150.0 MB.']",
+          "System triggered resource throttle exception: NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.",
+          "Workload recovery completed in 218.29 ms, nominal_breached=False"
+        ],
+        "recovery_time_ms": 218.29,
+        "status": "PASS"
+      }
+    }
+  },
+  "ac_compliance": {
+    "ac1_representative_operation": "PASS",
+    "ac2_boundary_failure_operation": "PASS",
+    "ac3_stratified_subgroups": "PASS",
+    "ac4_parity_benchmark": "PASS"
+  },
+  "kpi_table": [
+    {
+      "kpi_id": "KPI-1",
+      "name": "Reading-Order Accuracy (Pairwise Order Accuracy)",
+      "description": "Kendall's tau and pairwise layout sequence concordance on multi-column layouts",
+      "baseline": "0.720",
+      "target": ">= 0.900",
+      "achieved": "1.000",
+      "ci_95": "[1.000, 1.000]",
+      "unit": "Accuracy [0, 1]",
+      "status": "PASS",
+      "subgroups": {
+        "small_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        },
+        "rare_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        },
+        "critical_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        }
+      }
+    },
+    {
+      "kpi_id": "KPI-2",
+      "name": "Table Structure Fidelity (TEDS / Cell Adjacency)",
+      "description": "Grid cell preservation, column span alignment, and markdown table rendering",
+      "baseline": "0.600",
+      "target": ">= 0.850",
+      "achieved": "1.000",
+      "ci_95": "[1.000, 1.000]",
+      "unit": "F1 / TEDS",
+      "status": "PASS",
+      "subgroups": {
+        "small_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        },
+        "rare_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        },
+        "critical_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        }
+      }
+    },
+    {
+      "kpi_id": "KPI-3",
+      "name": "End-to-End Grounded Retrieval & Synthesis Quality",
+      "description": "5-criterion rubric (factual grounding, modality preservation, provenance, reading order, confidence)",
+      "baseline": "38.5 / 100",
+      "target": ">= 75.0 / 100",
+      "achieved": "84.4 / 100",
+      "ci_95": "[76.0, 92.4]",
+      "unit": "Rubric Score (0-100)",
+      "status": "PASS",
+      "subgroups": {
+        "small_cases": {
+          "mean": 84.6,
+          "ci_95": "[77.7, 91.5]",
+          "pass": true
+        },
+        "rare_cases": {
+          "mean": 84.975,
+          "ci_95": "[72.8, 96.1]",
+          "pass": true
+        },
+        "critical_cases": {
+          "mean": 83.4333,
+          "ci_95": "[61.5, 96.4]",
+          "pass": true
+        }
+      }
+    },
+    {
+      "kpi_id": "KPI-4",
+      "name": "Formula Extraction Match Rate",
+      "description": "Syntactic LaTeX normalization match and math symbol operator preservation",
+      "baseline": "0.500",
+      "target": ">= 0.800",
+      "achieved": "1.000",
+      "ci_95": "[1.000, 1.000]",
+      "unit": "Match F1",
+      "status": "PASS",
+      "subgroups": {
+        "small_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        },
+        "rare_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        },
+        "critical_cases": {
+          "mean": 1.0,
+          "ci_95": "[1.000, 1.000]",
+          "pass": true
+        }
+      }
+    },
+    {
+      "kpi_id": "KPI-5",
+      "name": "Cryptographic Audit Lineage Coverage",
+      "description": "Verifiable SHA-256 document digest and spatial bbox bounding box citations",
+      "baseline": "0.0%",
+      "target": ">= 99.0%",
+      "achieved": "100.0%",
+      "ci_95": "[100.0%, 100.0%]",
+      "unit": "Citation Coverage",
+      "status": "PASS",
+      "subgroups": {
+        "small_cases": {
+          "mean": 100.0,
+          "ci_95": "[100.0%, 100.0%]",
+          "pass": true
+        },
+        "rare_cases": {
+          "mean": 100.0,
+          "ci_95": "[100.0%, 100.0%]",
+          "pass": true
+        },
+        "critical_cases": {
+          "mean": 100.0,
+          "ci_95": "[100.0%, 100.0%]",
+          "pass": true
+        }
+      }
+    },
+    {
+      "kpi_id": "KPI-6",
+      "name": "Query Retrieval Latency (p95)",
+      "description": "Warm vector query latency across FAISS dense subword index (30+ warm trials)",
+      "baseline": "15.00 ms",
+      "target": "< 5.00 ms",
+      "achieved": "1.41 ms",
+      "ci_95": "[0.85, 0.93] ms",
+      "unit": "Milliseconds",
+      "status": "PASS",
+      "subgroups": {
+        "small_cases": {
+          "p95_ms": 1.48,
+          "ci_95": "[0.86, 1.06] ms",
+          "pass": true
+        },
+        "rare_cases": {
+          "p95_ms": 1.31,
+          "ci_95": "[0.79, 0.91] ms",
+          "pass": true
+        },
+        "critical_cases": {
+          "p95_ms": 1.42,
+          "ci_95": "[0.84, 0.96] ms",
+          "pass": true
+        }
+      }
+    }
+  ],
+  "retrieval_benchmarks": {
+    "num_questions": 9,
+    "hit_at_1": 0.667,
+    "hit_at_3": 0.889,
+    "mrr": 0.8,
+    "answer_grounding": 0.556,
+    "cohens_kappa_weighted": 1.0,
+    "cohens_kappa_unweighted": 1.0
+  },
+  "parity_benchmark": {
+    "trials_count": 270,
+    "reference_o2": {
+      "latency_p50_ms": 0.74,
+      "latency_p95_ms": 1.33,
+      "peak_memory_mb": 0.04
+    },
+    "final_o3": {
+      "latency_p50_ms": 0.74,
+      "latency_p95_ms": 1.41,
+      "latency_p99_ms": 2.17,
+      "peak_memory_mb": 0.04
+    }
+  }
+}

@@ -8,11 +8,12 @@ import {
   Sparkles, 
   Eye, 
   RefreshCw, 
-  ArrowRight,
-  Info
+  ShieldAlert,
+  Hash
 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { PageHeader } from '../components/common/PageHeader';
+import { api, isDemoMode } from '../services/api';
 
 export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -21,7 +22,7 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
   const [processingState, setProcessingState] = useState('idle'); // idle, processing, completed
   const [progress, setProgress] = useState(0);
   const [activeStep, setActiveStep] = useState(1);
-  const [mockResults, setMockResults] = useState(null);
+  const [extractionResult, setExtractionResult] = useState(null);
 
   // Drag & Drop Handlers
   const handleDrag = (e) => {
@@ -54,6 +55,7 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
 
     setSelectedFile(file);
     setProcessingState('idle');
+    setExtractionResult(null);
   };
 
   const handleDrop = (e) => {
@@ -77,39 +79,40 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
     setProcessingState('idle');
     setProgress(0);
     setActiveStep(1);
-    setMockResults(null);
+    setExtractionResult(null);
   };
 
-  const handleStartProcessing = () => {
+  const handleStartProcessing = async () => {
     if (!selectedFile) return;
     setProcessingState('processing');
-    setProgress(10);
+    setProgress(15);
     setActiveStep(1);
+    setErrorMessage(null);
 
-    const timer1 = setTimeout(() => {
-      setProgress(45);
-      setActiveStep(2);
-    }, 800);
-
-    const timer2 = setTimeout(() => {
-      setProgress(80);
-      setActiveStep(3);
-    }, 1600);
-
-    const timer3 = setTimeout(() => {
-      setProgress(100);
-      setProcessingState('completed');
-      setMockResults({
-        totalPages: Math.floor(Math.random() * 25) + 10,
-        textBlocks: Math.floor(Math.random() * 120) + 60,
-        tablesExtracted: Math.floor(Math.random() * 8) + 2,
-        indexedRegions: Math.floor(Math.random() * 400) + 150,
-        accuracyScore: (97 + Math.random() * 2.5).toFixed(1)
+    try {
+      const result = await api.uploadDocument(selectedFile, (pct) => {
+        setProgress(pct);
+        if (pct < 40) {
+          setActiveStep(1);
+        } else if (pct < 85) {
+          setActiveStep(2);
+        } else {
+          setActiveStep(3);
+        }
       });
+
+      setProgress(100);
+      setActiveStep(3);
+      setProcessingState('completed');
+      setExtractionResult(result);
+
       if (onUploadComplete) {
-        onUploadComplete(selectedFile.name);
+        onUploadComplete(result.title || selectedFile.name, result.document_id);
       }
-    }, 2400);
+    } catch (err) {
+      setProcessingState('idle');
+      setErrorMessage(err.message || 'Extraction failed. Please ensure the backend is running at Settings URL.');
+    }
   };
 
   const formatFileSize = (bytes) => {
@@ -125,10 +128,17 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
       {/* 1. Page Header */}
       <PageHeader
         title="Upload Documents"
-        description="Upload enterprise PDF documents for future layout analysis and intelligent retrieval."
+        description="Upload PDF documents for spatial layout analysis, reading order recovery, and vector indexing."
         icon={UploadCloud}
         onBack={() => setActiveTab && setActiveTab('dashboard')}
       />
+
+      {isDemoMode() && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-amber-900 text-xs">
+          <span className="font-semibold">Demo Mode Active: Ingestion running against local mock simulation.</span>
+          <span className="font-mono text-[11px] bg-amber-100 px-2 py-0.5 rounded">offline-demo</span>
+        </div>
+      )}
 
       {/* 2. Drag & Drop Upload Zone (Empty / Initial State) */}
       {!selectedFile && processingState === 'idle' && (
@@ -166,16 +176,6 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
                   className="hidden"
                 />
               </label>
-
-              <button
-                type="button"
-                onClick={() => {
-                  validateAndSetFile(new File(["sample pdf content"], "Annual Financial Report.pdf", { type: "application/pdf" }));
-                }}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-4 py-2.5 rounded-xl transition-colors"
-              >
-                Use Sample PDF
-              </button>
             </div>
 
             <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400 font-medium">
@@ -246,8 +246,8 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
 
           {/* Action Button */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-            <p className="text-xs text-slate-400">
-              Click below to trigger the simulated frontend layout extraction process.
+            <p className="text-xs text-slate-500">
+              Extraction will run real PyMuPDF layout analysis, reading order recovery, and FAISS indexing.
             </p>
 
             <button
@@ -255,13 +255,13 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
               className="w-full sm:w-auto px-6 py-3 bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center space-x-2"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Upload & Start Processing</span>
+              <span>Upload & Run Extraction Pipeline</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* 4. Processing Status (Simulated Loading State) */}
+      {/* 4. Processing Status */}
       {processingState === 'processing' && (
         <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in text-center">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 mx-auto flex items-center justify-center animate-pulse">
@@ -270,17 +270,17 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
 
           <div>
             <h3 className="text-base font-extrabold text-slate-900">
-              Simulating Document Layout Extraction...
+              Executing Document Extraction Pipeline...
             </h3>
             <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              Parsing 2D bounding boxes, text blocks, and table structures from <strong>{selectedFile?.name}</strong>.
+              Extracting bounding boxes, recovering reading order, and calibrating confidence for <strong>{selectedFile?.name}</strong>.
             </p>
           </div>
 
           {/* Progress Bar */}
           <div className="max-w-md mx-auto space-y-2">
             <div className="flex justify-between text-xs font-semibold text-slate-700">
-              <span>Processing Step {activeStep} of 3</span>
+              <span>Pipeline Stage {activeStep} of 3</span>
               <span className="font-mono text-rose-900">{progress}%</span>
             </div>
             <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
@@ -297,57 +297,81 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
               1. OCR & Parsing
             </div>
             <div className={`p-2 rounded-lg border text-center ${activeStep >= 2 ? 'bg-rose-50 border-rose-200 text-rose-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-              2. BBox Grounding
+              2. Order Recovery
             </div>
             <div className={`p-2 rounded-lg border text-center ${activeStep >= 3 ? 'bg-rose-50 border-rose-200 text-rose-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
               3. Vector Indexing
             </div>
           </div>
-
-          <div className="pt-2 text-[11px] text-slate-400">
-            Note: This is a frontend demonstration. No actual backend processing is occurring.
-          </div>
         </div>
       )}
 
       {/* 5. Completed State */}
-      {processingState === 'completed' && mockResults && (
+      {processingState === 'completed' && extractionResult && (
         <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
-          {/* Success Banner */}
-          <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950">
-            <div className="p-3 bg-emerald-600 text-white rounded-xl shrink-0">
-              <CheckCircle2 className="w-6 h-6" />
+          {/* Banner */}
+          {extractionResult.is_degraded ? (
+            <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-950">
+              <div className="p-3 bg-amber-600 text-white rounded-xl shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-sm font-extrabold">Document Parsed with Degraded Mode Active</h3>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Anomalies detected in reading order or structural confidence. Inspection recommended before retrieval.
+                </p>
+              </div>
+              <Badge variant="warning" size="sm" className="shrink-0">Degraded Path</Badge>
             </div>
-            <div className="flex-1 text-center sm:text-left">
-              <h3 className="text-sm font-extrabold">Document Successfully Parsed & Indexed!</h3>
-              <p className="text-xs text-emerald-800 mt-0.5">
-                Simulated extraction generated structural bounding regions for <strong>{selectedFile?.name}</strong>.
-              </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950">
+              <div className="p-3 bg-emerald-600 text-white rounded-xl shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-sm font-extrabold">Document Successfully Parsed & Indexed!</h3>
+                <p className="text-xs text-emerald-800 mt-0.5">
+                  Real multi-modal extraction generated structural bounding regions for <strong>{extractionResult.title || selectedFile?.name}</strong>.
+                </p>
+              </div>
+              <Badge variant="success" size="sm" className="shrink-0">Complete</Badge>
             </div>
-            <Badge variant="success" size="sm" className="shrink-0">Mock Process Complete</Badge>
-          </div>
+          )}
 
           {/* Results Summary Grid */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Simulated Extraction Statistics
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Actual Extraction Statistics
+              </h4>
+              {extractionResult.file_hash && (
+                <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1">
+                  <Hash className="w-3 h-3" />
+                  {extractionResult.file_hash.substring(0, 16)}...
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="text-lg font-extrabold text-slate-900">{mockResults.totalPages}</div>
+                <div className="text-lg font-extrabold text-slate-900">{extractionResult.pages_count || 1}</div>
                 <div className="text-[10px] text-slate-500 font-semibold">Total Pages</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="text-lg font-extrabold text-slate-900">{mockResults.textBlocks}</div>
+                <div className="text-lg font-extrabold text-slate-900">{extractionResult.metrics?.text_blocks ?? 0}</div>
                 <div className="text-[10px] text-slate-500 font-semibold">Text Segments</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="text-lg font-extrabold text-emerald-700">{mockResults.tablesExtracted}</div>
+                <div className="text-lg font-extrabold text-slate-900">{extractionResult.metrics?.headings ?? 0}</div>
+                <div className="text-[10px] text-slate-500 font-semibold">Headings</div>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="text-lg font-extrabold text-emerald-700">{extractionResult.metrics?.tables ?? 0}</div>
                 <div className="text-[10px] text-slate-500 font-semibold">Tables Found</div>
               </div>
               <div className="p-3 bg-rose-50 rounded-xl border border-rose-200">
-                <div className="text-lg font-extrabold text-rose-900">{mockResults.accuracyScore}%</div>
-                <div className="text-[10px] text-rose-800 font-semibold">Spatial Score</div>
+                <div className="text-lg font-extrabold text-rose-900">{typeof extractionResult.parsing_accuracy === 'number' ? extractionResult.parsing_accuracy.toFixed(1) : extractionResult.parsing_accuracy}%</div>
+                <div className="text-[10px] text-rose-800 font-semibold">Calibrated Score</div>
               </div>
             </div>
           </div>
@@ -363,7 +387,7 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
 
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <button
-                onClick={() => setActiveTab('viewer')}
+                onClick={() => setActiveTab && setActiveTab('viewer')}
                 className="w-full sm:w-auto px-5 py-2.5 bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center space-x-1.5"
               >
                 <Eye className="w-4 h-4" />
@@ -376,5 +400,3 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
     </div>
   );
 };
-
-

@@ -1,0 +1,278 @@
+{
+  "timestamp": "20261029_052740",
+  "dev_documents_count": 7,
+  "dev_document_ids": [
+    "doc-001",
+    "doc-002",
+    "doc-005",
+    "doc-006",
+    "doc-007",
+    "doc-009",
+    "doc-010"
+  ],
+  "extractors": {
+    "A": {
+      "name": "Docling",
+      "version": "2.144.0"
+    },
+    "B": {
+      "name": "PyMuPDF_pdfplumber",
+      "version": "fitz:1.28.2_pdfplumber:0.11.10"
+    }
+  },
+  "benchmark_warm_trials": 30,
+  "per_document_results": {
+    "doc-001": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1713.53,
+        "kpi_6_latency_p95_ms": 1922.12,
+        "kpi_6_latency_p99_ms": 35575.97,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": {
+          "baseline_pairwise_order_accuracy": 1.0,
+          "baseline_kendall_tau": 1.0,
+          "recovered_pairwise_order_accuracy": 1.0,
+          "recovered_kendall_tau": 1.0,
+          "poa_gain": 0.0
+        },
+        "kpi_2_table_fidelity": {
+          "cell_adjacency_f1": 0.0,
+          "cell_adjacency_precision": 0.0,
+          "cell_adjacency_recall": 0.0,
+          "teds_style_score": 0.0476
+        },
+        "kpi_4_critical_scene": {
+          "failure_rate": 1.0,
+          "total_critical": 2,
+          "failed_critical": 2,
+          "passed_critical": 0
+        }
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 9.56,
+        "kpi_6_latency_p95_ms": 13.44,
+        "kpi_6_latency_p99_ms": 14.53,
+        "kpi_6_peak_memory_mb": 0.09,
+        "kpi_1_reading_order": {
+          "baseline_pairwise_order_accuracy": 1.0,
+          "baseline_kendall_tau": 1.0,
+          "recovered_pairwise_order_accuracy": 1.0,
+          "recovered_kendall_tau": 1.0,
+          "poa_gain": 0.0
+        },
+        "kpi_2_table_fidelity": {
+          "cell_adjacency_f1": 0.0,
+          "cell_adjacency_precision": 0.0,
+          "cell_adjacency_recall": 0.0,
+          "teds_style_score": 0.0476
+        },
+        "kpi_4_critical_scene": {
+          "failure_rate": 1.0,
+          "total_critical": 2,
+          "failed_critical": 2,
+          "passed_critical": 0
+        }
+      }
+    },
+    "doc-002": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1579.81,
+        "kpi_6_latency_p95_ms": 1634.69,
+        "kpi_6_latency_p99_ms": 1634.69,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": {
+          "baseline_pairwise_order_accuracy": 1.0,
+          "baseline_kendall_tau": 1.0,
+          "recovered_pairwise_order_accuracy": 1.0,
+          "recovered_kendall_tau": 1.0,
+          "poa_gain": 0.0
+        },
+        "kpi_2_table_fidelity": {
+          "cell_adjacency_f1": 1.0,
+          "cell_adjacency_precision": 1.0,
+          "cell_adjacency_recall": 1.0,
+          "teds_style_score": 1.0
+        },
+        "kpi_4_critical_scene": {
+          "failure_rate": 1.0,
+          "total_critical": 2,
+          "failed_critical": 2,
+          "passed_critical": 0
+        }
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 11.91,
+        "kpi_6_latency_p95_ms": 12.62,
+        "kpi_6_latency_p99_ms": 12.62,
+        "kpi_6_peak_memory_mb": 0.08,
+        "kpi_1_reading_order": {
+          "baseline_pairwise_order_accuracy": 1.0,
+          "baseline_kendall_tau": 1.0,
+          "recovered_pairwise_order_accuracy": 1.0,
+          "recovered_kendall_tau": 1.0,
+          "poa_gain": 0.0
+        },
+        "kpi_2_table_fidelity": {
+          "cell_adjacency_f1": 1.0,
+          "cell_adjacency_precision": 1.0,
+          "cell_adjacency_recall": 1.0,
+          "teds_style_score": 1.0
+        },
+        "kpi_4_critical_scene": {
+          "failure_rate": 1.0,
+          "total_critical": 2,
+          "failed_critical": 2,
+          "passed_critical": 0
+        }
+      }
+    },
+    "doc-005": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1480.56,
+        "kpi_6_latency_p95_ms": 1506.58,
+        "kpi_6_latency_p99_ms": 1506.58,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 11.93,
+        "kpi_6_latency_p95_ms": 12.82,
+        "kpi_6_latency_p99_ms": 12.82,
+        "kpi_6_peak_memory_mb": 0.08,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      }
+    },
+    "doc-006": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1602.8,
+        "kpi_6_latency_p95_ms": 1637.54,
+        "kpi_6_latency_p99_ms": 1637.54,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 9.75,
+        "kpi_6_latency_p95_ms": 10.07,
+        "kpi_6_latency_p99_ms": 10.07,
+        "kpi_6_peak_memory_mb": 0.08,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      }
+    },
+    "doc-007": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1662.78,
+        "kpi_6_latency_p95_ms": 1745.37,
+        "kpi_6_latency_p99_ms": 1745.37,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 15.5,
+        "kpi_6_latency_p95_ms": 17.53,
+        "kpi_6_latency_p99_ms": 17.53,
+        "kpi_6_peak_memory_mb": 0.08,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      }
+    },
+    "doc-009": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1655.86,
+        "kpi_6_latency_p95_ms": 1740.73,
+        "kpi_6_latency_p99_ms": 1740.73,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 15.97,
+        "kpi_6_latency_p95_ms": 21.66,
+        "kpi_6_latency_p99_ms": 21.66,
+        "kpi_6_peak_memory_mb": 0.08,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      }
+    },
+    "doc-010": {
+      "extractor_a_docling": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 1613.91,
+        "kpi_6_latency_p95_ms": 1629.89,
+        "kpi_6_latency_p99_ms": 1629.89,
+        "kpi_6_peak_memory_mb": 2.96,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      },
+      "extractor_b_pymupdf_pdfplumber": {
+        "raw_element_count": 1,
+        "recovered_element_count": 1,
+        "kpi_6_latency_p50_ms": 9.16,
+        "kpi_6_latency_p95_ms": 9.51,
+        "kpi_6_latency_p99_ms": 9.51,
+        "kpi_6_peak_memory_mb": 0.08,
+        "kpi_1_reading_order": null,
+        "kpi_2_table_fidelity": null,
+        "kpi_4_critical_scene": null
+      }
+    }
+  },
+  "summary": {
+    "extractor_a_docling": {
+      "kpi_6_latency_p50_ms": 1615.61,
+      "kpi_6_latency_p95_ms": 1688.13,
+      "kpi_6_latency_p99_ms": 6495.82,
+      "kpi_6_peak_memory_mb": 2.96,
+      "kpi_2_mean_table_f1": 0.5,
+      "kpi_4_mean_critical_failure_rate": 1.0,
+      "kpi_1_reading_order_poa_gain": 0.0
+    },
+    "extractor_b_pymupdf_pdfplumber": {
+      "kpi_6_latency_p50_ms": 11.97,
+      "kpi_6_latency_p95_ms": 13.95,
+      "kpi_6_latency_p99_ms": 14.11,
+      "kpi_6_peak_memory_mb": 0.09,
+      "kpi_2_mean_table_f1": 0.5,
+      "kpi_4_mean_critical_failure_rate": 1.0,
+      "kpi_1_reading_order_poa_gain": 0.0
+    }
+  }
+}

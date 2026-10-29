@@ -1,0 +1,41 @@
+{
+  "page_id": "doc-006_p1",
+  "document_id": "doc-006",
+  "page_number": 1,
+  "width": 800.0,
+  "height": 1100.0,
+  "metadata": {
+    "annotator_id": "oracle-team-01",
+    "verified": true,
+    "created_at": "2026-10-28T18:15:00Z"
+  },
+  "elements": [
+    {
+      "id": "elem-601",
+      "type": "heading",
+      "bbox": { "x": 50.0, "y": 50.0, "width": 700.0, "height": 40.0 },
+      "reading_order": 0,
+      "text": "Form W-9: Request for Taxpayer Identification Number and Certification",
+      "is_critical": true,
+      "critical_category": "document_header"
+    },
+    {
+      "id": "elem-602",
+      "type": "text",
+      "bbox": { "x": 50.0, "y": 100.0, "width": 700.0, "height": 80.0 },
+      "reading_order": 1,
+      "text": "Entity Legal Name: Retrieva Technology Solutions LLC. Federal Tax Classification: Corporation. Employer Identification Number (EIN): 84-2940192.",
+      "is_critical": true,
+      "critical_category": "entity_identification"
+    },
+    {
+      "id": "elem-603",
+      "type": "text",
+      "bbox": { "x": 50.0, "y": 190.0, "width": 700.0, "height": 70.0 },
+      "reading_order": 2,
+      "text": "Under penalties of perjury, I certify that the taxpayer identification number provided on this form is correct and I am not subject to backup withholding.",
+      "is_critical": false
+    }
+  ]
+}
+

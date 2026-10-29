@@ -4,18 +4,71 @@
   :root {
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
-    --burgundy-950: #3b0910;
-    --burgundy-900: #58101c;
-    --burgundy-800: #701a28;
-    --burgundy-700: #8b2034;
-    --burgundy-600: #a92a42;
-    --burgundy-50: #fdf2f4;
+    --burgundy-950: #050505;
+    --burgundy-900: #111111;
+    --burgundy-800: #1f1f1f;
+    --burgundy-700: #3f3f3f;
+    --burgundy-600: #525252;
+    --burgundy-50: #f5f5f5;
+
+    /* Monochrome semantic palette: retain visual hierarchy without color. */
+    --color-rose-50: #fafafa;
+    --color-rose-100: #f5f5f5;
+    --color-rose-200: #e5e5e5;
+    --color-rose-300: #d4d4d4;
+    --color-rose-400: #a3a3a3;
+    --color-rose-500: #737373;
+    --color-rose-600: #525252;
+    --color-rose-700: #404040;
+    --color-rose-800: #262626;
+    --color-rose-900: #171717;
+    --color-rose-950: #0a0a0a;
+    --color-emerald-50: #fafafa;
+    --color-emerald-100: #f5f5f5;
+    --color-emerald-200: #e5e5e5;
+    --color-emerald-300: #d4d4d4;
+    --color-emerald-500: #737373;
+    --color-emerald-600: #525252;
+    --color-emerald-700: #404040;
+    --color-emerald-800: #262626;
+    --color-emerald-900: #171717;
+    --color-emerald-950: #0a0a0a;
+    --color-amber-50: #fafafa;
+    --color-amber-100: #f5f5f5;
+    --color-amber-200: #e5e5e5;
+    --color-amber-300: #d4d4d4;
+    --color-amber-500: #737373;
+    --color-amber-600: #525252;
+    --color-amber-700: #404040;
+    --color-amber-800: #262626;
+    --color-amber-900: #171717;
+    --color-amber-950: #0a0a0a;
+    --color-blue-50: #fafafa;
+    --color-blue-100: #f5f5f5;
+    --color-blue-200: #e5e5e5;
+    --color-blue-300: #d4d4d4;
+    --color-blue-500: #737373;
+    --color-blue-600: #525252;
+    --color-blue-700: #404040;
+    --color-blue-800: #262626;
+    --color-blue-900: #171717;
+    --color-blue-950: #0a0a0a;
+    --color-purple-50: #fafafa;
+    --color-purple-100: #f5f5f5;
+    --color-purple-200: #e5e5e5;
+    --color-purple-300: #d4d4d4;
+    --color-purple-500: #737373;
+    --color-purple-600: #525252;
+    --color-purple-700: #404040;
+    --color-purple-800: #262626;
+    --color-purple-900: #171717;
+    --color-purple-950: #0a0a0a;
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #ffffff;
+    color: #111111;
   }
 }
 
@@ -28,47 +81,47 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #a3a3a3;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #525252;
 }
 
 /* Burgundy branding utilities */
 .bg-burgundy-900 {
-  background-color: #58101c;
+  background-color: #111111;
 }
 .bg-burgundy-800 {
-  background-color: #701a28;
+  background-color: #1f1f1f;
 }
 .bg-burgundy-700 {
-  background-color: #8b2034;
+  background-color: #3f3f3f;
 }
 .bg-burgundy-50 {
-  background-color: #fdf2f4;
+  background-color: #f5f5f5;
 }
 .text-burgundy-900 {
-  color: #58101c;
+  color: #111111;
 }
 .text-burgundy-800 {
-  color: #701a28;
+  color: #1f1f1f;
 }
 .text-burgundy-700 {
-  color: #8b2034;
+  color: #3f3f3f;
 }
 .border-burgundy-800 {
-  border-color: #701a28;
+  border-color: #1f1f1f;
 }
 .border-burgundy-200 {
-  border-color: #fecdd3;
+  border-color: #e5e5e5;
 }
 .border-burgundy-100 {
-  border-color: #ffe4e6;
+  border-color: #f5f5f5;
 }
 .focus-ring-burgundy:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(112, 26, 40, 0.2);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Smooth transitions & Animations */
@@ -92,18 +145,18 @@
 
 /* Bounding box visual highlighting styles */
 .bbox-text {
-  background-color: rgba(59, 130, 246, 0.12);
-  border: 1.5px dashed #2563eb;
+  background-color: rgba(0, 0, 0, 0.06);
+  border: 1.5px dashed #404040;
 }
 .bbox-table {
-  background-color: rgba(16, 185, 129, 0.12);
-  border: 1.5px dashed #059669;
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 1.5px dashed #262626;
 }
 .bbox-heading {
-  background-color: rgba(112, 26, 40, 0.15);
-  border: 1.5px dashed #701a28;
+  background-color: rgba(0, 0, 0, 0.15);
+  border: 1.5px dashed #111111;
 }
 .bbox-figure {
-  background-color: rgba(245, 158, 11, 0.12);
-  border: 1.5px dashed #d97706;
+  background-color: rgba(0, 0, 0, 0.04);
+  border: 1.5px dashed #525252;
 }

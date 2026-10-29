@@ -8,5 +8,17 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    watch: {
+      ignored: [
+        '**/.venv/**',
+        '**/eval/**',
+        '**/tests/**',
+        '**/docs/**',
+        '**/.pytest_cache/**',
+        '**/.ruff_cache/**',
+      ],
+    },
+  },
 })
 

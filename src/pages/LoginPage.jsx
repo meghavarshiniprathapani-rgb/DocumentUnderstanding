@@ -6,13 +6,11 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
-  ArrowLeft,
   Sparkles, 
   FileText, 
   Search, 
   ShieldCheck, 
   AlertCircle, 
-  CheckCircle2,
   Loader2
 } from 'lucide-react';
 
@@ -93,99 +91,73 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
     }, 600);
   };
 
-  const handleFillDemo = () => {
-    setFormData({
-      email: 'meghavarshini@retrieva.ai',
-      password: 'password123',
-      rememberMe: true
-    });
-    setErrors({});
-    setLoginError('');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans selection:bg-rose-900 selection:text-white relative overflow-hidden">
-      {/* Background Decorative Blur Orbs */}
-      <div className="absolute top-0 -left-20 w-96 h-96 bg-rose-950/60 rounded-full filter blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-rose-900/30 rounded-full filter blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-white font-sans selection:bg-slate-900 selection:text-white">
 
       {/* Main Glassmorphic Container Card */}
-      <div className="w-full max-w-5xl bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 animate-fade-in backdrop-blur-xl">
+      <div className="min-h-screen w-full bg-white grid grid-cols-1 lg:grid-cols-12 animate-fade-in">
         
         {/* Left Side: Brand & Feature Showcase (Desktop 5 cols) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-rose-950 via-rose-900 to-slate-950 p-8 sm:p-10 text-white flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-rose-900/40">
+        <div className="lg:col-span-5 bg-slate-950 p-8 sm:p-10 lg:p-14 text-white flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-slate-800 min-h-[320px]">
           {/* Subtle grid pattern overlay */}
-          <div className="absolute inset-0 bg-[radial-gradient(#e11d48_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none" />
 
           {/* Top Logo */}
           <div className="relative z-10 space-y-6">
             <div className="flex items-center space-x-3">
-              <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg">
-                <Layers className="w-6 h-6 text-rose-200" />
+              <div className="w-11 h-11 rounded-2xl bg-white text-slate-950 flex items-center justify-center shadow-lg">
+                <Layers className="w-6 h-6" />
               </div>
               <div>
                 <div className="text-xl font-extrabold tracking-tight text-white">
-                  Retrieva <span className="text-rose-300">AI</span>
+                  Retrieva <span className="text-slate-300">AI</span>
                 </div>
-                <div className="text-xs text-rose-200/80 font-medium">
+                <div className="text-xs text-slate-400 font-medium">
                   Document Intelligence Platform
                 </div>
               </div>
             </div>
 
             <div className="pt-6 space-y-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-200 border border-rose-500/30">
-                <Sparkles className="w-3.5 h-3.5 text-rose-300" />
-                LayoutLMv3 Spatial Engine
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-slate-200 border border-white/15">
+                <Sparkles className="w-3.5 h-3.5" />
+                Secure document workspace
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
                 Unlock deep multi-modal PDF insights
               </h2>
-              <p className="text-xs sm:text-sm text-rose-100/80 leading-relaxed font-normal">
-                Sign in to query high-density documents, inspect spatial bounding boxes, and extract semantic intelligence.
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+                Sign in to search your documents, inspect layouts, and work with extracted intelligence in one place.
               </p>
             </div>
           </div>
 
           {/* Key Platform Highlights */}
           <div className="relative z-10 py-8 space-y-3 hidden sm:block">
-            <div className="flex items-center space-x-3 text-xs text-rose-100 bg-white/5 border border-white/10 rounded-xl p-3 backdrop-blur-xs">
-              <FileText className="w-4 h-4 text-rose-300 shrink-0" />
-              <span>Multi-modal Layout & Table Extraction</span>
+            <div className="flex items-center space-x-3 text-xs text-slate-200 bg-white/5 border border-white/10 rounded-xl p-3">
+              <FileText className="w-4 h-4 text-slate-300 shrink-0" />
+              <span>Structured document extraction</span>
             </div>
-            <div className="flex items-center space-x-3 text-xs text-rose-100 bg-white/5 border border-white/10 rounded-xl p-3 backdrop-blur-xs">
-              <Search className="w-4 h-4 text-rose-300 shrink-0" />
-              <span>Semantic & Spatial Coordinate Retrieval</span>
+            <div className="flex items-center space-x-3 text-xs text-slate-200 bg-white/5 border border-white/10 rounded-xl p-3">
+              <Search className="w-4 h-4 text-slate-300 shrink-0" />
+              <span>Fast semantic search</span>
             </div>
-            <div className="flex items-center space-x-3 text-xs text-rose-100 bg-white/5 border border-white/10 rounded-xl p-3 backdrop-blur-xs">
-              <ShieldCheck className="w-4 h-4 text-rose-300 shrink-0" />
-              <span>Enterprise Grade Capstone Ready</span>
+            <div className="flex items-center space-x-3 text-xs text-slate-200 bg-white/5 border border-white/10 rounded-xl p-3">
+              <ShieldCheck className="w-4 h-4 text-slate-300 shrink-0" />
+              <span>Private, reliable access</span>
             </div>
           </div>
 
           {/* Footer badge */}
-          <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-rose-300/80 font-mono">
+          <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
             <span>Retrieva v2.4</span>
             <span>FastAPI Connected</span>
           </div>
         </div>
 
         {/* Right Side: Login Form (7 cols) */}
-        <div className="lg:col-span-7 bg-white p-8 sm:p-12 flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-white p-8 sm:p-10 lg:p-14 flex flex-col justify-center">
           <div>
-            {/* Top Navigation Back Button */}
-            <div className="mb-6">
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate('/')}
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-rose-950 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-rose-200 transition-all cursor-pointer group shadow-2xs"
-                title="Return to Dashboard"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-rose-900" />
-                <span>Back to Dashboard</span>
-              </button>
-            </div>
-
             {/* Header Title */}
             <div className="space-y-2 mb-8">
               <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -203,22 +175,6 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
                 <span>{loginError}</span>
               </div>
             )}
-
-            {/* Quick Demo Fill Button Bar */}
-            <div className="mb-6 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-semibold text-slate-700">Quick Test Mode</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                className="px-3 py-1.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Fill Demo Credentials
-              </button>
-            </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -269,7 +225,7 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
-                    placeholder="••••••••••••"
+                    placeholder="Enter your password"
                     value={formData.password}
                     onChange={handleChange}
                     className={`w-full bg-slate-50 text-slate-900 text-xs font-medium pl-10 pr-10 py-3 rounded-xl border transition-all outline-none ${
@@ -350,7 +306,7 @@ export const LoginPage = ({ onNavigate, onLoginSuccess }) => {
                 onClick={() => onNavigate && onNavigate('/')}
                 className="text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors"
               >
-                Skip authentication and enter Dashboard as Guest →
+                Continue as a guest →
               </button>
             </div>
           </div>

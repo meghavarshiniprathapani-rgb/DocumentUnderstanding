@@ -1,4 +1,5 @@
 import React from 'react';
+import { isDemoMode } from '../../services/api';
 import { 
   LayoutDashboard, 
   UploadCloud, 
@@ -9,8 +10,8 @@ import {
   Sparkles,
   ChevronRight,
   X,
-  FileText,
-  User
+  User,
+  BarChart3
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) => {
@@ -38,6 +39,12 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
       label: 'Documents Library',
       icon: FolderKanban,
       description: 'Repository & export'
+    },
+    {
+      id: 'evaluation',
+      label: 'Evaluation & KPIs',
+      icon: BarChart3,
+      description: 'Oracle benchmarks & CIs'
     },
     {
       id: 'settings',
@@ -136,13 +143,17 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
       {/* Footer Info Box */}
       <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 space-y-1">
         <div className="flex items-center justify-between text-slate-700 font-semibold text-[11px]">
-          <span>FastAPI Integration</span>
-          <span className="font-mono text-[10px] text-rose-900 bg-white px-1.5 py-0.5 rounded border border-rose-200">
-            Ready
+          <span>{isDemoMode() ? "Demo Mode (Offline)" : "FastAPI Connected"}</span>
+          <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded border font-bold ${
+            isDemoMode() 
+              ? "bg-amber-100 text-amber-900 border-amber-300" 
+              : "bg-emerald-100 text-emerald-900 border-emerald-300"
+          }`}>
+            {isDemoMode() ? "Demo" : "Live"}
           </span>
         </div>
         <div className="text-[10px] text-slate-400">
-          Capstone Project Demo
+          PyMuPDF + FAISS Index Engine
         </div>
       </div>
     </div>

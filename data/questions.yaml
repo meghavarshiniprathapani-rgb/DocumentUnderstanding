@@ -1,0 +1,196 @@
+# ==============================================================================
+# Retrieva AI — Downstream Retrieval Evaluation Question Set
+# Version: 1.0.0
+# Description: Standardized benchmark questions mapped to gold ground-truth
+#              documents, pages, element IDs, modalities, and expected answers.
+# ==============================================================================
+
+version: "1.0.0"
+benchmark_name: "retrieva_downstream_retrieval_dev"
+created_date: "2026-10-29"
+total_questions: 14
+
+questions:
+  - question_id: "q-001"
+    query: "What was the Enterprise Cloud revenue in 2025 ($M)?"
+    gold_doc_id: "doc-001"
+    gold_page: 1
+    gold_element_id: "elem-103"
+    gold_element_type: "table"
+    question_type: "table_lookup"
+    expected_answer: "189.5"
+    target_keywords:
+      - "Enterprise Cloud"
+      - "189.5"
+    notes: "Requires whole table extraction without row/column fragmentation."
+
+  - question_id: "q-002"
+    query: "Which business segment experienced negative YoY growth of -8.9% in 2025?"
+    gold_doc_id: "doc-001"
+    gold_page: 1
+    gold_element_id: "elem-103"
+    gold_element_type: "table"
+    question_type: "table_lookup"
+    expected_answer: "Hardware & IoT"
+    target_keywords:
+      - "Hardware & IoT"
+      - "-8.9%"
+    notes: "Requires table column cross-reference."
+
+  - question_id: "q-003"
+    query: "By what percentage did consolidated revenue expand in fiscal year 2025?"
+    gold_doc_id: "doc-001"
+    gold_page: 1
+    gold_element_id: "elem-102"
+    gold_element_type: "text"
+    question_type: "prose_fact_lookup"
+    expected_answer: "18.4%"
+    target_keywords:
+      - "18.4%"
+      - "412.5M"
+    notes: "Prose paragraph retrieval."
+
+  - question_id: "q-004"
+    query: "How many basis points did the gross margin improve due to operational efficiency?"
+    gold_doc_id: "doc-001"
+    gold_page: 1
+    gold_element_id: "elem-104"
+    gold_element_type: "text"
+    question_type: "prose_fact_lookup"
+    expected_answer: "240 basis points"
+    target_keywords:
+      - "240 basis points"
+      - "gross margin"
+    notes: "Prose financial commentary."
+
+  - question_id: "q-005"
+    query: "What is the scaled dot-product attention formula in the architecture?"
+    gold_doc_id: "doc-002"
+    gold_page: 1
+    gold_element_id: "elem-203"
+    gold_element_type: "formula"
+    question_type: "formula_query"
+    expected_answer: "Attention(Q, K, V) = softmax((Q K^T) / sqrt(d_k)) V"
+    target_keywords:
+      - "Attention"
+      - "softmax"
+      - "sqrt(d_k)"
+    notes: "Requires formula preservation in LaTeX/display format."
+
+  - question_id: "q-006"
+    query: "How are relative positional biases modeled across 2D visual layouts?"
+    gold_doc_id: "doc-002"
+    gold_page: 1
+    gold_element_id: "elem-204"
+    gold_element_type: "text"
+    question_type: "multi_column_text"
+    expected_answer: "two-dimensional spatial coordinate embeddings derived from bounding box tuples"
+    target_keywords:
+      - "two-dimensional spatial coordinate embeddings"
+      - "bounding box tuples"
+    notes: "Column 1 in two-column academic paper layout."
+
+  - question_id: "q-007"
+    query: "How does the visual backbone extract patch tokens without Faster R-CNN?"
+    gold_doc_id: "doc-002"
+    gold_page: 1
+    gold_element_id: "elem-205"
+    gold_element_type: "text"
+    question_type: "multi_column_text"
+    expected_answer: "linear projection of non-overlapping image patches"
+    target_keywords:
+      - "linear projection"
+      - "non-overlapping image patches"
+    notes: "Column 2 in two-column academic paper layout."
+
+  - question_id: "q-008"
+    query: "What is the document title of the academic research paper in doc-002?"
+    gold_doc_id: "doc-002"
+    gold_page: 1
+    gold_element_id: "elem-201"
+    gold_element_type: "heading"
+    question_type: "header_lookup"
+    expected_answer: "LayoutLMv3: Pre-training for Document AI with Visual & Spatial Tokens"
+    target_keywords:
+      - "LayoutLMv3"
+      - "Visual & Spatial Tokens"
+    notes: "Top-level title heading."
+
+  - question_id: "q-009"
+    query: "What was the median network latency for the US-East (N. Virginia) region zone?"
+    gold_doc_id: "doc-005"
+    gold_page: 1
+    gold_element_id: "elem-503"
+    gold_element_type: "table"
+    question_type: "table_lookup"
+    expected_answer: "3.8ms"
+    target_keywords:
+      - "US-East"
+      - "3.8ms"
+    notes: "Table lookup in regional cloud infrastructure latency table."
+
+  - question_id: "q-010"
+    query: "What was the availability uptime percentage achieved in the EU-Central region?"
+    gold_doc_id: "doc-005"
+    gold_page: 1
+    gold_element_id: "elem-503"
+    gold_element_type: "table"
+    question_type: "table_lookup"
+    expected_answer: "99.992%"
+    target_keywords:
+      - "EU-Central"
+      - "99.992%"
+    notes: "Table lookup in regional cloud infrastructure latency table."
+
+  - question_id: "q-011"
+    query: "What was the overall median transit latency achieved across 14 global availability zones?"
+    gold_doc_id: "doc-005"
+    gold_page: 1
+    gold_element_id: "elem-502"
+    gold_element_type: "text"
+    question_type: "prose_fact_lookup"
+    expected_answer: "4.8ms"
+    target_keywords:
+      - "4.8ms"
+      - "14 global availability zones"
+    notes: "Infrastructure executive summary prose."
+
+  - question_id: "q-012"
+    query: "What is the Employer Identification Number (EIN) for Retrieva Technology Solutions LLC?"
+    gold_doc_id: "doc-006"
+    gold_page: 1
+    gold_element_id: "elem-602"
+    gold_element_type: "text"
+    question_type: "form_field_lookup"
+    expected_answer: "84-2940192"
+    target_keywords:
+      - "84-2940192"
+      - "Retrieva Technology Solutions LLC"
+    notes: "Tax entity identification lookup."
+
+  - question_id: "q-013"
+    query: "What billing service credit applies if monthly availability drops below 99.00%?"
+    gold_doc_id: "doc-007"
+    gold_page: 1
+    gold_element_id: "elem-703"
+    gold_element_type: "text"
+    question_type: "multi_column_text"
+    expected_answer: "30% credit"
+    target_keywords:
+      - "30% credit"
+      - "Section 4.2"
+    notes: "Legal clause in multi-column SLA agreement."
+
+  - question_id: "q-014"
+    query: "What is the maximum allowed scheduled maintenance duration per calendar month?"
+    gold_doc_id: "doc-007"
+    gold_page: 1
+    gold_element_id: "elem-702"
+    gold_element_type: "text"
+    question_type: "multi_column_text"
+    expected_answer: "2 hours per calendar month"
+    target_keywords:
+      - "2 hours"
+      - "Section 4.1"
+    notes: "Legal clause in multi-column SLA agreement."
+

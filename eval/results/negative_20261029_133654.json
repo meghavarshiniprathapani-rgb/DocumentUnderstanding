@@ -1,0 +1,212 @@
+{
+  "timestamp": "20261029_133654",
+  "created_at": "2026-10-29T13:36:54.305742+00:00",
+  "config_id": "O3-v1.0.0",
+  "config_version": "1.0.0",
+  "suite_name": "Controlled Negative Anomaly Test Suite (NT1 - NT5)",
+  "summary": {
+    "total_negative_cases": 5,
+    "passed_cases": 5,
+    "failed_cases": 0,
+    "all_conditions_detected": true,
+    "all_abstain_or_degraded": true,
+    "all_outputs_labelled": true,
+    "zero_silent_failures": true,
+    "status": "PASS"
+  },
+  "system_versions": {
+    "engine": "Retrieva Document Intelligence",
+    "extractor": "fitz:1.28.2_pdfplumber:0.11.10",
+    "layout_engine": "LayoutOrderRecovery:v1.0.0",
+    "provenance_subsystem": "O3:v1.0.0",
+    "confidence_calibration": "PlattScaling:MultiSignalFusion"
+  },
+  "cases": {
+    "NT1": {
+      "case_id": "NT1",
+      "name": "Scrambled multi-column reading order",
+      "fixture_id": "NT1-FIXTURE-SCRAMBLED-READING-ORDER",
+      "preconditions": "Two-column text with horizontal cross-column interleaving reading order that breaks column-first flow.",
+      "version": "1.0.0",
+      "config": {
+        "config_id": "O3-v1.0.0",
+        "layout_engine": "LayoutOrderRecovery:v1.0.0"
+      },
+      "expected": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true
+      },
+      "observed": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true,
+        "degraded_elements_count": 6,
+        "primary_diagnostic": "Page 1: Scrambled multi-column reading order detected (3 horizontal cross-column jumps, 0 vertical inversions). Reading order cuts horizontally across columns.",
+        "clean_recovery_verified": true
+      },
+      "logs": [
+        "Loaded fixture 'NT1-FIXTURE-SCRAMBLED-READING-ORDER' with 6 elements.",
+        "detect_scrambled_reading_order -> detected=True, reasons=['Page 1: Scrambled multi-column reading order detected (3 horizontal cross-column jumps, 0 vertical inversions). Reading order cuts horizontally across columns.']",
+        "LayoutOrderRecovery completed in 200.66 ms, recovered_detected=False"
+      ],
+      "recovery_time_ms": 200.66,
+      "status": "PASS"
+    },
+    "NT2": {
+      "case_id": "NT2",
+      "name": "Tables flattened into noise",
+      "fixture_id": "NT2-FIXTURE-FLATTENED-TABLE-NOISE",
+      "preconditions": "Multi-column financial table flattened into collapsed unstructured text with zero structured cells and lost grid boundaries.",
+      "version": "1.0.0",
+      "config": {
+        "config_id": "O3-v1.0.0",
+        "fallback_strategy": "RAW_SLICE_FALLBACK"
+      },
+      "expected": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true
+      },
+      "observed": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true,
+        "consistency_score": 0.0,
+        "routing_action": "DEGRADED_FALLBACK",
+        "primary_diagnostic": "Calibrated confidence 0.3216 is below the required threshold 0.85 (critical element).",
+        "clean_recovery_verified": true
+      },
+      "logs": [
+        "Loaded fixture 'NT2-FIXTURE-FLATTENED-TABLE-NOISE' with anomaly type 'flattened_table_noise'.",
+        "compute_table_structural_consistency -> 0.0",
+        "detect_flattened_table -> detected=True, reasons=['Flattened table detected: element labeled as TABLE contains only 0 structured cell(s). Expected multi-cell 2D grid.']",
+        "Table reconstruction completed in 192.68 ms, recovered_detected=False"
+      ],
+      "recovery_time_ms": 192.68,
+      "status": "PASS"
+    },
+    "NT3": {
+      "case_id": "NT3",
+      "name": "Extraction scored without downstream retrieval check",
+      "fixture_id": "NT3-FIXTURE-UNVERIFIED-EXTRACTION",
+      "preconditions": "Evaluation run claiming benchmark accuracy based solely on extractor character match and Kendall tau, omitting mandatory KPI-3 downstream retrieval grounding.",
+      "version": "1.0.0",
+      "config": {
+        "config_id": "O3-v1.0.0",
+        "mandatory_check": "KPI-3 Grounded Retrieval"
+      },
+      "expected": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true
+      },
+      "observed": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true,
+        "certification_status": "ABSTAINED_UNVERIFIED_RETRIEVAL",
+        "primary_diagnostic": "NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.",
+        "clean_recovery_verified": true
+      },
+      "logs": [
+        "Loaded fixture 'NT3-FIXTURE-UNVERIFIED-EXTRACTION' with extractor 'Docling_Raw_Intermediate'.",
+        "verify_downstream_retrieval_check -> is_valid=False, reasons=['NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.']",
+        "System raised abstention exception: NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.",
+        "Downstream retrieval verification recovered in 197.91 ms, is_valid=True"
+      ],
+      "recovery_time_ms": 197.91,
+      "status": "PASS"
+    },
+    "NT4": {
+      "case_id": "NT4",
+      "name": "Preprocessing or partition leakage across dev and acceptance",
+      "fixture_id": "NT4-FIXTURE-PARTITION-LEAKAGE",
+      "preconditions": "Deliberate inclusion of frozen acceptance document doc-003 and derived cache doc-004 into dev training partition.",
+      "version": "1.0.0",
+      "config": {
+        "config_id": "O3-v1.0.0",
+        "partition_enforcement": "Zero-Leakage Hash Lock"
+      },
+      "expected": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true
+      },
+      "observed": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true,
+        "leaked_documents_detected": [
+          "doc-003"
+        ],
+        "leaked_artifacts_detected": [
+          "embeddings/doc-004_p2.npy"
+        ],
+        "primary_diagnostic": "NT4 LEAKAGE DETECTED: 1 frozen acceptance document(s) leaked into dev partition: ['doc-003'].",
+        "clean_recovery_verified": true
+      },
+      "logs": [
+        "Loaded fixture 'NT4-FIXTURE-PARTITION-LEAKAGE' with anomaly 'dev_acceptance_partition_leakage'.",
+        "Dev docs: ['doc-001', 'doc-002', 'doc-003', 'doc-005']",
+        "Acceptance docs: ['doc-003', 'doc-004', 'doc-008']",
+        "Dev artifacts: ['embeddings/doc-001_p1.npy', 'embeddings/doc-002_p1.npy', 'embeddings/doc-004_p2.npy']",
+        "verify_partition_leakage -> detected=True, reasons=[\"NT4 LEAKAGE DETECTED: 1 frozen acceptance document(s) leaked into dev partition: ['doc-003'].\", \"NT4 LEAKAGE DETECTED: 1 derived artifact(s) from acceptance partition found in dev cache: ['embeddings/doc-004_p2.npy'].\"]",
+        "verify_no_document_leakage raised: CRITICAL: Document leakage detected! 1 acceptance document(s) found in dev partition: ['doc-003']",
+        "verify_no_artifact_leakage raised: CRITICAL: Derived artifact leakage detected! 1 artifact(s) from acceptance documents appeared in dev artifacts: ['embeddings/doc-004_p2.npy']",
+        "Partition recovery completed in 175.61 ms, clean_leakage=False"
+      ],
+      "recovery_time_ms": 175.61,
+      "status": "PASS"
+    },
+    "NT5": {
+      "case_id": "NT5",
+      "name": "Throughput or memory failure at declared workload",
+      "fixture_id": "NT5-FIXTURE-OVERLOAD-WORKLOAD",
+      "preconditions": "Synthetic workload profile exceeding declared page count, file size, query latency, and memory allocation budgets.",
+      "version": "1.0.0",
+      "config": {
+        "config_id": "O3-v1.0.0",
+        "declared_limits": {
+          "max_pages": 100,
+          "max_upload_size_mb": 50,
+          "max_p95_latency_ms": 5.0,
+          "max_peak_memory_mb": 150.0
+        }
+      },
+      "expected": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true
+      },
+      "observed": {
+        "condition_detected": true,
+        "degraded_or_abstained": true,
+        "output_labelled": true,
+        "silent_use_prevented": true,
+        "routing_action": "RESOURCE_THROTTLED_DEGRADED",
+        "breaches_detected_count": 4,
+        "primary_diagnostic": "NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.",
+        "clean_recovery_verified": true
+      },
+      "logs": [
+        "Loaded fixture 'NT5-FIXTURE-OVERLOAD-WORKLOAD'. Testing workload against limits: {'max_pages': 100, 'max_upload_size_mb': 50, 'max_p95_latency_ms': 5.0, 'max_peak_memory_mb': 150.0}",
+        "Workload parameters: pages=240, size=85.4MB, p95=28.5ms, peak_mem=210.8MB",
+        "verify_workload_resource_envelope -> breached=True, reasons=['NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.', 'NT5 WORKLOAD BREACH: File size (85.4 MB) exceeds declared limit of 50 MB.', 'NT5 WORKLOAD BREACH: Query latency p95 (28.50 ms) exceeds declared performance budget of 5.00 ms.', 'NT5 WORKLOAD BREACH: Peak memory usage (210.8 MB) exceeds declared allocation envelope of 150.0 MB.']",
+        "System triggered resource throttle exception: NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.",
+        "Workload recovery completed in 170.32 ms, nominal_breached=False"
+      ],
+      "recovery_time_ms": 170.32,
+      "status": "PASS"
+    }
+  }
+}

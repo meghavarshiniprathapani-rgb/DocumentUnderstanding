@@ -16,6 +16,8 @@ export const Badge = ({ children, variant = 'default', size = 'md', className = 
     success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     warning: "bg-amber-50 text-amber-700 border border-amber-200",
     info: "bg-blue-50 text-blue-700 border border-blue-200",
+    purple: "bg-purple-50 text-purple-700 border border-purple-200",
+    formula: "bg-purple-100 text-purple-900 border border-purple-300 font-mono",
     table: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono",
     figure: "bg-amber-100 text-amber-800 border border-amber-300 font-mono",
     heading: "bg-rose-100 text-rose-900 border border-rose-300 font-mono",

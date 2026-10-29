@@ -1,21 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   User, 
   Mail, 
   Building2, 
-  GraduationCap, 
   FileText, 
   Search, 
   Layers, 
   Check, 
   Save, 
   Calendar, 
-  Clock, 
-  ShieldCheck, 
-  HardDrive,
-  Sparkles,
   Activity,
-  Edit3,
   Pencil,
   LogOut
 } from 'lucide-react';
@@ -36,8 +30,10 @@ export const ProfilePage = ({ user, onLogout, setActiveTab }) => {
     institution: user?.institution || 'Retrieva AI',
     bio: 'Building AI-driven document understanding and multi-modal spatial retrieval systems for enterprise PDF intelligence.'
   });
+  const [prevUser, setPrevUser] = useState(user);
 
-  useEffect(() => {
+  if (user !== prevUser) {
+    setPrevUser(user);
     if (user) {
       setProfileData(prev => ({
         ...prev,
@@ -47,7 +43,7 @@ export const ProfilePage = ({ user, onLogout, setActiveTab }) => {
         institution: user.institution || prev.institution
       }));
     }
-  }, [user]);
+  }
 
   const [saved, setSaved] = useState(false);
 
@@ -68,41 +64,6 @@ export const ProfilePage = ({ user, onLogout, setActiveTab }) => {
       fullNameInputRef.current.select();
     }
   };
-
-  const mockActivities = [
-    {
-      id: 'act-1',
-      title: 'Uploaded Document',
-      description: 'Ingested "Annual Financial Report.pdf" into spatial indexer',
-      timestamp: '2 hours ago',
-      type: 'upload',
-      icon: FileText
-    },
-    {
-      id: 'act-2',
-      title: 'Search Query Performed',
-      description: 'Executed query "Quarterly revenue cloud growth Q3"',
-      timestamp: '4 hours ago',
-      type: 'search',
-      icon: Search
-    },
-    {
-      id: 'act-3',
-      title: 'Bounding Box Inspected',
-      description: 'Inspected Table 1.1 coordinates in Document Viewer',
-      timestamp: 'Yesterday at 16:45',
-      type: 'viewer',
-      icon: Layers
-    },
-    {
-      id: 'act-4',
-      title: 'Profile Settings Verified',
-      description: 'Updated research credentials & API authorization tokens',
-      timestamp: '3 days ago',
-      type: 'profile',
-      icon: ShieldCheck
-    }
-  ];
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto animate-fade-in">
