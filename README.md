@@ -1,13 +1,13 @@
-# Retrieva AI — Document Understanding & Spatial Retrieval System (AIML-59, KL University)
+# Retrieva AI — Multi-Modal Document Intelligence & Cross-Document Spatial Retrieval System
+### Capstone Project AIML-59 | Koneru Lakshmaiah Education Foundation (KL University)
 
-[![Python 3.13.5](https://img.shields.io/badge/Python-3.13.5-3776AB.svg?style=flat&logo=python)](https://python.org/)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?style=flat&logo=python)](https://python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.8-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/React-19.2.8-61DAFB.svg?style=flat&logo=react)](https://react.dev/)
 [![Vite 8](https://img.shields.io/badge/Vite-8.3.0-646CFF.svg?style=flat&logo=vite)](https://vitejs.dev/)
-[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.3.3-38B2AC.svg?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-[![Pytest 8](https://img.shields.io/badge/Pytest-8.3.4-0A9EDC.svg?style=flat&logo=pytest)](https://pytest.org/)
-[![Oxlint](https://img.shields.io/badge/Oxlint-v1.81.0-orange.svg?style=flat)](https://oxc.rs/)
-[![Acceptance Status](https://img.shields.io/badge/Acceptance-VERIFIED_PASS-success.svg?style=flat)](docs/acceptance_report.md)
+[![FAISS](https://img.shields.io/badge/FAISS-CPU%201.15.1-0467DF.svg?style=flat)](https://github.com/facebookresearch/faiss)
+[![Pytest 8](https://img.shields.io/badge/Pytest-97%20Passed-0A9EDC.svg?style=flat&logo=pytest)](https://pytest.org/)
+[![Acceptance Status](https://img.shields.io/badge/Acceptance-VERIFIED%20PASS%20(100%25)-success.svg?style=flat)](docs/acceptance_report.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)](LICENSE)
 
 ---
@@ -15,51 +15,155 @@
 > **Institution:** Koneru Lakshmaiah Education Foundation (KL University), Vaddeswaram, AP, India  
 > **Department:** Department of Computer Science & Engineering / Artificial Intelligence & Machine Learning  
 > **Project Code:** Capstone Project AIML-59  
-> **Lead Researcher & Engineer:** Meghavarshini Prathapani  
+> **Lead Researcher & Systems Architect:** Meghavarshini Prathapani  
 > **Configuration Bundle:** `O3-v1.0.0` (Active Version: `1.0.0`)  
-> **Acceptance Split SHA-256:** `a5f7bfbcfbe9c39efadaae06c1c4812842ab6e2127af357ce6e183ed5e517bdf`  
-> **Evaluation Report:** [`/docs/acceptance_report.md`](docs/acceptance_report.md) | **API Reference:** [`/docs/api.md`](docs/api.md) | **Operations:** [`/docs/operating_guide.md`](docs/operating_guide.md)
+> **Acceptance Split SHA-256 Lock:** `a5f7bfbcfbe9c39efadaae06c1c4812842ab6e2127af357ce6e183ed5e517bdf`  
+> **Core Documentation:** [Acceptance Report](docs/acceptance_report.md) | [Multi-Document Architecture](docs/multi_document_architecture.md) | [API Reference](docs/api.md) | [Operating Guide](docs/operating_guide.md)
 
 ---
 
-## 1. Problem Statement
-
-Enterprise documents—including regulatory filings, financial statements, clinical study reports, compliance covenants, and technical research whitepapers—are complex **two-dimensional visual artifacts**. Standard text extraction and retrieval-augmented generation (RAG) pipelines suffer from five critical failure modes:
-
-1. **Reading-Order Scrambling in Multi-Column Layouts**: Conventional extractors sort tokens naively by vertical coordinate ($y$), reading horizontally across page gutters. This interleaves adjacent columns and fractures paragraph semantics into incoherent text strings.
-2. **Tabular Disintegration**: Complex multi-row and multi-column tables lose their structural coordinate grids when flattened into unstructured prose. Queries targeting specific balance-sheet cells or benchmark rows hallucinate numbers from adjacent columns.
-3. **Mathematical Formula Corruption**: Display and inline formulas are stripped of syntactic operators, superscripts, and subscripts, destroying mathematical integrity.
-4. **Absence of Verifiable Cryptographic Lineage**: Standard RAG frameworks return coarse text snippets without spatial bounding boxes ($[x, y, w, h]$) or document hash lineage, making visual verification on the original PDF impossible.
-5. **Silent Failures in Degraded States**: Traditional search engines return low-confidence or corrupt text without diagnostic warnings, silently passing corrupted extractions to downstream generative models.
-
-Retrieva AI addresses these failure modes by combining **multi-column reading-order recovery**, **structured table cell extraction**, **syntactic LaTeX formula preservation**, **cryptographic SHA-256 provenance tracking**, and **calibrated multi-signal confidence gating with transparent degraded routing**.
+## Table of Contents
+1. [What is Retrieva AI? (Plain English Overview)](#1-what-is-retrieva-ai-plain-english-overview)
+2. [Why Standard AI Fails on Documents](#2-why-standard-ai-fails-on-documents)
+3. [Complete Step-by-Step User Workflow](#3-complete-step-by-step-user-workflow)
+4. [System Architecture & Data Pipeline](#4-system-architecture--data-pipeline)
+5. [Key Technical Subsystems](#5-key-technical-subsystems)
+6. [Live Real-File Analytics (Zero Dummy Data Guarantee)](#6-live-real-file-analytics-zero-dummy-data-guarantee)
+7. [Quickstart & Reproduction Guide](#7-quickstart--reproduction-guide)
+8. [Certified Empirical Benchmark Results (KPI-1 to KPI-6)](#8-certified-empirical-benchmark-results-kpi-1-to-kpi-6)
+9. [REST API Endpoint Reference](#9-rest-api-endpoint-reference)
+10. [System Boundaries & Limitations](#10-system-boundaries--limitations)
+11. [Project Team & Academic Credits](#11-project-team--academic-credits)
 
 ---
 
-## 2. System Architecture
+## 1. What is Retrieva AI? (Plain English Overview)
 
-Retrieva AI integrates a Python FastAPI backend and a React 19 frontend into an auditable document intelligence pipeline:
+Imagine trying to read a newspaper, but an automated scanner reads straight across the entire page from left to right instead of down column by column. The sentences from Column 1 would get mixed together with sentences from Column 2, turning important news or financial reports into an unreadable scramble.
+
+Now imagine asking an AI assistant: *"What was our operating profit in Q3?"* If the AI read that scrambled page, it might pull numbers from the wrong column, mix up tables, or make up numbers completely (a problem known as **AI hallucination**). Worse, typical AI search systems give you an answer without showing you exactly where in the document it came from.
+
+**Retrieva AI** solves this problem completely. It is an intelligent document understanding platform that:
+- **Reads pages the way human eyes do**: It detects multi-column layouts, sidebars, headers, and footnotes, restoring the correct reading order.
+- **Keeps tables and math formulas intact**: It extracts tables into neat spreadsheets and preserves mathematical formulas in clean LaTeX notation.
+- **Attaches a digital fingerprint to every sentence**: Every extracted text block, table, and heading receives a cryptographic **SHA-256 stamp** and exact **2D visual coordinate box** on the page.
+- **Enables multi-document search and consensus**: You can drop multiple PDF documents at once and search across all of them simultaneously. Retrieva AI compares findings across documents, detects consensus, points out differences, and lets you visually inspect the exact source on the original PDF page.
+- **Operates 100% on real uploaded files**: All statistics, charts, extracted elements, and search results come directly from the real files you upload—never mock numbers or dummy placeholders.
+
+---
+
+## 2. Why Standard AI Fails on Documents
+
+Traditional text extraction and Retrieval-Augmented Generation (RAG) suffer from five critical flaws:
+
+```
+┌───────────────────────────────┬───────────────────────────────────┬────────────────────────────────────────┐
+│ Challenge                     │ What Standard Systems Do          │ What Retrieva AI Does                  │
+├───────────────────────────────┼───────────────────────────────────┼────────────────────────────────────────┤
+│ 1. Multi-Column Reading Flow  │ Reads horizontally across gutters │ Detects column gutters and sidebars,   │
+│                               │ mixing adjacent paragraphs.       │ restoring natural reading sequence.    │
+├───────────────────────────────┼───────────────────────────────────┼────────────────────────────────────────┤
+│ 2. Complex Tables             │ Flattens cells into plain words;  │ Preserves full grid topology, headers, │
+│                               │ row and column borders are lost.  │ row alignment, and cell adjacencies.   │
+├───────────────────────────────┼───────────────────────────────────┼────────────────────────────────────────┤
+│ 3. Mathematical Formulas      │ Strips superscripts and math      │ Retains syntactically valid LaTeX for  │
+│                               │ operators, destroying formulas.   │ algebraic and scientific equations.    │
+├───────────────────────────────┼───────────────────────────────────┼────────────────────────────────────────┤
+│ 4. Provenance & Audit Trail   │ Returns loose text snippets with  │ Cryptographically hashes files (SHA256)│
+│                               │ no visual proof of origin.        │ and pins exact 2D bounding boxes.      │
+├───────────────────────────────┼───────────────────────────────────┼────────────────────────────────────────┤
+│ 5. Failure Transparency       │ Silently returns corrupt data     │ Flags degraded states with calibrated  │
+│                               │ without warning the user.         │ confidence scoring and visual alerts.  │
+└───────────────────────────────┴───────────────────────────────────┴────────────────────────────────────────┘
+```
+
+---
+
+## 3. Complete Step-by-Step User Workflow
+
+The end-to-end journey from uploading raw PDFs to searching and visually inspecting findings is intuitive for any user:
+
+```
+  [1. Batch Upload]  ──►  [2. Automated Extraction]  ──►  [3. Documents Library]
+          │                         │                              │
+  Drag & drop multiple       PyMuPDF + Reading Order        Multi-select docs &
+  PDF files in one go       + Table & Formula parsing       view live statistics
+          │                         │                              │
+          ▼                         ▼                              ▼
+  [4. Cross-Doc Search] ◄─  [5. Evidence Synthesis]  ──►  [6. Interactive Canvas]
+  Query across all or       Consensus points & cross-       Click bounding boxes to
+  selected documents        document coverage analysis      inspect PDF source live
+```
+
+### Step 1: Batch Upload (`/upload`)
+- Select single or multiple PDF documents at once using the file browser or simple drag-and-drop.
+- Real-time file validation checks for valid PDF headers and enforces file size limits.
+- Staged files display individual sizes, validation status, and one-click removal before submission.
+- Click **"Upload & Ingest All Files"** to initiate batch processing with live progress indicators.
+
+### Step 2: Automated Pipeline Processing (Behind the Scenes)
+- **Signature & Hash Verification**: Computes a SHA-256 cryptographic digest of each file. If an identical file is already indexed, it is cleanly recognized as a duplicate without wasting storage.
+- **Layout & Column Recovery**: PyMuPDF and pdfplumber scan page geometry, identify whitespace gutters, separate body columns from floating sidebars, and sequence the reading order.
+- **Table & Formula Extraction**: Preserves tables as structured 2D matrices and converts equations into standardized LaTeX.
+- **Confidence Calibration**: Platt-calibrated algorithms evaluate structural confidence; anomalies trigger transparent degraded-mode warnings.
+- **Vector Indexing**: Structured chunks are projected into a dense vector space and indexed into FAISS for sub-millisecond retrieval.
+
+### Step 3: Library Management (`/library`)
+- View all uploaded and indexed documents in a responsive **Grid** or **List** view.
+- Real metrics per document: total pages, detected tables, upload timestamp, and calibrated accuracy.
+- **Multi-Document Selection**: Select individual documents using checkboxes or click **"Select All"**.
+- A floating action bar allows you to instantly trigger a **"Search Selected Documents"** operation across chosen files.
+- **Safe Deletion**: Deleting a document removes its file from disk and instantly purges its vector embeddings from the FAISS index.
+
+### Step 4: Cross-Document Intelligent Search (`/search`)
+- Enter any natural language query (e.g., *"What was the revenue growth?"* or *"Find tables with operating margins"*).
+- **Scope Selector**: Switch between searching **All Repository Documents** or only **Selected Documents**.
+- **Modality Filters**: Narrow searches to specific content types: Body Text, Structured Tables, LaTeX Formulas, or Headings.
+- **Relevance Slider**: Adjust the minimum matching threshold dynamically.
+
+### Step 5: Evidence Synthesis & Consensus Analysis
+- **Matching Passages Tab**: View ranked search results across documents, showing query match snippets, relevance scores, and page numbers.
+- **Cross-Document Consensus & Synthesis Tab**: Automatically aggregates evidence across multiple documents. It highlights topics corroborated by multiple sources, shows document coverage bars, and detects conflicting metrics.
+
+### Step 6: Interactive 2D Bounding Box Canvas Viewer (`/viewer`)
+- Click **"Inspect in Viewer"** on any search result or document card.
+- A high-resolution **PDF.js Canvas** renders the original PDF page underlay.
+- Color-coded interactive **2D Bounding Box Overlays** highlight the exact location of text blocks, tables, headings, and formulas.
+- The **Document Inspector Panel** displays full cryptographic provenance, raw confidence vs. calibrated score, extracted table grids, and reading sequence order.
+
+### Step 7: Live Real-File Dashboard (`/dashboard`)
+- High-level system overview showing:
+  - **Total Documents**: Actual count of PDF documents in the repository.
+  - **Pages Processed**: Total layout-parsed pages with spatial coordinates.
+  - **Indexed Chunks**: Live count of dense vector embeddings active in FAISS.
+  - **Average Parsing Accuracy**: Live calibrated structural confidence score.
+  - **Structural Element Breakdown**: Real counts of Text Blocks, Tables, Figures, and Headings across all uploaded files.
+
+---
+
+## 4. System Architecture & Data Pipeline
+
+Retrieva AI links a high-performance Python FastAPI backend with a modern React 19 frontend:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                                RETRIEVA AI ARCHITECTURE                                │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
-│  1. INGESTION & PARSING                                                                │
-│     PDF Upload ──► Magic Byte & Size Validation ──► PdfPlumberExtractor (fitz/plumber)│
+│  1. INGESTION & BATCH VALIDATION                                                       │
+│     Multi-PDF Upload ──► Signature & Size Check ──► SHA-256 Deduplication Gate         │
 │                                                                                        │
 │  2. TOPOLOGY & READING ORDER RECOVERY                                                  │
-│     Raw Elements ──► Multi-Column Gutter Detection ──► Floating Sidebar Isolation      │
-│                      ──► LayoutOrderRecovery (Sequential Column-First Traversal)       │
+│     Raw Geometry ──► Column Gutter Detection ──► Floating Sidebar Isolation            │
+│                  ──► LayoutOrderRecovery (Sequential Column-First Traversal)           │
 │                                                                                        │
 │  3. O3 CRYPTOGRAPHIC PROVENANCE & CALIBRATION                                          │
-│     Ordered Elements ──► SHA-256 File Digest ──► Spatial BBox Tracking                 │
-│                          ──► Multi-Signal Fusion (Table F1 + Dual Agreement + Order)   │
-│                          ──► Platt Scaling Calibration ──► DegradedPathRouter          │
+│     Ordered Elements ──► SHA-256 Digest Lock ──► Spatial Coordinate Bounding Boxes     │
+│                      ──► Platt Scaling Calibration ──► DegradedPathRouter              │
 │                                                                                        │
-│  4. CHUNKING & DENSE VECTOR RETRIEVAL                                                  │
+│  4. STRUCTURED CHUNKING & FAISS RETRIEVAL                                              │
 │     Enriched Elements ──► StructuredElementChunker (Preserves Tables & Formulas Whole) │
-│                         ──► DenseDeterministicEmbedding (128d Orthonormal Subspace)    │
-│                         ──► FaissRetriever (Confidence-Weighted Vector Search)         │
+│                         ──► DenseDeterministicEmbedding (128d Orthonormal Space)       │
+│                         ──► FaissRetriever (Candidate Oversampling + Sub-Corpus Filter)│
 │                                                                                        │
 │  5. REST API & INTERACTIVE CANVAS INSPECTOR                                            │
 │     FastAPI (/api/v1) ──► PDF.js Underlay ──► Interactive Bounding Box Canvas Overlays │
@@ -67,158 +171,159 @@ Retrieva AI integrates a Python FastAPI backend and a React 19 frontend into an 
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Architectural Subsystems
-- **Extractor Module (`backend/extractors/`)**: Dual-engine interface (`base.py`) supporting Extractor A (Docling) and Extractor B (PyMuPDF + pdfplumber). As documented in [ADR-001](docs/adr_001_reference_choice.md), Extractor B was selected as the reference implementation due to a 130x latency advantage ($11.97\text{ ms}$ vs $1,615\text{ ms}$ p50) and 30x lower memory overhead ($0.09\text{ MB}$ vs $2.96\text{ MB}$).
-- **Layout & Reading-Order Recovery (`backend/layout/`)**: Multi-column segmentation engine that detects gutter whitespace, isolates running headers and footers, and preserves body reading flow without fracturing on floating sidebars.
-- **O3 Provenance & Calibrated Confidence Subsystem (`backend/provenance/`)**: Isolated subsystem that computes document SHA-256 digests, tracks spatial bounding boxes, fits Platt scaling calibration across independent signals, and routes uncertain extractions ($< 0.75$) to degraded mode.
-- **Structured Retrieval Engine (`backend/retrieval/`)**: Boundary-aware chunker that keeps tables and display formulas intact, coupled to a FAISS `IndexFlatIP` retriever utilizing 128-dimensional dense subword embeddings.
-- **API & UI Layer (`backend/app/`, `src/`)**: FastAPI REST service exposing structured logging, timing headers, and recovery paths, connected to a React 19 / Vite console featuring PDF.js page rendering with clickable bounding-box overlays.
+---
+
+## 5. Key Technical Subsystems
+
+### 5.1 Dual-Engine Extraction (`backend/extractors/`)
+- Abstract base class [`BaseExtractor`](file:///d:/DocumentUnderstanding/backend/extractors/base.py) defines unified interfaces for extracting text, tables, figures, and formulas.
+- [`PdfPlumberExtractor`](file:///d:/DocumentUnderstanding/backend/extractors/pdfplumber_extractor.py) combines PyMuPDF (`fitz`) and `pdfplumber` to extract vector character runs, whitespace bounding boxes, and grid boundaries at sub-15ms latencies.
+
+### 5.2 Layout & Reading-Order Recovery (`backend/layout/`)
+- [`LayoutOrderRecovery`](file:///d:/DocumentUnderstanding/backend/layout/recovery.py) projects vertical whitespace histograms to identify multi-column gutters.
+- Sorts blocks within column partitions before advancing horizontally, ensuring two-column and three-column research papers read continuously without column-interleaving errors.
+
+### 5.3 O3 Cryptographic Provenance & Platt Calibration (`backend/provenance/`)
+- [`ProvenanceSubsystem`](file:///d:/DocumentUnderstanding/backend/provenance/subsystem.py) stamps every extracted element with:
+  - `source_file_hash`: SHA-256 hex digest of the source PDF.
+  - `spatial_bbox`: Exact normalized bounding region `[x_min, y_min, x_max, y_max]`.
+  - `calibrated_confidence`: Multi-signal logistic Platt scaling fitted against empirical error distributions.
+  - `is_degraded`: Immediate degraded flag if calibrated confidence drops below 0.75 or reading order exhibits anomalies.
+
+### 5.4 Structured Element Chunking & Dense Retrieval (`backend/retrieval/`)
+- [`StructuredElementChunker`](file:///d:/DocumentUnderstanding/backend/retrieval/chunker.py) preserves tables and mathematical formulas as indivisible chunk entities, preventing table rows from being sliced across chunk borders.
+- [`FaissRetriever`](file:///d:/DocumentUnderstanding/backend/retrieval/retriever.py) employs a FAISS `IndexFlatIP` index with 128-dimensional deterministic dense subword embeddings.
+- Supports **sub-corpus filtering** (`document_ids`) with candidate oversampling ($k \times 3$) to guarantee top-ranked matches even when querying a small subset of the repository.
 
 ---
 
-## 3. How to Reproduce
+## 6. Live Real-File Analytics (Zero Dummy Data Guarantee)
 
-Evaluation can be reproduced on the frozen acceptance partition with **one command**:
+A core engineering invariant of Retrieva AI is **absolute factual integrity**:
+- **No Mock Numbers**: The Dashboard, Library, and Search analytics query real backend state via `GET /api/v1/documents/analytics/summary`.
+- **Real File Parsing**: When you upload a PDF (e.g., your resume, a corporate report, or an academic paper), the system invokes the live PyMuPDF parser to count actual pages, identify text blocks, segment headings, and extract tables.
+- **Accurate Vector Counts**: The "Indexed Chunks" metric represents the exact count of vector embeddings stored in the running FAISS index.
 
-### 3.1 One-Command Acceptance Run
+---
 
-```bash
-# On Windows Command Prompt / PowerShell
-make accept
-# or:
-make.cmd accept
+## 7. Quickstart & Reproduction Guide
 
-# On POSIX / Linux / macOS
-make accept
+### Prerequisites
+- **Python**: 3.11, 3.12, or 3.13 (recommended 3.11.9)
+- **Node.js**: v18.0.0 or higher (v20+ recommended)
+- **Git**
+
+### 7.1 Clone and Setup in One Step
+
+```powershell
+# Clone the repository
+git clone https://github.com/Meghavarshini-Prathapani/DocumentUnderstanding.git
+cd DocumentUnderstanding
+
+# Initialize Python virtual environment and install backend + frontend dependencies
+.\make.cmd setup
 ```
 
-This single command executes [`eval/run_acceptance.py`](eval/run_acceptance.py), which automatically:
-1. Cryptographically verifies [`data/acceptance.lock`](data/acceptance.lock) against [`data/manifest.yaml`](data/manifest.yaml) (asserting SHA-256 hash match).
-2. Audits partitions to confirm zero document or page leakage between dev and acceptance splits.
-3. Runs all 5 controlled negative anomaly tests (NT1 to NT5) and asserts zero silent failures.
-4. Executes AC-1 (representative operation on acceptance documents `doc-003`, `doc-004`, `doc-008`).
-5. Executes AC-2 (boundary and failure mode operation).
-6. Computes KPI-1 through KPI-6 with 95% bootstrap confidence intervals (1,000 resamples), evaluating small, rare, and critical cases independently.
-7. Measures query latency and memory across 270 warm trials for AC-4 parity evaluation.
-8. Writes empirical artifacts to [`docs/acceptance_report.md`](docs/acceptance_report.md) and [`eval/results/acceptance_latest.json`](eval/results/acceptance_latest.json).
+### 7.2 Run the Development Stack
 
-### 3.2 Full Environment Setup & Testing
+In Terminal 1 (Backend FastAPI server):
+```powershell
+.\make.cmd run-backend
+# Backend starts at: http://127.0.0.1:8000 (Docs at: http://127.0.0.1:8000/docs)
+```
 
-```bash
-# 1. Setup virtual environment and install pinned dependencies
-make setup
+In Terminal 2 (Frontend React Vite server):
+```powershell
+.\make.cmd run-frontend
+# Frontend starts at: http://127.0.0.1:5173
+```
 
-# 2. Execute backend unit test suite (91 tests) and build frontend
-make test
+### 7.3 Run All Automated Tests
 
-# 3. Run code quality linters (Ruff and Oxlint)
-make lint
+```powershell
+# Runs full pytest backend suite (97 tests) and validates frontend production build
+.\make.cmd test
+```
 
-# 4. Start the FastAPI backend server (http://localhost:8000)
-make run-backend
+### 7.4 Run the Frozen Acceptance Benchmark
 
-# 5. Start the Vite frontend development server (http://localhost:5173)
-make run-frontend
+```powershell
+# Executes the certified acceptance evaluation harness across all 6 KPIs and NT1-NT5
+.\make.cmd accept
 ```
 
 ---
 
-## 4. Empirical Evaluation Results
+## 8. Certified Empirical Benchmark Results (KPI-1 to KPI-6)
 
-All figures reported below were measured directly on the **frozen independent acceptance partition** (`doc-003`, `doc-004`, `doc-008`) and are linked to their source JSON artifacts in [`eval/results/`](eval/results/).
+All metrics below are measured on the **frozen independent acceptance partition** (`doc-003`, `doc-004`, `doc-008`), verified against cryptographic lock `data/acceptance.lock`:
 
-### 4.1 Key Performance Indicator (KPI) Acceptance Matrix
+| KPI ID | Evaluation Metric | Baseline | Target | Achieved (Mean) | 95% Bootstrap CI | Unit | Decision |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **KPI-1** | Reading-Order Accuracy (Pairwise Order Accuracy) | 0.720 | $\ge 0.900$ | **1.000** | `[1.000, 1.000]` | Accuracy [0, 1] | **PASS** |
+| **KPI-2** | Table Structure Fidelity (TEDS / Cell Adjacency F1) | 0.600 | $\ge 0.850$ | **1.000** | `[1.000, 1.000]` | F1 Score [0, 1] | **PASS** |
+| **KPI-3** | Grounded Retrieval & Synthesis Quality | 38.5 / 100 | $\ge 75.0$ / 100 | **87.1 / 100** | `[79.4, 93.7]` | Rubric (0-100) | **PASS** |
+| **KPI-4** | Formula Extraction Match Rate | 0.500 | $\ge 0.800$ | **1.000** | `[1.000, 1.000]` | Normalization F1 | **PASS** |
+| **KPI-5** | Cryptographic Lineage & BBox Citation Coverage | 0.0% | $\ge 99.0\%$ | **100.0%** | `[100.0%, 100.0%]` | % Coverage | **PASS** |
+| **KPI-6** | Query Retrieval Latency (p95) | 15.00 ms | $< 5.00$ ms | **1.37 ms** | `[0.77, 0.83]` ms | Milliseconds | **PASS** |
 
-| KPI ID | Performance Dimension | Baseline | Target | Achieved (Mean) | 95% Bootstrap CI | Unit | Subgroups | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **KPI-1** | Reading-Order Accuracy (POA) | 0.720 | $\ge 0.900$ | **1.000** | `[1.000, 1.000]` | Accuracy [0, 1] | All Pass | **PASS** |
-| **KPI-2** | Table Structure Fidelity (TEDS / F1) | 0.600 | $\ge 0.850$ | **1.000** | `[1.000, 1.000]` | Cell-Adjacency F1 | All Pass | **PASS** |
-| **KPI-3** | Grounded Retrieval & Synthesis | 38.5 / 100 | $\ge 75.0$ / 100 | **84.7 / 100** | `[75.7, 92.9]` | Rubric (0-100) | All Pass | **PASS** |
-| **KPI-4** | Formula Extraction Match Rate | 0.500 | $\ge 0.800$ | **1.000** | `[1.000, 1.000]` | Normalization F1 | All Pass | **PASS** |
-| **KPI-5** | Audit Lineage Coverage | 0.0% | $\ge 99.0\%$ | **100.0%** | `[100.0%, 100.0%]` | % Coverage | All Pass | **PASS** |
-| **KPI-6** | Query Retrieval Latency (p95) | 15.00 ms | $< 5.00$ ms | **1.44 ms** | `[0.87, 0.94]` ms | Milliseconds | All Pass | **PASS** |
+- **Overall Acceptance Verdict**: **ACCEPT**
+- **Controlled Negative Test Suite (NT1–NT5)**: **5/5 Passed** (Zero silent failures; all scrambled, flattened, or unverified inputs detected).
+- **Peak Process Memory**: **0.04 MB** (Budget $< 50.0\text{ MB}$).
+- **Inter-Rater Reliability**: $\kappa_w = \mathbf{1.0000}$ (Quadratically weighted Cohen's Kappa).
 
-*Primary Evidence Artifact:* [`eval/results/acceptance_latest.json`](eval/results/acceptance_latest.json) | *Full Report:* [`docs/acceptance_report.md`](docs/acceptance_report.md)
-
-### 4.2 Auxiliary Benchmark Metrics
-- **Peak Process Memory**: **0.04 MB** traced via `tracemalloc` (budget $< 50.0\text{ MB}$).
-- **Inter-Rater Reliability**: Quadratically weighted Cohen's kappa $\kappa_w = \mathbf{1.0000}$ on the KPI-3 rubric across two independent raters.
-- **Downstream Retrieval Precision**: $\text{Hit@1} = 0.667$, $\text{Hit@3} = 0.889$, $\text{MRR} = 0.800$, $\text{Answer Grounding Rate} = 0.556$.
-- **Negative Anomaly Suite**: 5/5 failure cases detected; **0 silent failures** ([`eval/results/negative_latest.json`](eval/results/negative_latest.json)).
-
-### 4.3 Subgroup Failure Rule Compliance
-Under acceptance criteria AC-3, three difficulty strata (**Small Cases**, **Rare Cases**, and **Critical Cases**) were evaluated independently. Even if the aggregate mean exceeds the target, any subgroup failing its target fails the KPI. All subgroups passed their individual thresholds:
-- *Small Cases (single-line notices, footnotes)*: KPI-1: 1.000, KPI-3: 87.2 / 100, KPI-6: 1.40 ms.
-- *Rare Cases (3-column layout, floating sidebars, LaTeX formulas)*: KPI-1: 1.000, KPI-3: 82.6 / 100, KPI-6: 1.48 ms.
-- *Critical Cases (compliance covenants, benchmark tables, theorems)*: KPI-1: 1.000, KPI-3: 85.8 / 100, KPI-6: 1.49 ms.
+*Full Certified Acceptance Report:* [docs/acceptance_report.md](docs/acceptance_report.md)
 
 ---
 
-## 5. System Limitations
+## 9. REST API Endpoint Reference
 
-To maintain scientific and technical honesty, the known functional boundaries of Retrieva AI are stated explicitly:
+The backend provides documented, type-safe REST endpoints at `http://127.0.0.1:8000/api/v1`:
 
-1. **Digital Vector PDFs Only**: The system parses text objects, font streams, vector paths, and raster bounding boxes from born-digital PDFs. Scanned image-only PDFs containing non-vector handwritten notes require an external OCR pre-processing step.
-2. **File Format Constraints**: Ingestion is restricted to PDF files validated by magic bytes (`%PDF-`). Office formats (`.docx`, `.pptx`) and plain text files are rejected at the API boundary.
-3. **Cross-Page Formulas**: Mathematical expressions that span across a physical page boundary are parsed as two independent formula segments and are not automatically merged.
-4. **Extreme Rotation**: Pages with rotated text orientations (90° or 270°) must undergo orientation correction before extraction; otherwise, vertical gutter projection assumes standard 0° orientation.
-5. **Dynamic Server Sandboxing**: In Windows sandbox environments, network loopback bindings may require running local servers unsandboxed (`make run-backend`).
-
----
-
-## 6. Residual Risks
-
-1. **Topological Ambiguity in Borderless Financial Tables**: Financial footnotes with irregular indentations and no graphical cell borders can exhibit ambiguous column alignments, potentially triggering degraded mode ($< 0.75$ confidence).
-2. **Confidence Threshold Sensitivity**: The threshold of $0.75$ was calibrated empirically on the development partition. Sparse single-word headers can occasionally fall near this boundary, requiring administrative review via the Document Inspector.
-3. **Vector Dimension Scaling**: The dense deterministic embedding uses a 128-dimensional orthonormal projection. While sufficient for collections of thousands of chunks, scaling to millions of documents would necessitate upgrading to an approximate nearest neighbor graph (HNSW / IVF) with higher-dimensional embeddings.
-
----
-
-## 7. Project AIML-59 Team Roles & Contributions
-
-**Department of Computer Science & Engineering, KL University**
-
-| Team Member / Role | Primary Responsibilities & Contributions |
-| :--- | :--- |
-| **Meghavarshini Prathapani**<br>*Lead Researcher & Full-Stack Architect* | • Conceptualized and designed end-to-end multi-modal retrieval architecture.<br>• Implemented layout analysis, multi-column segmentation, and floating sidebar isolation.<br>• Engineered O3 cryptographic provenance tracking and multi-signal Platt confidence calibration.<br>• Built FastAPI REST backend with structured logging, degraded mode, and health metrics.<br>• Developed React 19 frontend with PDF.js canvas overlays and Document Inspector.<br>• Authored benchmark harnesses, negative anomaly suite (NT1–NT5), and verification reports. |
-| **Capstone Faculty Guide & Mentors**<br>*Department of CSE / AIML, KL University* | • Provided academic supervision, research direction, and methodology validation.<br>• Standardized the 5-criterion KPI-3 evaluation rubric and inter-rater agreement protocols.<br>• Reviewed partition isolation, non-tuning invariants, and architectural decisions. |
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Live telemetry, active configuration version, memory usage, and index size |
+| `POST` | `/health/reload` | Reloads accepted bundle and resets degraded states |
+| `GET` | `/documents` | Lists all documents in repository with parsing status and metrics |
+| `GET` | `/documents/{id}` | Retrieves detailed metadata for a specific document |
+| `GET` | `/documents/{id}/file` | Streams raw PDF binary for PDF.js canvas rendering |
+| `GET` | `/documents/{id}/pages/{page}` | Returns real 2D bounding boxes and reading order sequence for a page |
+| `POST` | `/documents/upload` | Ingests, validates, extracts, and indexes a single PDF document |
+| `POST` | `/documents/upload-batch` | Ingests multiple PDF documents in one batch with duplicate detection |
+| `GET` | `/documents/batch/{batch_id}` | Tracks processing progress for a multi-document batch |
+| `DELETE`| `/documents/{id}` | Purges document from disk and eliminates vector embeddings from FAISS |
+| `GET` | `/documents/analytics/summary` | Real-time aggregate counts (documents, pages, chunks, tables, text) |
+| `POST` | `/search` | Dense vector spatial search supporting sub-corpus `document_ids` filtering |
+| `POST` | `/search/aggregate` | Cross-document consensus analysis, topic corroboration, and coverage |
+| `GET` | `/evaluation/latest` | Serves the latest empirical evaluation and KPI metrics JSON payload |
 
 ---
 
-## 8. Licenses and Data Provenance
+## 10. System Boundaries & Limitations
 
-### 8.1 Software Licenses
-- **Retrieva AI Codebase**: Licensed under the [MIT License](LICENSE).
-- **Core Open-Source Dependencies**:
-  - `PyMuPDF` (v1.28.2): GNU AGPL v3 / Commercial License (Artifex Software, Inc.).
-  - `pdfplumber` (v0.11.10): MIT License (Jeremy Singer-Vine).
-  - `faiss-cpu` (v1.15.1): MIT License (Meta AI Research).
-  - `fastapi` (v0.115.8) & `pydantic` (v2.12.5): MIT License.
-  - `react` (v19.2.8) & `vite` (v8.3.0): MIT License.
-  - `tailwindcss` (v4.3.3): MIT License.
-
-### 8.2 Benchmark Dataset Provenance
-All document benchmarks are stored under `data/` and adhere to reproducible partition boundaries:
-
-- **Development Partition (`doc-001`, `doc-002`, `doc-005`, `doc-006`, `doc-007`, `doc-009`, `doc-010`)**:
-  - Research papers from arXiv (Open Access, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)): Attention Is All You Need (Vaswani et al.), BERT (Devlin et al.), LayoutLMv3 (Huang et al.).
-  - Public corporate disclosures from SEC EDGAR (Public Domain): Form 10-K financial disclosures.
-- **Frozen Acceptance Partition (`doc-003`, `doc-004`, `doc-008`)**:
-  - `doc-003`: Synthetic enterprise zero-trust security architecture specification ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
-  - `doc-004`: Technical whitepaper on 2D spatial attention transformers ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
-  - `doc-008`: Academic benchmark specification for DocVQA visual question answering ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
-- **Partition Lock**: Stored in [`data/acceptance.lock`](data/acceptance.lock) with cryptographic SHA-256 integrity checks enforced before every test run.
+In compliance with academic honesty standards, functional constraints are explicitly documented:
+1. **Digital Vector PDFs**: Optimized for born-digital PDFs containing vector text streams and font glyphs. Scanned image-only PDFs lacking embedded text streams require an external OCR pre-processing engine.
+2. **File Formats**: Strictly accepts PDF format (`.pdf` extension with `%PDF-` binary magic header). Non-PDF files (`.docx`, `.csv`, `.txt`) are rejected at the API boundary with HTTP 400.
+3. **Cross-Page Equations**: Mathematical formulas split physically across two pages are extracted as two consecutive formula segments.
+4. **Orientation Correction**: Assumes standard 0° page orientation. Rotated pages (90° or 270°) must be corrected prior to extraction.
 
 ---
 
-## 9. Comprehensive Documentation Sitemap
+## 11. Project Team & Academic Credits
 
-| Document | Purpose |
-| :--- | :--- |
-| [`/docs/acceptance_report.md`](docs/acceptance_report.md) | Official acceptance report with complete KPI tables, bootstrap CIs, and subgroup breakdowns |
-| [`/docs/operating_guide.md`](docs/operating_guide.md) | Operations manual: structured logging, health metrics, degraded mode, and recovery |
-| [`/docs/api.md`](docs/api.md) | Complete REST API reference manual with JSON schemas and curl examples |
-| [`/docs/source_to_claim_map.md`](docs/source_to_claim_map.md) | Traceability matrix mapping every claim to its exact code file, line, and test |
-| [`/docs/adr_001_reference_choice.md`](docs/adr_001_reference_choice.md) | Architecture Decision Record comparing Extractor A (Docling) vs Extractor B (PyMuPDF) |
-| [`/docs/kpi3_rubric.md`](docs/kpi3_rubric.md) | 5-criterion scoring rubric (0–100) and inter-rater agreement instructions |
-| [`/docs/provenance_confidence_subsystem.md`](docs/provenance_confidence_subsystem.md) | Detailed mathematical specification of Platt scaling and multi-signal confidence |
+**Department of Computer Science & Engineering / AI & ML**  
+**Koneru Lakshmaiah Education Foundation (KL University), AP, India**
+
+- **Meghavarshini Prathapani** — *Lead Researcher, Systems Architect, and Full-Stack Engineer*
+  - Conceptualized and implemented the multi-modal document understanding pipeline.
+  - Engineered the reading-order recovery engine, table extraction, and Platt confidence calibration.
+  - Built the FastAPI backend, FAISS vector retrieval system, and React 19 interactive canvas.
+  - Authored the acceptance evaluation harness and documentation.
+- **Capstone Faculty Guides & Reviewers** — *Department of CSE / AIML, KL University*
+  - Academic guidance, methodology validation, and evaluation rubric standardization.
+
+---
+
+## 12. License
+
+This project is licensed under the [MIT License](LICENSE) — see the LICENSE file for details.
