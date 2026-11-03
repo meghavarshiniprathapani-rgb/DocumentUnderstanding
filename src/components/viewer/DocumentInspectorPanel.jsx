@@ -49,12 +49,12 @@ export const DocumentInspectorPanel = ({ document, activeSegment, _onSelectSegme
   const readingOrderNum = currentSegment?.readingOrder ?? currentSegment?.reading_order ?? 1;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col h-full shadow-xs space-y-4">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col h-full shadow-xs space-y-4">
       {/* Inspector Tabs */}
       <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
         <button
           onClick={() => setTab('region')}
-          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             tab === 'region' ? 'bg-white text-rose-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -62,7 +62,7 @@ export const DocumentInspectorPanel = ({ document, activeSegment, _onSelectSegme
         </button>
         <button
           onClick={() => setTab('provenance')}
-          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             tab === 'provenance' ? 'bg-white text-rose-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -70,7 +70,7 @@ export const DocumentInspectorPanel = ({ document, activeSegment, _onSelectSegme
         </button>
         <button
           onClick={() => setTab('json')}
-          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             tab === 'json' ? 'bg-white text-rose-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -78,7 +78,7 @@ export const DocumentInspectorPanel = ({ document, activeSegment, _onSelectSegme
         </button>
         <button
           onClick={() => setTab('metadata')}
-          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             tab === 'metadata' ? 'bg-white text-rose-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >

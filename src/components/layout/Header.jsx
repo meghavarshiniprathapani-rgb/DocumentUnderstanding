@@ -85,7 +85,7 @@ export const Header = ({
         {/* Upload Button Shortcut */}
         <button
           onClick={() => setActiveTab('upload')}
-          className="hidden sm:flex bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs items-center space-x-1.5"
+          className="hidden sm:flex bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs items-center space-x-1.5 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Upload</span>
@@ -98,7 +98,7 @@ export const Header = ({
           <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className={`flex items-center space-x-2 pl-1.5 pr-2.5 py-1 rounded-xl transition-all ${
+              className={`flex items-center space-x-2 pl-1.5 pr-2.5 py-1 rounded-xl transition-all cursor-pointer ${
                 activeTab === 'profile' || showDropdown
                   ? 'bg-rose-50 border border-rose-200'
                   : 'hover:bg-slate-100'
@@ -129,7 +129,7 @@ export const Header = ({
                     setActiveTab('profile');
                     setShowDropdown(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer"
                 >
                   <User className="w-4 h-4 text-slate-500" />
                   <span>View Account Profile</span>
@@ -142,7 +142,7 @@ export const Header = ({
                     setShowDropdown(false);
                     if (onLogout) onLogout();
                   }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold text-rose-900 hover:bg-rose-50 flex items-center space-x-2"
+                  className="w-full text-left px-4 py-2 text-xs font-bold text-rose-900 hover:bg-rose-50 flex items-center space-x-2 cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 text-rose-900" />
                   <span>Sign Out</span>
@@ -154,14 +154,14 @@ export const Header = ({
           <div className="flex items-center space-x-2">
             <button
               onClick={() => onNavigate && onNavigate('/login')}
-              className="text-xs font-bold text-slate-700 hover:text-rose-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all flex items-center space-x-1.5"
+              className="text-xs font-bold text-slate-700 hover:text-rose-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all flex items-center space-x-1.5 cursor-pointer"
             >
               <LogIn className="w-4 h-4 text-slate-500" />
               <span>Log In</span>
             </button>
             <button
               onClick={() => onNavigate && onNavigate('/signup')}
-              className="bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs flex items-center space-x-1.5"
+              className="bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
               <span>Sign Up</span>

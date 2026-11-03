@@ -83,13 +83,26 @@ export const SettingsPage = ({ setActiveTab }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
       {/* Page Header */}
       <PageHeader
         title="Settings & System Health"
         description="Configure FastAPI backend endpoint, inspect model versions, and toggle offline demo mode."
         icon={Settings}
         onBack={() => setActiveTab && setActiveTab('dashboard')}
+        action={
+          demoActive ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-950 font-bold text-xs rounded-xl shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span>Offline Demo</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-950 font-bold text-xs rounded-xl shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <span>FastAPI Connected</span>
+            </span>
+          )
+        }
       />
 
       {/* Demo Mode Notice Banner */}

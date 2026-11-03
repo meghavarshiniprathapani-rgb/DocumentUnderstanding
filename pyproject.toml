@@ -21,6 +21,7 @@ dependencies = [
     "docling==2.144.0",
     "pymupdf==1.28.2",
     "pdfplumber==0.11.10",
+    "faiss-cpu==1.15.1",
 ]
 
 [project.optional-dependencies]

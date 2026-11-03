@@ -66,13 +66,25 @@ export const ProfilePage = ({ user, onLogout, setActiveTab }) => {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* 1. Page Header */}
       <PageHeader
         title="User Profile & Account"
         description="Manage your researcher profile, view usage statistics, and monitor recent account activity."
         icon={User}
         onBack={() => setActiveTab && setActiveTab('dashboard')}
+        action={
+          onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="px-3.5 py-2 bg-white hover:bg-rose-50 text-rose-900 text-xs font-bold rounded-xl border border-rose-200 transition-all flex items-center space-x-1.5 cursor-pointer shadow-2xs"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-900" />
+              <span>Sign Out</span>
+            </button>
+          )
+        }
       />
 
       {/* 2. Top Profile Summary Hero Banner */}

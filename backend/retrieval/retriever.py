@@ -19,7 +19,12 @@ class BaseRetriever(ABC):
         pass
 
     @abstractmethod
-    def retrieve(self, query: str, top_k: int = 5) -> List[RetrievalResult]:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        document_ids: Optional[List[str]] = None,
+    ) -> List[RetrievalResult]:
         """Retrieve top_k chunks relevant to the query."""
         pass
 
@@ -47,22 +52,37 @@ class FaissRetriever(BaseRetriever):
         texts = [c.text for c in self.chunks]
         embeddings = self.embedding.embed_texts(texts)
 
-        # Ensure float32 contiguous array
         embeddings = np.ascontiguousarray(embeddings, dtype=np.float32)
 
         self.index_faiss = faiss.IndexFlatIP(self.embedding.dimension)
         self.index_faiss.add(embeddings)
 
-    def retrieve(self, query: str, top_k: int = 5) -> List[RetrievalResult]:
+    def remove_document(self, document_id: str) -> None:
+        """Remove all chunks associated with a document and rebuild the index."""
+        self.chunks = [c for c in self.chunks if c.source_doc_id != document_id]
+        self.index(self.chunks)
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        document_ids: Optional[List[str]] = None,
+    ) -> List[RetrievalResult]:
         """Search FAISS index and return ranked RetrievalResult instances."""
         if not self.chunks or self.index_faiss is None or self.index_faiss.ntotal == 0:
             return []
 
-        k = min(top_k, len(self.chunks))
+        doc_filter = None
+        if document_ids:
+            doc_filter = {d for d in document_ids if d and d.lower() != "all"}
+            if not doc_filter:
+                doc_filter = None
+
+        search_k = min(len(self.chunks), max(top_k * 4, 25)) if doc_filter else min(top_k, len(self.chunks))
         query_vec = self.embedding.embed_query(query)
         query_vec = np.ascontiguousarray(query_vec, dtype=np.float32)
 
-        raw_scores, indices = self.index_faiss.search(query_vec, k)
+        raw_scores, indices = self.index_faiss.search(query_vec, search_k)
         raw_scores = raw_scores[0]
         indices = indices[0]
 
@@ -72,9 +92,11 @@ class FaissRetriever(BaseRetriever):
                 continue
 
             chunk = self.chunks[chunk_idx]
+            if doc_filter and chunk.source_doc_id not in doc_filter:
+                continue
+
             final_score = float(score)
 
-            # Optional O3 confidence gating: if chunk confidence is known, softly penalize degraded extractions
             if self.use_confidence_weighting:
                 conf = chunk.calibrated_confidence if chunk.calibrated_confidence is not None else chunk.raw_confidence
                 if chunk.is_degraded:
@@ -85,15 +107,16 @@ class FaissRetriever(BaseRetriever):
                 RetrievalResult(
                     chunk=chunk,
                     score=round(final_score, 4),
-                    rank=rank_idx + 1,
+                    rank=len(results) + 1,
                 )
             )
 
-        # Sort by final score if confidence weighting was applied
+            if len(results) >= top_k:
+                break
+
         if self.use_confidence_weighting:
             results.sort(key=lambda r: r.score, reverse=True)
             for i, r in enumerate(results):
                 r.rank = i + 1
 
         return results
-

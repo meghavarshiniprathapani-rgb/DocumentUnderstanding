@@ -106,7 +106,7 @@ export const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) 
                     setActiveTab(item.id);
                     if (setMobileOpen) setMobileOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 text-left group ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 text-left group cursor-pointer ${
                     isActive
                       ? 'bg-rose-900 text-white shadow-sm shadow-rose-950/20 font-bold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'

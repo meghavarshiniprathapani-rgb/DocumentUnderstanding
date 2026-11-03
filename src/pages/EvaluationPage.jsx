@@ -116,18 +116,15 @@ export const EvaluationPage = ({ setActiveTab }) => {
   ];
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* 1. Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <PageHeader
-          title="Empirical Evaluation & KPI Benchmarks"
-          description="Independent oracle evaluation results, bootstrap confidence intervals, and pipeline ablation comparisons."
-          icon={BarChart3}
-          onBack={() => setActiveTab && setActiveTab('dashboard')}
-        />
-
-        <div className="flex items-center space-x-2">
-          {isDemoMode() ? (
+      <PageHeader
+        title="Empirical Evaluation & KPI Benchmarks"
+        description="Independent oracle evaluation results, bootstrap confidence intervals, and pipeline ablation comparisons."
+        icon={BarChart3}
+        onBack={() => setActiveTab && setActiveTab('dashboard')}
+        action={
+          isDemoMode() ? (
             <span className="font-mono text-xs bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
               <span>Demo Mode Cached Results</span>
             </span>
@@ -136,9 +133,9 @@ export const EvaluationPage = ({ setActiveTab }) => {
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>Live Empirical Run Verified</span>
             </span>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* 2. Top Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

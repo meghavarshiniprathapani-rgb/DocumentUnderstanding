@@ -11,10 +11,11 @@ import {
   Variable
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || '4.0.379'}/build/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker || '/pdf.worker.min.mjs';
 }
 
 export const DocumentCanvas = ({ 
@@ -33,6 +34,7 @@ export const DocumentCanvas = ({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [_pdfError, setPdfError] = useState(null);
   const canvasRef = useRef(null);
+  const [pageSize, setPageSize] = useState({ width: 800, height: 1100 });
 
   const totalPages = document?.pagesCount || document?.pages_count || 1;
   const currentSegments = segments || document?.pages?.find(p => p.pageNumber === currentPage)?.segments || [];
@@ -70,6 +72,7 @@ export const DocumentCanvas = ({
         // Scale canvas to match target container width (800px base * zoom factor)
         const targetWidth = (800 * zoom) / 100;
         const unscaledViewport = page.getViewport({ scale: 1.0 });
+        setPageSize({ width: unscaledViewport.width, height: unscaledViewport.height });
         const scale = targetWidth / unscaledViewport.width;
         const viewport = page.getViewport({ scale });
 
@@ -169,7 +172,7 @@ export const DocumentCanvas = ({
   };
 
   const canvasWidth = (800 * zoom) / 100;
-  const canvasHeight = (1100 * zoom) / 100;
+  const canvasHeight = pdfLoaded && pageSize.width > 0 ? (canvasWidth * (pageSize.height / pageSize.width)) : (1100 * zoom) / 100;
 
   return (
     <div className="bg-slate-100/90 border border-slate-200 rounded-2xl p-4 flex flex-col h-full shadow-xs space-y-3">
@@ -198,7 +201,7 @@ export const DocumentCanvas = ({
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
-            className="p-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg text-slate-700 transition-colors"
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg text-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
             title="Previous Page"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -211,7 +214,7 @@ export const DocumentCanvas = ({
           <button
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
-            className="p-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg text-slate-700 transition-colors"
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg text-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
             title="Next Page"
           >
             <ChevronRight className="w-4 h-4" />
@@ -222,7 +225,7 @@ export const DocumentCanvas = ({
         <div className="flex items-center space-x-2">
           <button 
             onClick={handleZoomOut}
-            className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700"
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="w-4 h-4" />
@@ -230,14 +233,14 @@ export const DocumentCanvas = ({
           <span className="text-xs font-mono font-bold text-slate-800 w-12 text-center">{zoom}%</span>
           <button 
             onClick={handleZoomIn}
-            className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700"
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
           <button 
             onClick={handleResetZoom}
-            className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700"
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors cursor-pointer"
             title="Reset Zoom"
           >
             <RotateCcw className="w-4 h-4" />
@@ -338,10 +341,13 @@ export const DocumentCanvas = ({
 
               // Map normalized 800x1100 coordinates to percentage
               const bbox = segment.bbox || { x: 50, y: 50 + index * 100, width: 700, height: 80 };
-              const leftPct = (bbox.x / 800) * 100;
-              const topPct = (bbox.y / 1100) * 100;
-              const widthPct = (bbox.width / 800) * 100;
-              const heightPct = (bbox.height / 1100) * 100;
+              const isNormalized = (bbox.x <= 1.0 && bbox.width <= 1.0 && (bbox.x + bbox.width <= 1.05)) && (bbox.y <= 1.0 && bbox.height <= 1.0 && (bbox.y + bbox.height <= 1.05));
+              const docWidth = (pdfLoaded && pageSize.width > 0) ? pageSize.width : (document?.page_width || 800);
+              const docHeight = (pdfLoaded && pageSize.height > 0) ? pageSize.height : (document?.page_height || 1100);
+              const leftPct = isNormalized ? bbox.x * 100 : (bbox.x / docWidth) * 100;
+              const topPct = isNormalized ? bbox.y * 100 : (bbox.y / docHeight) * 100;
+              const widthPct = isNormalized ? bbox.width * 100 : (bbox.width / docWidth) * 100;
+              const heightPct = isNormalized ? bbox.height * 100 : (bbox.height / docHeight) * 100;
 
               return (
                 <div

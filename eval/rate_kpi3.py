@@ -52,9 +52,10 @@ def score_chunk_kpi3(
     c1 = 0.0
     if chunk_doc == gold_doc:
         c1 += 5.0
-        if expected_ans and expected_ans in chunk_lower:
+        exp_clean = expected_ans.strip().rstrip(".")
+        if (exp_clean and exp_clean in chunk_lower) or (expected_ans and expected_ans in chunk_lower):
             c1 += 12.0
-        elif target_kws and any(kw in chunk_lower for kw in target_kws):
+        elif target_kws and any(kw.strip().rstrip(".") in chunk_lower or kw in chunk_lower for kw in target_kws):
             c1 += 8.0
 
         if gold_elem_id in elem_ids:

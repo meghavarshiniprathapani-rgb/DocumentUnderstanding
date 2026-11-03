@@ -1,14 +1,14 @@
 {
-  "timestamp": "20261029_133725",
-  "evaluation_timestamp_iso": "2026-10-29T13:37:25.800956+00:00",
+  "timestamp": "20261103_132719",
+  "evaluation_timestamp_iso": "2026-11-03T13:27:19.903818+00:00",
   "config_version": "1.0.0",
   "config_id": "O3-v1.0.0",
-  "overall_decision": "REJECT",
+  "overall_decision": "ACCEPT",
   "environment": {
-    "platform": "Windows-11-10.0.26300-SP0",
-    "python_version": "3.13.5",
-    "processor": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel",
-    "cpu_cores": 12
+    "platform": "Windows-10-10.0.26300-SP0",
+    "python_version": "3.11.9",
+    "processor": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "cpu_cores": 8
   },
   "acceptance_lock": {
     "status": "VERIFIED_LOCKED",
@@ -55,9 +55,9 @@
         "logs": [
           "Loaded fixture 'NT1-FIXTURE-SCRAMBLED-READING-ORDER' with 6 elements.",
           "detect_scrambled_reading_order -> detected=True, reasons=['Page 1: Scrambled multi-column reading order detected (3 horizontal cross-column jumps, 0 vertical inversions). Reading order cuts horizontally across columns.']",
-          "LayoutOrderRecovery completed in 221.20 ms, recovered_detected=False"
+          "LayoutOrderRecovery completed in 699.10 ms, recovered_detected=False"
         ],
-        "recovery_time_ms": 221.2,
+        "recovery_time_ms": 699.1,
         "status": "PASS"
       },
       "NT2": {
@@ -90,9 +90,9 @@
           "Loaded fixture 'NT2-FIXTURE-FLATTENED-TABLE-NOISE' with anomaly type 'flattened_table_noise'.",
           "compute_table_structural_consistency -> 0.0",
           "detect_flattened_table -> detected=True, reasons=['Flattened table detected: element labeled as TABLE contains only 0 structured cell(s). Expected multi-cell 2D grid.']",
-          "Table reconstruction completed in 177.36 ms, recovered_detected=False"
+          "Table reconstruction completed in 660.07 ms, recovered_detected=False"
         ],
-        "recovery_time_ms": 177.36,
+        "recovery_time_ms": 660.07,
         "status": "PASS"
       },
       "NT3": {
@@ -124,9 +124,9 @@
           "Loaded fixture 'NT3-FIXTURE-UNVERIFIED-EXTRACTION' with extractor 'Docling_Raw_Intermediate'.",
           "verify_downstream_retrieval_check -> is_valid=False, reasons=['NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.']",
           "System raised abstention exception: NT3 VIOLATION: Empty retrieval payload provided. Downstream retrieval check did not run.",
-          "Downstream retrieval verification recovered in 169.27 ms, is_valid=True"
+          "Downstream retrieval verification recovered in 695.79 ms, is_valid=True"
         ],
-        "recovery_time_ms": 169.27,
+        "recovery_time_ms": 695.79,
         "status": "PASS"
       },
       "NT4": {
@@ -167,9 +167,9 @@
           "verify_partition_leakage -> detected=True, reasons=[\"NT4 LEAKAGE DETECTED: 1 frozen acceptance document(s) leaked into dev partition: ['doc-003'].\", \"NT4 LEAKAGE DETECTED: 1 derived artifact(s) from acceptance partition found in dev cache: ['embeddings/doc-004_p2.npy'].\"]",
           "verify_no_document_leakage raised: CRITICAL: Document leakage detected! 1 acceptance document(s) found in dev partition: ['doc-003']",
           "verify_no_artifact_leakage raised: CRITICAL: Derived artifact leakage detected! 1 artifact(s) from acceptance documents appeared in dev artifacts: ['embeddings/doc-004_p2.npy']",
-          "Partition recovery completed in 179.17 ms, clean_leakage=False"
+          "Partition recovery completed in 718.25 ms, clean_leakage=False"
         ],
-        "recovery_time_ms": 179.17,
+        "recovery_time_ms": 718.25,
         "status": "PASS"
       },
       "NT5": {
@@ -208,9 +208,9 @@
           "Workload parameters: pages=240, size=85.4MB, p95=28.5ms, peak_mem=210.8MB",
           "verify_workload_resource_envelope -> breached=True, reasons=['NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.', 'NT5 WORKLOAD BREACH: File size (85.4 MB) exceeds declared limit of 50 MB.', 'NT5 WORKLOAD BREACH: Query latency p95 (28.50 ms) exceeds declared performance budget of 5.00 ms.', 'NT5 WORKLOAD BREACH: Peak memory usage (210.8 MB) exceeds declared allocation envelope of 150.0 MB.']",
           "System triggered resource throttle exception: NT5 WORKLOAD BREACH: Page count (240) exceeds declared envelope limit of 100 pages.",
-          "Workload recovery completed in 168.42 ms, nominal_breached=False"
+          "Workload recovery completed in 644.05 ms, nominal_breached=False"
         ],
-        "recovery_time_ms": 168.42,
+        "recovery_time_ms": 644.05,
         "status": "PASS"
       }
     }
@@ -284,24 +284,24 @@
       "description": "5-criterion rubric (factual grounding, modality preservation, provenance, reading order, confidence)",
       "baseline": "38.5 / 100",
       "target": ">= 75.0 / 100",
-      "achieved": "87.0 / 100",
-      "ci_95": "[80.7, 93.5]",
+      "achieved": "87.1 / 100",
+      "ci_95": "[79.4, 93.7]",
       "unit": "Rubric Score (0-100)",
-      "status": "FAIL",
+      "status": "PASS",
       "subgroups": {
         "small_cases": {
-          "mean": 73.85,
-          "ci_95": "[72.9, 74.8]",
-          "pass": false
+          "mean": 91.15,
+          "ci_95": "[90.0, 92.3]",
+          "pass": true
         },
         "rare_cases": {
-          "mean": 87.05,
-          "ci_95": "[78.0, 96.0]",
+          "mean": 78.3,
+          "ci_95": "[64.8, 91.0]",
           "pass": true
         },
         "critical_cases": {
-          "mean": 95.7333,
-          "ci_95": "[93.8, 96.8]",
+          "mean": 96.1667,
+          "ci_95": "[93.7, 97.5]",
           "pass": true
         }
       }
@@ -368,24 +368,24 @@
       "description": "Warm vector query latency across FAISS dense subword index (30+ warm trials)",
       "baseline": "15.00 ms",
       "target": "< 5.00 ms",
-      "achieved": "1.77 ms",
-      "ci_95": "[0.98, 1.14] ms",
+      "achieved": "1.37 ms",
+      "ci_95": "[0.77, 0.83] ms",
       "unit": "Milliseconds",
       "status": "PASS",
       "subgroups": {
         "small_cases": {
-          "p95_ms": 1.77,
-          "ci_95": "[0.94, 1.10] ms",
+          "p95_ms": 1.56,
+          "ci_95": "[0.78, 0.92] ms",
           "pass": true
         },
         "rare_cases": {
-          "p95_ms": 1.74,
-          "ci_95": "[0.93, 1.10] ms",
+          "p95_ms": 1.38,
+          "ci_95": "[0.73, 0.82] ms",
           "pass": true
         },
         "critical_cases": {
-          "p95_ms": 1.95,
-          "ci_95": "[0.96, 1.34] ms",
+          "p95_ms": 1.22,
+          "ci_95": "[0.74, 0.84] ms",
           "pass": true
         }
       }
@@ -394,23 +394,23 @@
   "retrieval_benchmarks": {
     "num_questions": 9,
     "hit_at_1": 0.778,
-    "hit_at_3": 0.778,
-    "mrr": 0.833,
-    "answer_grounding": 0.556,
+    "hit_at_3": 1.0,
+    "mrr": 0.87,
+    "answer_grounding": 0.667,
     "cohens_kappa_weighted": 1.0,
     "cohens_kappa_unweighted": 1.0
   },
   "parity_benchmark": {
     "trials_count": 270,
     "reference_o2": {
-      "latency_p50_ms": 0.8,
-      "latency_p95_ms": 1.65,
+      "latency_p50_ms": 0.66,
+      "latency_p95_ms": 1.37,
       "peak_memory_mb": 0.04
     },
     "final_o3": {
-      "latency_p50_ms": 0.82,
-      "latency_p95_ms": 1.77,
-      "latency_p99_ms": 2.95,
+      "latency_p50_ms": 0.69,
+      "latency_p95_ms": 1.37,
+      "latency_p99_ms": 1.79,
       "peak_memory_mb": 0.04
     }
   }

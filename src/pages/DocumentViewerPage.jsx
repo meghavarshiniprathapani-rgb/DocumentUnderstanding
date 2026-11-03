@@ -10,7 +10,7 @@ import { DocumentInspectorPanel } from '../components/viewer/DocumentInspectorPa
 import { Badge } from '../components/common/Badge';
 import { api, isDemoMode } from '../services/api';
 
-export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSegmentId, setSelectedSegmentId }) => {
+export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSegmentId, setSelectedSegmentId, selectedPageNumber }) => {
   const [documents, setDocuments] = useState([]);
   const [docId, setDocId] = useState(selectedDocId || '');
   const [currentDoc, setCurrentDoc] = useState(null);
@@ -19,11 +19,21 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
   const [filterType, setFilterType] = useState('all');
   const [activeSegmentId, setActiveSegmentId] = useState(selectedSegmentId || null);
   const [prevSelectedSegmentId, setPrevSelectedSegmentId] = useState(selectedSegmentId);
+  const [prevSelectedDocId, setPrevSelectedDocId] = useState(selectedDocId);
+  const [prevSelectedPageNumber, setPrevSelectedPageNumber] = useState(selectedPageNumber);
   const [loading, setLoading] = useState(true);
 
   if (selectedSegmentId !== prevSelectedSegmentId) {
     setPrevSelectedSegmentId(selectedSegmentId);
     setActiveSegmentId(selectedSegmentId);
+  }
+  if (selectedDocId !== prevSelectedDocId) {
+    setPrevSelectedDocId(selectedDocId);
+    if (selectedDocId) setDocId(selectedDocId);
+  }
+  if (selectedPageNumber !== prevSelectedPageNumber) {
+    setPrevSelectedPageNumber(selectedPageNumber);
+    if (selectedPageNumber) setCurrentPage(selectedPageNumber);
   }
 
   // 1. Load document list from backend API / demo repository
@@ -75,13 +85,17 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
         const segs = await api.getPageLayout(docId, currentPage);
         if (!isMounted) return;
         setPageSegments(segs);
+        if (selectedSegmentId && segs.length > 0) {
+          const match = segs.find(s => s.id === selectedSegmentId || selectedSegmentId.includes(s.id) || s.id.includes(selectedSegmentId));
+          if (match) setActiveSegmentId(match.id);
+        }
       } catch (err) {
         console.warn(`Failed to fetch page segments for ${docId} page ${currentPage}:`, err);
       }
     }
     loadPageSegments();
     return () => { isMounted = false; };
-  }, [docId, currentPage]);
+  }, [docId, currentPage, selectedSegmentId]);
 
   const activeSegment = pageSegments.find(s => s.id === activeSegmentId) || pageSegments[0] || null;
   const pdfUrl = docId ? api.getPdfFileUrl(docId) : null;

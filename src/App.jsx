@@ -19,7 +19,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDocId, setSelectedDocId] = useState('doc-001');
+  const [selectedDocIds, setSelectedDocIds] = useState([]);
   const [selectedSegmentId, setSelectedSegmentId] = useState(null);
+  const [selectedPageNumber, setSelectedPageNumber] = useState(1);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Authentication State
@@ -165,6 +167,9 @@ export default function App() {
               setActiveTab={setActiveTab}
               setSelectedDocId={setSelectedDocId}
               setSelectedSegmentId={setSelectedSegmentId}
+              setSelectedPageNumber={setSelectedPageNumber}
+              selectedDocIds={selectedDocIds}
+              setSelectedDocIds={setSelectedDocIds}
             />
           )}
 
@@ -173,7 +178,9 @@ export default function App() {
               selectedDocId={selectedDocId}
               setSelectedDocId={setSelectedDocId}
               selectedSegmentId={selectedSegmentId}
+              selectedPageNumber={selectedPageNumber}
               setSelectedSegmentId={setSelectedSegmentId}
+              setSelectedPageNumber={setSelectedPageNumber}
             />
           )}
 
@@ -181,6 +188,8 @@ export default function App() {
             <LibraryPage 
               setActiveTab={setActiveTab}
               setSelectedDocId={setSelectedDocId}
+              selectedDocIds={selectedDocIds}
+              setSelectedDocIds={setSelectedDocIds}
             />
           )}
 

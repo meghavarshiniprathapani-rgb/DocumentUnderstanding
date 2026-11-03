@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends
 
 from backend.app.schemas.common import (
     BaseResponse,
+    MultiDocumentSearchResponse,
     SearchQueryRequest,
     SearchResultItem,
 )
@@ -31,6 +32,7 @@ def execute_search(
     results = doc_service.search(
         query=payload.query,
         document_id=payload.document_id,
+        document_ids=payload.document_ids,
         content_type=payload.content_type,
         min_score=payload.min_score,
         top_k=payload.top_k or 10,
@@ -48,4 +50,26 @@ def execute_search(
         status=status_str,
         message=message_str,
         data=results,
+    )
+
+
+@router.post("/aggregate", response_model=BaseResponse[MultiDocumentSearchResponse])
+def execute_aggregate_search(
+    payload: SearchQueryRequest,
+    doc_service: DocumentService = Depends(get_document_service),
+) -> BaseResponse[MultiDocumentSearchResponse]:
+    """Retrieves ranked multi-document chunks with cross-document consensus, divergences, and coverage."""
+    res = doc_service.search_aggregate(
+        query=payload.query,
+        document_id=payload.document_id,
+        document_ids=payload.document_ids,
+        content_type=payload.content_type,
+        min_score=payload.min_score,
+        top_k=payload.top_k or 10,
+    )
+
+    return BaseResponse[MultiDocumentSearchResponse](
+        status="success",
+        message=f"Consolidated evidence across {len(res.documents_searched)} documents ({len(res.results)} matches)",
+        data=res,
     )

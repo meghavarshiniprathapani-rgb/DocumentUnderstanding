@@ -109,6 +109,31 @@ class DocumentSummary(BaseModel):
     uploaded_at: str
     file_hash: Optional[str] = None
     is_degraded: bool = False
+    extraction_status: str = "Completed"
+    indexing_status: str = "Indexed"
+    chunk_count: int = 0
+    error_details: Optional[str] = None
+    config_version: str = "1.0.0"
+
+
+class BatchItemStatus(BaseModel):
+    filename: str
+    document_id: Optional[str] = None
+    file_hash: Optional[str] = None
+    file_size: str = "0 B"
+    status: str = "Queued"
+    progress_percent: int = 0
+    error: Optional[str] = None
+    summary: Optional[DocumentSummary] = None
+
+
+class BatchUploadResponse(BaseModel):
+    batch_id: str
+    total_files: int
+    successful_count: int
+    failed_count: int
+    duplicate_count: int
+    items: List[BatchItemStatus]
 
 
 class SearchQueryRequest(BaseModel):
@@ -116,6 +141,7 @@ class SearchQueryRequest(BaseModel):
 
     query: str = Field(..., min_length=1, description="Search query string")
     document_id: Optional[str] = Field(default="All", description="Target document ID or 'All'")
+    document_ids: Optional[List[str]] = Field(default=None, description="Target document IDs to search across")
     content_type: Optional[str] = Field(default="All", description="Segment type filter")
     min_score: Optional[float] = Field(default=0.50, ge=0.0, le=1.0)
     page_range: Optional[str] = Field(default=None, description="Page range slice, e.g., '1-5'")
@@ -144,3 +170,18 @@ class SearchResultItem(BaseModel):
     is_degraded: bool = Field(default=False, description="Whether this extraction or retrieval is degraded")
     degraded_reasons: List[str] = Field(default_factory=list, description="Diagnostic reasons for degraded flag")
     fallback_strategy: Optional[str] = Field(default=None, description="Active fallback strategy if degraded")
+
+
+class CrossDocumentEvidence(BaseModel):
+    consensus_topics: List[Dict[str, Any]] = Field(default_factory=list)
+    document_specific: List[Dict[str, Any]] = Field(default_factory=list)
+    divergences: List[Dict[str, Any]] = Field(default_factory=list)
+    coverage_summary: Dict[str, Any] = Field(default_factory=dict)
+
+
+class MultiDocumentSearchResponse(BaseModel):
+    results: List[SearchResultItem]
+    evidence_aggregation: CrossDocumentEvidence
+    total_matches: int
+    documents_searched: List[str]
+    documents_matched: List[str]

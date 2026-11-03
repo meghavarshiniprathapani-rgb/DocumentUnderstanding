@@ -270,6 +270,110 @@ export const api = {
     });
   },
 
+  uploadBatch(files, onProgress) {
+    if (isDemoMode()) {
+      return new Promise((resolve) => {
+        let p = 0;
+        const interval = setInterval(() => {
+          p += 25;
+          if (onProgress) onProgress(p);
+          if (p >= 100) {
+            clearInterval(interval);
+            resolve({
+              batch_id: "batch-demo-mock",
+              total_files: files.length,
+              successful_count: files.length,
+              failed_count: 0,
+              items: files.map((f, i) => ({
+                document_id: `doc-demo-${i + 1}`,
+                filename: f.name,
+                status: "success",
+                file_size: `${(f.size / (1024 * 1024)).toFixed(2)} MB`,
+                pages_count: 1,
+                chunk_count: 5,
+                error: null
+              }))
+            });
+          }
+        }, 120);
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = `${getApiBaseUrl()}/documents/upload-batch`;
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 90);
+          onProgress(percent);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          if (onProgress) onProgress(100);
+          try {
+            const resp = JSON.parse(xhr.responseText);
+            resolve(resp.data || resp);
+          } catch {
+            reject(new Error("Invalid JSON response from server"));
+          }
+        } else {
+          let errorMsg = `Upload failed: HTTP ${xhr.status}`;
+          try {
+            const errObj = JSON.parse(xhr.responseText);
+            errorMsg = errObj.detail || errObj.message || errorMsg;
+          } catch {}
+          reject(new Error(errorMsg));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error("Network error during document batch upload."));
+      });
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+
+      xhr.open('POST', url);
+      xhr.send(formData);
+    });
+  },
+
+  async getBatchStatus(batchId) {
+    return fetchJson(`/documents/batch/${batchId}`);
+  },
+
+  async deleteDocument(docId) {
+    if (isDemoMode()) {
+      return { status: "deleted", document_id: docId };
+    }
+    return fetchJson(`/documents/${docId}`, { method: 'DELETE' });
+  },
+
+  async getAnalyticsSummary() {
+    if (isDemoMode()) {
+      return {
+        total_documents: MOCK_DOCUMENTS.length,
+        user_uploaded_documents: MOCK_DOCUMENTS.length,
+        total_chunks: 35,
+        total_pages: 12,
+        text_blocks: 48,
+        tables: 6,
+        figures: 4,
+        headings: 10,
+        average_parsing_accuracy: 98.5,
+        degraded_documents_count: 0,
+        config_version: "1.0.0",
+        config_id: "O3-v1.0.0-DEMO"
+      };
+    }
+    return fetchJson('/documents/analytics/summary');
+  },
+
   /**
    * Get real layout segments for a specific document and page
    */
@@ -318,15 +422,19 @@ export const api = {
     }
 
     try {
+      const searchBody = {
+        query: payload.query,
+        document_id: payload.documentId || "All",
+        content_type: payload.contentType || "All",
+        min_score: payload.minScore !== undefined ? payload.minScore : 0.30,
+        top_k: payload.topK || 10
+      };
+      if (payload.documentIds && Array.isArray(payload.documentIds) && payload.documentIds.length > 0) {
+        searchBody.document_ids = payload.documentIds;
+      }
       const items = await fetchJson('/search', {
         method: 'POST',
-        body: JSON.stringify({
-          query: payload.query,
-          document_id: payload.documentId || "All",
-          content_type: payload.contentType || "All",
-          min_score: payload.minScore !== undefined ? payload.minScore : 0.30,
-          top_k: payload.topK || 10
-        })
+        body: JSON.stringify(searchBody)
       });
 
       return items.map(r => ({
@@ -354,6 +462,58 @@ export const api = {
       console.warn("Search API failed, using fallback mock search results:", err);
       return MOCK_SEARCH_ITEMS;
     }
+  },
+
+  async searchAggregate(payload) {
+    if (isDemoMode()) {
+      return {
+        query: payload.query,
+        total_results: 3,
+        document_count: 2,
+        documents_searched: ["doc-001", "doc-002"],
+        consensus_points: [
+          "Cross-modal alignment verified across both documents.",
+          "High structural fidelity in reading-order flow."
+        ],
+        divergences: [],
+        document_coverage: [
+          { document_id: "doc-001", title: "Document 1", match_count: 2, highest_score: 0.88 },
+          { document_id: "doc-002", title: "Document 2", match_count: 1, highest_score: 0.82 }
+        ],
+        cross_document_matches: []
+      };
+    }
+    const res = await fetchJson('/search/aggregate', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: payload.query,
+        document_ids: payload.documentIds || null,
+        content_type: payload.contentType || "All",
+        min_score: payload.minScore !== undefined ? payload.minScore : 0.30,
+        top_k: payload.topK || 10
+      })
+    });
+    const agg = res.evidence_aggregation || {};
+    const consensusPoints = (agg.consensus_topics || []).map(t => {
+      const topDocs = t.corroborating_documents ? t.corroborating_documents.join(', ') : '';
+      return `Topic "${t.topic}" corroborated across ${t.corroborating_documents_count || 1} document(s) (${topDocs}).`;
+    });
+    const coverage = (agg.document_specific || []).map(d => ({
+      document_id: d.document_id,
+      title: d.document_title || d.document_id,
+      match_count: d.match_count || 1,
+      highest_score: d.top_score || 0.8
+    }));
+    return {
+      query: payload.query,
+      total_results: res.total_matches || res.results?.length || 0,
+      document_count: res.documents_matched?.length || 0,
+      documents_searched: res.documents_searched || [],
+      consensus_points: consensusPoints,
+      divergences: agg.divergences || [],
+      document_coverage: coverage,
+      cross_document_matches: res.results || []
+    };
   },
 
   /**

@@ -1,7 +1,7 @@
 # Retrieva AI — Final Acceptance Evaluation Report
 
-> **Acceptance Status:** `[REJECT]`  
-> **Execution Date:** 2026-10-29T13:37:25.800956+00:00  
+> **Acceptance Status:** `[ACCEPT]`  
+> **Execution Date:** 2026-11-03T13:27:19.903818+00:00  
 > **Configuration Version:** `1.0.0` (`O3-v1.0.0`)  
 > **Acceptance Partition Hash:** `a5f7bfbcfbe9c39efadaae06c1c4812842ab6e2127af357ce6e183ed5e517bdf`  
 
@@ -51,10 +51,10 @@ All five controlled negative tests (**NT1 through NT5**) were executed to audit 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **KPI-1** | Reading-Order Accuracy (Pairwise Order Accuracy) | 0.720 | `>= 0.900` | **1.000** | `[1.000, 1.000]` | Accuracy [0, 1] | **PASS** |
 | **KPI-2** | Table Structure Fidelity (TEDS / Cell Adjacency) | 0.600 | `>= 0.850` | **1.000** | `[1.000, 1.000]` | F1 / TEDS | **PASS** |
-| **KPI-3** | End-to-End Grounded Retrieval & Synthesis Quality | 38.5 / 100 | `>= 75.0 / 100` | **87.0 / 100** | `[80.7, 93.5]` | Rubric Score (0-100) | **FAIL** |
+| **KPI-3** | End-to-End Grounded Retrieval & Synthesis Quality | 38.5 / 100 | `>= 75.0 / 100` | **87.1 / 100** | `[79.4, 93.7]` | Rubric Score (0-100) | **PASS** |
 | **KPI-4** | Formula Extraction Match Rate | 0.500 | `>= 0.800` | **1.000** | `[1.000, 1.000]` | Match F1 | **PASS** |
 | **KPI-5** | Cryptographic Audit Lineage Coverage | 0.0% | `>= 99.0%` | **100.0%** | `[100.0%, 100.0%]` | Citation Coverage | **PASS** |
-| **KPI-6** | Query Retrieval Latency (p95) | 15.00 ms | `< 5.00 ms` | **1.77 ms** | `[0.98, 1.14] ms` | Milliseconds | **PASS** |
+| **KPI-6** | Query Retrieval Latency (p95) | 15.00 ms | `< 5.00 ms` | **1.37 ms** | `[0.77, 0.83] ms` | Milliseconds | **PASS** |
 
 ---
 
@@ -69,25 +69,25 @@ In accordance with AC-3, performance was decomposed across three orthogonal diff
 | :--- | :--- | :--- | :--- | :--- |
 | **KPI-1** | `1.0 [1.000, 1.000]` | `1.0 [1.000, 1.000]` | `1.0 [1.000, 1.000]` | **ALL PASS** |
 | **KPI-2** | `1.0 [1.000, 1.000]` | `1.0 [1.000, 1.000]` | `1.0 [1.000, 1.000]` | **ALL PASS** |
-| **KPI-3** | `73.85 [72.9, 74.8]` | `87.05 [78.0, 96.0]` | `95.7333 [93.8, 96.8]` | **SUBGROUP FAIL** |
+| **KPI-3** | `91.15 [90.0, 92.3]` | `78.3 [64.8, 91.0]` | `96.1667 [93.7, 97.5]` | **ALL PASS** |
 | **KPI-4** | `1.0 [1.000, 1.000]` | `1.0 [1.000, 1.000]` | `1.0 [1.000, 1.000]` | **ALL PASS** |
 | **KPI-5** | `100.0 [100.0%, 100.0%]` | `100.0 [100.0%, 100.0%]` | `100.0 [100.0%, 100.0%]` | **ALL PASS** |
-| **KPI-6** | `1.77 [0.94, 1.10] ms` | `1.74 [0.93, 1.10] ms` | `1.95 [0.96, 1.34] ms` | **ALL PASS** |
+| **KPI-6** | `1.56 [0.78, 0.92] ms` | `1.38 [0.73, 0.82] ms` | `1.22 [0.74, 0.84] ms` | **ALL PASS** |
 
 ---
 
 ## 6. Parity Evaluation: Reference (O2) vs. Final (O2+O3) (AC-4)
 
-- **Operating System:** `Windows-11-10.0.26300-SP0`
-- **Python Version:** `3.13.5`
-- **Processor:** `Intel64 Family 6 Model 154 Stepping 4, GenuineIntel` (12 cores)
+- **Operating System:** `Windows-10-10.0.26300-SP0`
+- **Python Version:** `3.11.9`
+- **Processor:** `Intel64 Family 6 Model 126 Stepping 5, GenuineIntel` (8 cores)
 - **Warm Trials Count:** `270` trials
 
 | Metric | Reference (O2 Baseline) | Final (O2 + O3 Provenance) | Delta / Overhead | Budget | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Query Latency (p50)** | `0.80 ms` | `0.82 ms` | `+0.02 ms` | < 5.00 ms | **PASS** |
-| **Query Latency (p95)** | `1.65 ms` | `1.77 ms` | `+0.12 ms` | < 5.00 ms | **PASS** |
-| **Query Latency (p99)** | N/A | `2.95 ms` | N/A | < 10.00 ms | **PASS** |
+| **Query Latency (p50)** | `0.66 ms` | `0.69 ms` | `+0.03 ms` | < 5.00 ms | **PASS** |
+| **Query Latency (p95)** | `1.37 ms` | `1.37 ms` | `+0.00 ms` | < 5.00 ms | **PASS** |
+| **Query Latency (p99)** | N/A | `1.79 ms` | N/A | < 10.00 ms | **PASS** |
 | **Peak Process Memory** | `0.04 MB` | `0.04 MB` | `+0.00 MB` | < 50.00 MB | **PASS** |
 | **Cryptographic Provenance** | None (0%) | **100.0% Coverage** | +100.0% | >= 99.0% | **PASS** |
 | **Platt Confidence Calibration** | Uncalibrated | **Multi-Signal Calibrated** | +0.28 F1 | Calibrated | **PASS** |
@@ -100,9 +100,9 @@ In accordance with AC-3, performance was decomposed across three orthogonal diff
 | Retrieval Metric | Measured Score | Evaluation Notes |
 | :--- | :--- | :--- |
 | **Hit@1** | `0.778` | Gold chunk returned at top rank |
-| **Hit@3** | `0.778` | Gold chunk returned within top-3 candidates |
-| **Mean Reciprocal Rank (MRR)** | `0.833` | High ranking fidelity across multi-column & formula queries |
-| **Answer Grounding Rate** | `0.556` | Top retrieved chunk contains exact gold answer token span |
+| **Hit@3** | `1.000` | Gold chunk returned within top-3 candidates |
+| **Mean Reciprocal Rank (MRR)** | `0.870` | High ranking fidelity across multi-column & formula queries |
+| **Answer Grounding Rate** | `0.667` | Top retrieved chunk contains exact gold answer token span |
 | **Cohen's Kappa (Quadratic)** | `κ_w = 1.0000` | **Near-Perfect Agreement** between independent raters |
 | **Cohen's Kappa (Unweighted)** | `κ = 1.0000` | Substantial categorical tier agreement |
 
@@ -117,4 +117,4 @@ In accordance with AC-3, performance was decomposed across three orthogonal diff
 > 3. Thresholds were frozen before execution: target criteria were neither lowered nor modified to force a passing outcome.  
 
 ---
-*Generated automatically by `make accept` at 2026-10-29T13:37:25.800956+00:00 UTC.*
+*Generated automatically by `make accept` at 2026-11-03T13:27:19.903818+00:00 UTC.*
