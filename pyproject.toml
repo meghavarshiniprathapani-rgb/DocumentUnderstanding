@@ -7,7 +7,7 @@ name = "retrieva-ai"
 version = "1.0.0"
 description = "Retrieva AI — Document Understanding & Multi-Modal Spatial Retrieval System"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11, <3.13"
 authors = [
     { name = "Meghavarshini Prathapani", email = "meghavarshini@retrieva.ai" }
 ]
