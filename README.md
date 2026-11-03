@@ -309,21 +309,8 @@ In compliance with academic honesty standards, functional constraints are explic
 
 ---
 
-## 11. Project Team & Academic Credits
 
-**Department of Computer Science & Engineering / AI & ML**  
-**Koneru Lakshmaiah Education Foundation (KL University), AP, India**
 
-- **Meghavarshini Prathapani** — *Lead Researcher, Systems Architect, and Full-Stack Engineer*
-  - Conceptualized and implemented the multi-modal document understanding pipeline.
-  - Engineered the reading-order recovery engine, table extraction, and Platt confidence calibration.
-  - Built the FastAPI backend, FAISS vector retrieval system, and React 19 interactive canvas.
-  - Authored the acceptance evaluation harness and documentation.
-- **Capstone Faculty Guides & Reviewers** — *Department of CSE / AIML, KL University*
-  - Academic guidance, methodology validation, and evaluation rubric standardization.
-
----
-
-## 12. License
+## 11. License
 
 This project is licensed under the [MIT License](LICENSE) — see the LICENSE file for details.
