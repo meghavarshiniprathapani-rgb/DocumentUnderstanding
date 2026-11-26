@@ -640,10 +640,19 @@ documentsRouter.delete('/:id', async (req, res, next) => {
     conn = await getConnection();
     await conn.beginTransaction();
 
-    const [jobRows] = await conn.query(
-      `SELECT * FROM jobs WHERE doc_id = ? FOR UPDATE`,
+    const [jobIdRows] = await conn.query(
+      `SELECT id FROM jobs WHERE doc_id = ? ORDER BY id ASC`,
       [preliminaryDoc.id]
     );
+    const jobIds = jobIdRows.map((row) => row.id);
+    let jobRows = [];
+    if (jobIds.length > 0) {
+      const [lockedJobRows] = await conn.query(
+        `SELECT * FROM jobs WHERE id IN (?) ORDER BY id ASC FOR UPDATE`,
+        [jobIds]
+      );
+      jobRows = lockedJobRows;
+    }
 
     if (typeof _testDeleteHook?.afterJobLock === 'function' && process.env.NODE_ENV === 'test') {
       await _testDeleteHook.afterJobLock(preliminaryDoc, conn);
@@ -679,12 +688,19 @@ documentsRouter.delete('/:id', async (req, res, next) => {
       return sendError(res, `Document with ID '${documentId}' is already deleted`, 404);
     }
 
-    await conn.query(
-      `UPDATE jobs
-       SET status = 'failed', error = 'Document deleted before processing', updated_at = CURRENT_TIMESTAMP
-       WHERE doc_id = ? AND status = 'queued'`,
-      [doc.id]
-    );
+    if (jobIds.length > 0) {
+      await conn.query(
+        `UPDATE jobs
+         SET status = 'failed',
+             error = 'Document deleted before processing',
+             locked_by = NULL,
+             locked_at = NULL,
+             heartbeat_at = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id IN (?) AND status = 'queued'`,
+        [jobIds]
+      );
+    }
 
     await conn.query(
       `UPDATE documents

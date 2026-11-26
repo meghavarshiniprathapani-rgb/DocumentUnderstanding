@@ -7,7 +7,13 @@
  * - Preserves deterministic repository-level concurrency verification while keeping production claimJob() safe.
  */
 
-import { _executeClaimJobForTest } from '../repositories/jobRepository.js';
+import {
+  _executeClaimJobForTest,
+  _executeHeartbeatJobForTest,
+  _executeCompleteJobForTest,
+  _executeFailJobForTest,
+  _executeRecoverExpiredLeasesForTest,
+} from '../repositories/jobRepository.js';
 
 export const jobTestAdapter = Object.freeze({
   /**
@@ -22,5 +28,17 @@ export const jobTestAdapter = Object.freeze({
    */
   claimJobWithHook: async (workerId = null, options = {}, hooks = {}) => {
     return _executeClaimJobForTest(workerId, options, hooks);
+  },
+  heartbeatJobWithHook: async (jobId, workerId, hooks = {}) => {
+    return _executeHeartbeatJobForTest(jobId, workerId, hooks);
+  },
+  completeJobWithHook: async (jobId, workerId, details = {}, hooks = {}) => {
+    return _executeCompleteJobForTest(jobId, workerId, details, hooks);
+  },
+  failJobWithHook: async (jobId, workerId, details = {}, hooks = {}) => {
+    return _executeFailJobForTest(jobId, workerId, details, hooks);
+  },
+  recoverExpiredLeasesWithHook: async (options = {}, hooks = {}) => {
+    return _executeRecoverExpiredLeasesForTest(options, hooks);
   },
 });

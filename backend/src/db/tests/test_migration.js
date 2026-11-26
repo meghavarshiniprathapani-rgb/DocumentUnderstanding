@@ -29,8 +29,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import net from 'node:net';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
+import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
@@ -74,7 +76,7 @@ async function runTestSuite() {
 
     console.log('\n[TEST 1.1] Verifying immutable historical _migrations records in working DB...');
     const [historyRows] = await conn.query('SELECT * FROM _migrations ORDER BY id ASC');
-    assert.equal(historyRows.length, 4, 'Exactly 4 migrations must be recorded in working DB');
+    assert.equal(historyRows.length, 5, 'Exactly 5 migrations must be recorded in working DB');
 
     const m001 = historyRows.find((r) => r.version === '001');
     assert.ok(m001, 'Migration 001 must exist');
@@ -92,6 +94,10 @@ async function runTestSuite() {
     assert.ok(m004, 'Migration 004 must exist');
     assert.equal(m004.checksum, '862f52344ba48a96799ecb7a8d01ddab6577df78fe03a7aab33ccab994efc5f0');
 
+    const m005 = historyRows.find((r) => r.version === '005');
+    assert.ok(m005, 'Migration 005 must exist');
+    assert.equal(m005.checksum, 'fb8ec0de7a7150748677b64ba3bdb6011e6aedd87923812abf41b339238a15cb');
+
     const f001Content = fs.readFileSync(path.join(MIGRATIONS_DIR, '001_init.sql'), 'utf8');
     assert.equal(computeChecksum(f001Content), m001.checksum, '001_init.sql file checksum matches DB record');
 
@@ -104,11 +110,15 @@ async function runTestSuite() {
     const f004Content = fs.readFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), 'utf8');
     assert.equal(computeChecksum(f004Content), m004.checksum, '004_durable_cleanup_queue.sql file checksum matches DB record');
 
+    const f005Content = fs.readFileSync(path.join(MIGRATIONS_DIR, '005_worker_leases.sql'), 'utf8');
+    assert.equal(computeChecksum(f005Content), m005.checksum, '005_worker_leases.sql file checksum matches DB record');
+
     console.log('  PASS: Working database migration records and file checksums are 100% aligned:');
     console.log(`        001_init.sql                   : ${m001.checksum}`);
     console.log(`        002_schema_compatibility.sql   : ${m002.checksum}`);
     console.log(`        003_document_sequences.sql     : ${m003.checksum}`);
     console.log(`        004_durable_cleanup_queue.sql  : ${m004.checksum}`);
+    console.log(`        005_worker_leases.sql          : ${m005.checksum}`);
 
     // Test 1.2: Checksum mismatch enforcer (Altering an applied migration file must be refused)
     console.log('\n[TEST 1.2] Testing runner strictly refuses an applied migration whose checksum changed...');
@@ -241,12 +251,13 @@ async function runTestSuite() {
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '002_schema_compatibility.sql'), path.join(tempInjectedDir, '002_schema_compatibility.sql'));
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '003_document_sequences.sql'), path.join(tempInjectedDir, '003_document_sequences.sql'));
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), path.join(tempInjectedDir, '004_durable_cleanup_queue.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '005_worker_leases.sql'), path.join(tempInjectedDir, '005_worker_leases.sql'));
 
       const injectedSql = `
         ALTER TABLE documents ADD COLUMN test_injected_flag VARCHAR(16) NULL;
         ALTER TABLE non_existent_audit_table ADD COLUMN probe_fail INT;
       `;
-      fs.writeFileSync(path.join(tempInjectedDir, '005_injected_fail.sql'), injectedSql);
+      fs.writeFileSync(path.join(tempInjectedDir, '006_injected_fail.sql'), injectedSql);
 
       let injectedCaught = false;
       try {
@@ -270,8 +281,8 @@ async function runTestSuite() {
       );
       assert.equal(colCheck.length, 1, 'Proved statement 1 committed implicitly');
 
-      const [migCheck] = await conn.query('SELECT * FROM _migrations WHERE version = "005"');
-      assert.equal(migCheck.length, 0, '005 must not be recorded in _migrations');
+      const [migCheck] = await conn.query('SELECT * FROM _migrations WHERE version = "006"');
+      assert.equal(migCheck.length, 0, '006 must not be recorded in _migrations');
       console.log('  PASS: Verified failed migration is not recorded and tables are not dropped.');
 
       await conn.query('ALTER TABLE documents DROP COLUMN test_injected_flag');
@@ -284,7 +295,7 @@ async function runTestSuite() {
     console.log('\n[CONDITION 1] Testing migration recorded and schema valid...');
     const cond1 = await runMigrations({ connection: conn });
     assert.equal(cond1.applied.length, 0, 'Zero migrations applied');
-    assert.equal(cond1.skipped.length >= 4, true, 'All migrations skipped cleanly');
+    assert.equal(cond1.skipped.length >= 5, true, 'All migrations skipped cleanly');
     console.log('  PASS: Condition 1 verified (Clean skip with verified schema).');
 
     console.log('\n[CONDITION 2] Testing migration recorded but schema invalid (refusal to silently skip)...');
@@ -314,13 +325,14 @@ async function runTestSuite() {
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '002_schema_compatibility.sql'), path.join(tempCond3Dir, '002_schema_compatibility.sql'));
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '003_document_sequences.sql'), path.join(tempCond3Dir, '003_document_sequences.sql'));
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), path.join(tempCond3Dir, '004_durable_cleanup_queue.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '005_worker_leases.sql'), path.join(tempCond3Dir, '005_worker_leases.sql'));
 
       await conn.query('ALTER TABLE documents ADD COLUMN cond3_test_partial VARCHAR(32) NULL');
-      const sql005Partial = `
+      const sql006Partial = `
         ALTER TABLE documents ADD COLUMN cond3_test_partial VARCHAR(32) NULL;
         ALTER TABLE documents ADD COLUMN cond3_test_full VARCHAR(32) NULL;
       `;
-      fs.writeFileSync(path.join(tempCond3Dir, '005_partial_probe.sql'), sql005Partial);
+      fs.writeFileSync(path.join(tempCond3Dir, '006_partial_probe.sql'), sql006Partial);
 
       let cond3Caught = false;
       try {
@@ -347,15 +359,16 @@ async function runTestSuite() {
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '002_schema_compatibility.sql'), path.join(tempCond4Dir, '002_schema_compatibility.sql'));
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '003_document_sequences.sql'), path.join(tempCond4Dir, '003_document_sequences.sql'));
       fs.copyFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), path.join(tempCond4Dir, '004_durable_cleanup_queue.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '005_worker_leases.sql'), path.join(tempCond4Dir, '005_worker_leases.sql'));
 
-      const sql005Clean = `CREATE TABLE IF NOT EXISTS test_audit_table (id INT PRIMARY KEY); DROP TABLE test_audit_table;`;
-      fs.writeFileSync(path.join(tempCond4Dir, '005_clean_audit.sql'), sql005Clean);
+      const sql006Clean = `CREATE TABLE IF NOT EXISTS test_audit_table (id INT PRIMARY KEY); DROP TABLE test_audit_table;`;
+      fs.writeFileSync(path.join(tempCond4Dir, '006_clean_audit.sql'), sql006Clean);
 
       const cond4 = await runMigrations({ connection: conn, migrationsDir: tempCond4Dir });
-      assert.equal(cond4.applied.includes('005_clean_audit.sql'), true);
+      assert.equal(cond4.applied.includes('006_clean_audit.sql'), true);
       console.log('  PASS: Condition 4 verified (Migration applied and recorded cleanly).');
 
-      await conn.query('DELETE FROM _migrations WHERE version = "005"');
+      await conn.query('DELETE FROM _migrations WHERE version = "006"');
     } finally {
       fs.rmSync(tempCond4Dir, { recursive: true, force: true });
     }
@@ -512,6 +525,388 @@ async function runTestSuite() {
       console.log('  PASS: Advisory lock prevents concurrency races.');
     } finally {
       await conn2.end();
+    }
+
+    console.log('\n--- SECTION 6: WORKER LEASE MIGRATION (005_worker_leases.sql) ---');
+
+    console.log('\n[TEST 6.1] Verifying worker lease columns, types, default timeout, indexes & tamper rejection on working DB...');
+    const [jobColsRows] = await conn.query(
+      `SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs'`
+    );
+    const jobColMap = new Map(jobColsRows.map((r) => [r.COLUMN_NAME, r]));
+    assert.equal(jobColMap.get('locked_by')?.COLUMN_TYPE, 'varchar(128)');
+    assert.equal(jobColMap.get('locked_by')?.IS_NULLABLE, 'YES');
+    assert.equal(jobColMap.get('locked_by')?.COLUMN_DEFAULT, null);
+    assert.equal(jobColMap.get('locked_at')?.DATA_TYPE, 'timestamp');
+    assert.equal(jobColMap.get('locked_at')?.IS_NULLABLE, 'YES');
+    assert.equal(jobColMap.get('locked_at')?.COLUMN_DEFAULT, null);
+    assert.equal(jobColMap.get('heartbeat_at')?.DATA_TYPE, 'timestamp');
+    assert.equal(jobColMap.get('heartbeat_at')?.IS_NULLABLE, 'YES');
+    assert.equal(jobColMap.get('heartbeat_at')?.COLUMN_DEFAULT, null);
+    assert.equal(jobColMap.get('lease_timeout_seconds')?.DATA_TYPE, 'int');
+    assert.equal(jobColMap.get('lease_timeout_seconds')?.IS_NULLABLE, 'NO');
+    assert.equal(String(jobColMap.get('lease_timeout_seconds')?.COLUMN_DEFAULT), '300');
+    assert.equal(
+      jobColMap.get('status')?.COLUMN_TYPE,
+      "enum('queued','running','done','degraded','failed')",
+      'jobs.status ENUM must remain unchanged without cancelled status'
+    );
+
+    const [jobIdxRows] = await conn.query(
+      `SELECT INDEX_NAME, NON_UNIQUE, COLUMN_NAME, SEQ_IN_INDEX
+       FROM INFORMATION_SCHEMA.STATISTICS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs'
+       ORDER BY INDEX_NAME, SEQ_IN_INDEX`
+    );
+    const jobIdxMap = new Map();
+    for (const r of jobIdxRows) {
+      if (!jobIdxMap.has(r.INDEX_NAME)) jobIdxMap.set(r.INDEX_NAME, []);
+      jobIdxMap.get(r.INDEX_NAME).push(r.COLUMN_NAME);
+    }
+    assert.deepEqual(jobIdxMap.get('idx_jobs_status'), ['status']);
+    assert.deepEqual(jobIdxMap.get('idx_jobs_doc_status'), ['doc_id', 'status']);
+    assert.deepEqual(jobIdxMap.get('idx_jobs_status_heartbeat'), ['status', 'heartbeat_at']);
+    assert.deepEqual(jobIdxMap.get('idx_jobs_status_mode'), ['status', 'mode']);
+
+    const leaseProbeDocId = 'doc-test-005-lease-' + Date.now();
+    const [leaseProbeDoc] = await conn.query(
+      `INSERT INTO documents (document_id, filename, sha256, path, pages_count, doc_type, split)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [leaseProbeDocId, 'lease_probe.pdf', crypto.createHash('sha256').update(leaseProbeDocId).digest('hex'), '/data/lease_probe.pdf', 1, 'dev', 'none']
+    );
+    const leaseProbeNumDocId = leaseProbeDoc.insertId;
+    try {
+      const [insDefaultJob] = await conn.query(
+        `INSERT INTO jobs (doc_id, mode, status) VALUES (?, ?, ?)`,
+        [leaseProbeNumDocId, 'candidate', 'queued']
+      );
+      const [defaultJobRows] = await conn.query(`SELECT * FROM jobs WHERE id = ?`, [insDefaultJob.insertId]);
+      assert.equal(defaultJobRows[0].locked_by, null);
+      assert.equal(defaultJobRows[0].locked_at, null);
+      assert.equal(defaultJobRows[0].heartbeat_at, null);
+      assert.equal(defaultJobRows[0].lease_timeout_seconds, 300);
+
+      let cancelledRejected = false;
+      try {
+        await conn.query(`INSERT INTO jobs (doc_id, mode, status) VALUES (?, ?, ?)`, [leaseProbeNumDocId, 'flat', 'cancelled']);
+      } catch {
+        cancelledRejected = true;
+      }
+      assert.equal(cancelledRejected, true, 'Invalid cancelled status must be rejected by ENUM');
+      await conn.query(`DELETE FROM jobs WHERE id = ?`, [insDefaultJob.insertId]);
+    } finally {
+      await conn.query(`DELETE FROM documents WHERE id = ?`, [leaseProbeNumDocId]);
+    }
+
+    await conn.query('ALTER TABLE jobs DROP INDEX idx_jobs_status_heartbeat');
+    try {
+      const partial005 = await detectPartialSchema(conn, '005');
+      assert.equal(partial005.isPartial, true);
+      assert.ok(partial005.diagnostic.includes('jobs.idx_jobs_status_heartbeat'));
+    } finally {
+      await conn.query('ALTER TABLE jobs ADD INDEX idx_jobs_status_heartbeat (status, heartbeat_at)');
+    }
+
+    await conn.query('ALTER TABLE jobs ALTER COLUMN lease_timeout_seconds DROP DEFAULT');
+    try {
+      let defaultMismatchCaught = false;
+      try {
+        await verifySchema(conn);
+      } catch (err) {
+        if (err instanceof PostMigrationVerificationError && err.message.includes('lease_timeout_seconds')) {
+          defaultMismatchCaught = true;
+        }
+      }
+      assert.equal(defaultMismatchCaught, true);
+    } finally {
+      await conn.query('ALTER TABLE jobs ALTER COLUMN lease_timeout_seconds SET DEFAULT 300');
+    }
+
+    const tempTamper005Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mig-tamper-005-'));
+    try {
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '001_init.sql'), path.join(tempTamper005Dir, '001_init.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '002_schema_compatibility.sql'), path.join(tempTamper005Dir, '002_schema_compatibility.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '003_document_sequences.sql'), path.join(tempTamper005Dir, '003_document_sequences.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), path.join(tempTamper005Dir, '004_durable_cleanup_queue.sql'));
+      fs.writeFileSync(
+        path.join(tempTamper005Dir, '005_worker_leases.sql'),
+        'ALTER TABLE jobs ADD COLUMN tampered_col INT NULL;'
+      );
+      let tamper005Caught = false;
+      try {
+        await runMigrations({ connection: conn, migrationsDir: tempTamper005Dir });
+      } catch (err) {
+        if (err instanceof ChecksumMismatchError && err.message.includes('005_worker_leases.sql')) {
+          tamper005Caught = true;
+        } else {
+          throw err;
+        }
+      }
+      assert.equal(tamper005Caught, true, 'Modified applied 005 migration must be rejected');
+    } finally {
+      fs.rmSync(tempTamper005Dir, { recursive: true, force: true });
+    }
+
+    const repeatRunWorking = await runMigrations({ connection: conn });
+    assert.equal(repeatRunWorking.applied.length, 0);
+    assert.equal(repeatRunWorking.skipped.length, 5);
+    console.log('  PASS: Working DB 005 lease schema, defaults, indexes, partial detection, and tamper rejection verified.');
+
+    let isolatedServer = null;
+    let adminConn = null;
+    const tempDirsToClean = [];
+    const createdSchemasOnConn = [];
+
+    const resolveMysqldBinary = () => {
+      const candidates = [
+        process.env.MYSQLD_PATH,
+        'C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\mysqld.exe',
+        'mysqld',
+      ].filter(Boolean);
+      for (const c of candidates) {
+        if (c === 'mysqld') {
+          try {
+            execFileSync('mysqld', ['--version'], { stdio: 'pipe', timeout: 5000 });
+            return 'mysqld';
+          } catch {}
+        } else if (fs.existsSync(c)) {
+          return c;
+        }
+      }
+      return null;
+    };
+
+    const getFreePort = () =>
+      new Promise((resolve, reject) => {
+        const srv = net.createServer();
+        srv.listen(0, '127.0.0.1', () => {
+          const p = srv.address().port;
+          srv.close(() => resolve(p));
+        });
+        srv.on('error', reject);
+      });
+
+    try {
+      let useExistingAdmin = false;
+      const probeSchema = `retrieva_probe_${Date.now()}`;
+      try {
+        await conn.query(`CREATE DATABASE \`${probeSchema}\``);
+        await conn.query(`DROP DATABASE \`${probeSchema}\``);
+        useExistingAdmin = true;
+      } catch {
+        useExistingAdmin = false;
+      }
+
+      if (useExistingAdmin) {
+        adminConn = conn;
+      } else {
+        const mysqldBin = resolveMysqldBinary();
+        assert.ok(mysqldBin, 'Isolated MySQL testing requires CREATE DATABASE permission or local mysqld binary');
+        const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'retrieva-mig005-db-'));
+        tempDirsToClean.push(tmpRoot);
+        const dataDir = path.join(tmpRoot, 'data');
+        fs.mkdirSync(dataDir);
+        const port = await getFreePort();
+        execFileSync(mysqldBin, ['--initialize-insecure', `--datadir=${dataDir}`], { stdio: 'pipe', timeout: 60000 });
+        const proc = spawn(
+          mysqldBin,
+          [`--datadir=${dataDir}`, `--port=${port}`, '--bind-address=127.0.0.1', '--mysqlx=OFF', '--skip-networking=OFF'],
+          { stdio: 'pipe' }
+        );
+        isolatedServer = { proc, port, host: '127.0.0.1' };
+        for (let i = 0; i < 80; i++) {
+          try {
+            adminConn = await mysql.createConnection({
+              host: '127.0.0.1',
+              port,
+              user: 'root',
+              multipleStatements: true,
+            });
+            break;
+          } catch {
+            await new Promise((r) => setTimeout(r, 250));
+          }
+        }
+        assert.ok(adminConn, 'Isolated ephemeral MySQL instance failed to accept connections');
+      }
+
+      const openIsolatedDbConnection = async (dbName) => {
+        if (isolatedServer) {
+          return await mysql.createConnection({
+            host: isolatedServer.host,
+            port: isolatedServer.port,
+            user: 'root',
+            database: dbName,
+            multipleStatements: true,
+          });
+        }
+        return await getDbConnection({ database: dbName, multipleStatements: true });
+      };
+
+      console.log('\n[TEST 6.2] Testing fresh database migration from empty schema (001 -> 005)...');
+      const freshDbName = `retrieva_fresh_${Date.now()}`;
+      await adminConn.query(`CREATE DATABASE \`${freshDbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      createdSchemasOnConn.push(freshDbName);
+      const freshConn = await openIsolatedDbConnection(freshDbName);
+      try {
+        const [initialTables] = await freshConn.query(
+          `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()`
+        );
+        assert.equal(initialTables.length, 0, 'Fresh database must start empty');
+
+        const freshRes1 = await runMigrations({ connection: freshConn, migrationsDir: MIGRATIONS_DIR });
+        assert.deepEqual(freshRes1.applied, [
+          '001_init.sql',
+          '002_schema_compatibility.sql',
+          '003_document_sequences.sql',
+          '004_durable_cleanup_queue.sql',
+          '005_worker_leases.sql',
+        ]);
+        assert.equal(freshRes1.skipped.length, 0);
+        assert.equal(await verifySchema(freshConn, { targetVersion: '005' }), true);
+
+        const freshRepeat = await runMigrations({ connection: freshConn, migrationsDir: MIGRATIONS_DIR });
+        assert.equal(freshRepeat.applied.length, 0);
+        assert.equal(freshRepeat.skipped.length, 5);
+
+        const [freshMigs] = await freshConn.query(`SELECT version, checksum FROM _migrations ORDER BY id ASC`);
+        assert.equal(freshMigs.length, 5);
+        assert.equal(freshMigs[4].version, '005');
+        assert.equal(freshMigs[4].checksum, m005.checksum);
+        console.log('  PASS: Fresh database migrated cleanly 001 -> 005 with verified schema and idempotency.');
+      } finally {
+        await freshConn.end();
+      }
+
+      console.log('\n[TEST 6.3] Testing existing database upgrade (004 -> 005) & existing job data preservation...');
+      const upgradeDbName = `retrieva_upgrade_${Date.now()}`;
+      await adminConn.query(`CREATE DATABASE \`${upgradeDbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      createdSchemasOnConn.push(upgradeDbName);
+      const tempV4Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mig-v4-only-'));
+      tempDirsToClean.push(tempV4Dir);
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '001_init.sql'), path.join(tempV4Dir, '001_init.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '002_schema_compatibility.sql'), path.join(tempV4Dir, '002_schema_compatibility.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '003_document_sequences.sql'), path.join(tempV4Dir, '003_document_sequences.sql'));
+      fs.copyFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), path.join(tempV4Dir, '004_durable_cleanup_queue.sql'));
+
+      const upgConn = await openIsolatedDbConnection(upgradeDbName);
+      try {
+        const upgV4Res = await runMigrations({ connection: upgConn, migrationsDir: tempV4Dir });
+        assert.equal(upgV4Res.applied.length, 4);
+
+        const [preDoc1] = await upgConn.query(
+          `INSERT INTO documents (document_id, filename, sha256, path, pages_count, doc_type, split, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          ['doc-901', 'legacy_alpha.pdf', crypto.createHash('sha256').update('legacy_alpha').digest('hex'), '/data/legacy_alpha.pdf', 4, 'user_upload', 'none', 'queued']
+        );
+        const [preDoc2] = await upgConn.query(
+          `INSERT INTO documents (document_id, filename, sha256, path, pages_count, doc_type, split, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          ['doc-902', 'legacy_beta.pdf', crypto.createHash('sha256').update('legacy_beta').digest('hex'), '/data/legacy_beta.pdf', 8, 'user_upload', 'dev', 'processed']
+        );
+        const seedJobs = [
+          { doc_id: preDoc1.insertId, mode: 'flat', status: 'queued', seconds: null, error: null, attempts: 0 },
+          { doc_id: preDoc1.insertId, mode: 'candidate', status: 'running', seconds: null, error: null, attempts: 1 },
+          { doc_id: preDoc2.insertId, mode: 'reference', status: 'done', seconds: 2.75, error: null, attempts: 1 },
+          { doc_id: preDoc2.insertId, mode: 'candidate', status: 'degraded', seconds: 3.125, error: 'Low confidence table', attempts: 2 },
+          { doc_id: preDoc2.insertId, mode: 'candidate_ft', status: 'failed', seconds: 0.45, error: 'Corrupt stream', attempts: 3 },
+        ];
+        for (const sj of seedJobs) {
+          await upgConn.query(
+            `INSERT INTO jobs (doc_id, mode, status, seconds, error, attempts) VALUES (?, ?, ?, ?, ?, ?)`,
+            [sj.doc_id, sj.mode, sj.status, sj.seconds, sj.error, sj.attempts]
+          );
+        }
+
+        const [preSnapshot] = await upgConn.query(`SELECT * FROM jobs ORDER BY id ASC`);
+        assert.equal(preSnapshot.length, 5);
+        assert.equal(preSnapshot[0].locked_by, undefined);
+
+        const upgV5Res = await runMigrations({ connection: upgConn, migrationsDir: MIGRATIONS_DIR });
+        assert.deepEqual(upgV5Res.applied, ['005_worker_leases.sql']);
+        assert.equal(upgV5Res.skipped.length, 4);
+        assert.equal(await verifySchema(upgConn, { targetVersion: '005' }), true);
+
+        const [postSnapshot] = await upgConn.query(`SELECT * FROM jobs ORDER BY id ASC`);
+        assert.equal(postSnapshot.length, 5);
+        for (let i = 0; i < preSnapshot.length; i++) {
+          const before = preSnapshot[i];
+          const after = postSnapshot[i];
+          assert.equal(after.id, before.id);
+          assert.equal(after.doc_id, before.doc_id);
+          assert.equal(after.mode, before.mode);
+          assert.equal(after.status, before.status);
+          assert.equal(after.seconds, before.seconds);
+          assert.equal(after.error, before.error);
+          assert.equal(after.attempts, before.attempts);
+          assert.equal(new Date(after.created_at).getTime(), new Date(before.created_at).getTime());
+          assert.equal(new Date(after.updated_at).getTime(), new Date(before.updated_at).getTime());
+          assert.equal(after.locked_by, null);
+          assert.equal(after.locked_at, null);
+          assert.equal(after.heartbeat_at, null);
+          assert.equal(after.lease_timeout_seconds, 300);
+        }
+
+        const [explainQueuedMode] = await upgConn.query(
+          `EXPLAIN SELECT * FROM jobs WHERE status = 'queued' AND mode = 'flat' ORDER BY id ASC LIMIT 1`
+        );
+        const [explainExpired] = await upgConn.query(
+          `EXPLAIN SELECT * FROM jobs WHERE status = 'running' AND heartbeat_at < (NOW() - INTERVAL 300 SECOND)`
+        );
+        assert.ok(['idx_jobs_status', 'idx_jobs_status_mode'].includes(explainQueuedMode[0].key));
+        assert.ok(['idx_jobs_status', 'idx_jobs_status_heartbeat'].includes(explainExpired[0].key));
+
+        const upgRepeat = await runMigrations({ connection: upgConn, migrationsDir: MIGRATIONS_DIR });
+        assert.equal(upgRepeat.applied.length, 0);
+        assert.equal(upgRepeat.skipped.length, 5);
+
+        const tempUpgTamperDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mig-upg-tamper-'));
+        tempDirsToClean.push(tempUpgTamperDir);
+        fs.copyFileSync(path.join(MIGRATIONS_DIR, '001_init.sql'), path.join(tempUpgTamperDir, '001_init.sql'));
+        fs.copyFileSync(path.join(MIGRATIONS_DIR, '002_schema_compatibility.sql'), path.join(tempUpgTamperDir, '002_schema_compatibility.sql'));
+        fs.copyFileSync(path.join(MIGRATIONS_DIR, '003_document_sequences.sql'), path.join(tempUpgTamperDir, '003_document_sequences.sql'));
+        fs.copyFileSync(path.join(MIGRATIONS_DIR, '004_durable_cleanup_queue.sql'), path.join(tempUpgTamperDir, '004_durable_cleanup_queue.sql'));
+        fs.writeFileSync(path.join(tempUpgTamperDir, '005_worker_leases.sql'), 'ALTER TABLE jobs ADD COLUMN x INT;');
+        let upgTamperCaught = false;
+        try {
+          await runMigrations({ connection: upgConn, migrationsDir: tempUpgTamperDir });
+        } catch (err) {
+          if (err instanceof ChecksumMismatchError) upgTamperCaught = true;
+          else throw err;
+        }
+        assert.equal(upgTamperCaught, true);
+        console.log('  PASS: Existing DB upgrade 004 -> 005 preserved all job rows, timestamps, and defaults cleanly.');
+      } finally {
+        await upgConn.end();
+      }
+    } finally {
+      if (!isolatedServer && adminConn) {
+        for (const dbName of createdSchemasOnConn) {
+          await adminConn.query(`DROP DATABASE IF EXISTS \`${dbName}\``).catch(() => {});
+        }
+      }
+      if (isolatedServer && adminConn) {
+        await adminConn.query('SHUTDOWN').catch(() => {});
+        await adminConn.end().catch(() => {});
+        await Promise.race([
+          new Promise((resolve) => isolatedServer.proc.once('exit', resolve)),
+          new Promise((resolve) => setTimeout(resolve, 5000)),
+        ]);
+        if (isolatedServer.proc.exitCode === null) {
+          isolatedServer.proc.kill();
+          await Promise.race([
+            new Promise((resolve) => isolatedServer.proc.once('exit', resolve)),
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+          ]);
+        }
+      }
+      for (const td of tempDirsToClean) {
+        try {
+          fs.rmSync(td, { recursive: true, force: true, maxRetries: 15, retryDelay: 200 });
+        } catch {}
+      }
     }
 
     // Final schema verification

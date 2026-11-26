@@ -204,6 +204,35 @@ export async function detectPartialSchema(conn, version) {
     return { isPartial: false, diagnostic: null };
   }
 
+  if (version === '005') {
+    const [cols] = await conn.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs'`
+    );
+    const colNames = new Set(cols.map((r) => r.COLUMN_NAME));
+    const [stats] = await conn.query(
+      `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs'`
+    );
+    const indexNames = new Set(stats.map((r) => r.INDEX_NAME));
+
+    const v5Features = [
+      { name: 'jobs.locked_by', exists: colNames.has('locked_by') },
+      { name: 'jobs.locked_at', exists: colNames.has('locked_at') },
+      { name: 'jobs.heartbeat_at', exists: colNames.has('heartbeat_at') },
+      { name: 'jobs.lease_timeout_seconds', exists: colNames.has('lease_timeout_seconds') },
+      { name: 'jobs.idx_jobs_status_heartbeat', exists: indexNames.has('idx_jobs_status_heartbeat') },
+      { name: 'jobs.idx_jobs_status_mode', exists: indexNames.has('idx_jobs_status_mode') },
+    ];
+    const present = v5Features.filter((f) => f.exists).map((f) => f.name);
+    const missing = v5Features.filter((f) => !f.exists).map((f) => f.name);
+    if (present.length > 0 && missing.length > 0) {
+      return {
+        isPartial: true,
+        diagnostic: `Partial v005 schema detected on jobs:\n    Present features: ${present.join(', ')}\n    Missing features: ${missing.join(', ')}`,
+      };
+    }
+    return { isPartial: false, diagnostic: null };
+  }
+
   return { isPartial: false, diagnostic: null };
 }
 
@@ -213,12 +242,13 @@ export async function verifySchema(conn, options = {}) {
     const [history] = await conn.query(
       `SELECT version FROM _migrations ORDER BY id DESC LIMIT 1`
     );
-    targetVersion = history.length > 0 ? history[0].version : '004';
+    targetVersion = history.length > 0 ? history[0].version : '005';
   }
 
   const isV2 = targetVersion === '002' || targetVersion >= '002';
   const isV3 = targetVersion === '003' || targetVersion >= '003';
   const isV4 = targetVersion === '004' || targetVersion >= '004';
+  const isV5 = targetVersion === '005' || targetVersion >= '005';
 
   const [tables] = await conn.query(
     `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()`
@@ -235,7 +265,7 @@ export async function verifySchema(conn, options = {}) {
   }
 
   const [columns] = await conn.query(
-    `SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE 
+    `SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT 
      FROM INFORMATION_SCHEMA.COLUMNS 
      WHERE TABLE_SCHEMA = DATABASE()`
   );
@@ -346,6 +376,25 @@ export async function verifySchema(conn, options = {}) {
     assertColumn('cleanup_queue', 'updated_at', 'timestamp', false);
   }
 
+  if (isV5) {
+    assertColumn('jobs', 'locked_by', 'varchar(128)', true);
+    assertColumn('jobs', 'locked_at', 'timestamp', true);
+    assertColumn('jobs', 'heartbeat_at', 'timestamp', true);
+    assertColumn('jobs', 'lease_timeout_seconds', 'int', false);
+    const leaseTimeoutCol = colMap.get('jobs.lease_timeout_seconds');
+    if (String(leaseTimeoutCol?.COLUMN_DEFAULT) !== '300') {
+      throw new PostMigrationVerificationError(
+        `Default mismatch on 'jobs.lease_timeout_seconds': expected '300', got '${leaseTimeoutCol?.COLUMN_DEFAULT}'.`
+      );
+    }
+    const jobStatusCol = colMap.get('jobs.status');
+    if (jobStatusCol?.COLUMN_TYPE !== "enum('queued','running','done','degraded','failed')") {
+      throw new PostMigrationVerificationError(
+        `Job status enum mismatch on 'jobs.status': got '${jobStatusCol?.COLUMN_TYPE}'.`
+      );
+    }
+  }
+
   const [stats] = await conn.query(
     `SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE, COLUMN_NAME, SEQ_IN_INDEX 
      FROM INFORMATION_SCHEMA.STATISTICS 
@@ -414,6 +463,11 @@ export async function verifySchema(conn, options = {}) {
   if (isV4) {
     assertIndex('cleanup_queue', 'PRIMARY', ['id'], true);
     assertIndex('cleanup_queue', 'idx_cleanup_status', ['status'], false);
+  }
+
+  if (isV5) {
+    assertIndex('jobs', 'idx_jobs_status_heartbeat', ['status', 'heartbeat_at'], false);
+    assertIndex('jobs', 'idx_jobs_status_mode', ['status', 'mode'], false);
   }
 
   const [refs] = await conn.query(

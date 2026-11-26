@@ -561,21 +561,24 @@ async function runRepositoryTestSuite() {
       'Failed claim transaction rolled back cleanly; job remained queued with 0 attempts and connection was released'
     );
 
-    // 3.11 Worker Ownership Limitation Verification
     const ownJob = await jobRepo.createJob({ doc_id: doc1.id, mode: 'flat', status: 'queued' });
     const claimedOwn = await jobRepo.claimJob('worker-audit-diag-777');
     assert.strictEqual(claimedOwn.id, ownJob.id);
-    assert.strictEqual(claimedOwn.claimedBy, 'worker-audit-diag-777', 'In-memory entity contains diagnostic claimedBy');
+    assert.strictEqual(claimedOwn.claimedBy, 'worker-audit-diag-777');
+    assert.strictEqual(claimedOwn.locked_by, 'worker-audit-diag-777');
+    assert(claimedOwn.locked_at !== null);
+    assert(claimedOwn.heartbeat_at !== null);
+    assert.strictEqual(claimedOwn.lease_timeout_seconds, 300);
 
-    // Query raw MySQL row from INFORMATION_SCHEMA / direct SQL
     const [rawRows] = await query(`SELECT * FROM jobs WHERE id = ?`, [ownJob.id]);
     const rawJob = rawRows[0];
     assert.strictEqual(rawJob.claimedBy, undefined, 'Database table MUST NOT have claimedBy column');
     assert.strictEqual(rawJob.worker_id, undefined, 'Database table MUST NOT have worker_id column');
+    assert.strictEqual(rawJob.locked_by, 'worker-audit-diag-777');
     reportTest(
-      'TEST 3.11: Worker Ownership Schema Limitation',
+      'TEST 3.11: Durable Worker Ownership Persistence',
       true,
-      'Verified workerId is strictly an in-memory diagnostic on returned entity; no unmigrated worker_id column exists in MySQL'
+      'Verified workerId persists in jobs.locked_by with locked_at/heartbeat_at/lease_timeout_seconds and no unmigrated worker_id column'
     );
 
     // 3.12 Production Callback Isolation
@@ -606,6 +609,30 @@ async function runRepositoryTestSuite() {
       },
       /_executeClaimJobForTest is strictly disabled outside of explicit test environments/,
       'jobTestAdapter must fail closed when NODE_ENV is production'
+    );
+    await assert.rejects(
+      async () => {
+        await jobTestAdapter.heartbeatJobWithHook(ownJob.id, 'worker-prod-fail');
+      },
+      /_executeHeartbeatJobForTest is strictly disabled outside of explicit test environments/
+    );
+    await assert.rejects(
+      async () => {
+        await jobTestAdapter.completeJobWithHook(ownJob.id, 'worker-prod-fail');
+      },
+      /_executeCompleteJobForTest is strictly disabled outside of explicit test environments/
+    );
+    await assert.rejects(
+      async () => {
+        await jobTestAdapter.failJobWithHook(ownJob.id, 'worker-prod-fail');
+      },
+      /_executeFailJobForTest is strictly disabled outside of explicit test environments/
+    );
+    await assert.rejects(
+      async () => {
+        await jobTestAdapter.recoverExpiredLeasesWithHook();
+      },
+      /_executeRecoverExpiredLeasesForTest is strictly disabled outside of explicit test environments/
     );
     process.env.NODE_ENV = 'test';
     reportTest(
@@ -857,6 +884,611 @@ async function runRepositoryTestSuite() {
       assert(doc !== null);
     }
     reportTest('TEST 5.2: Connection Release On Failure', true, 'Pool fully available and leak-free following repository exceptions');
+
+    console.log('\n--- SECTION 6: DURABLE WORKER LEASE & CRASH RECOVERY ---');
+
+    const createBarrier = () => {
+      let resolve;
+      let reject;
+      const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    };
+
+    const leaseDoc = await documentRepo.createDocument({
+      document_id: 'test-repo-lease-doc-001',
+      filename: 'lease_lifecycle.pdf',
+      sha256: 'd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4',
+      path: '/data/lease_lifecycle.pdf',
+      pages_count: 5,
+      doc_type: 'user_upload',
+      split: 'none',
+      status: 'queued',
+    });
+
+    const seededCustomLeaseJob = await jobRepo.createJob({
+      doc_id: leaseDoc.id,
+      mode: 'lease_claim_mode',
+      status: 'queued',
+      lease_timeout_seconds: 120,
+    });
+    await assert.rejects(
+      async () => jobRepo.claimJob(''),
+      /workerId must be between 1 and 128 characters/
+    );
+    const claimedLeaseJob = await jobRepo.claimJob('worker-lease-alpha', { mode: 'lease_claim_mode' });
+    assert(claimedLeaseJob !== null);
+    assert.strictEqual(claimedLeaseJob.id, seededCustomLeaseJob.id);
+    assert.strictEqual(claimedLeaseJob.status, 'running');
+    assert.strictEqual(claimedLeaseJob.attempts, 1);
+    assert.strictEqual(claimedLeaseJob.locked_by, 'worker-lease-alpha');
+    assert(claimedLeaseJob.locked_at !== null);
+    assert(claimedLeaseJob.heartbeat_at !== null);
+    assert.strictEqual(claimedLeaseJob.lease_timeout_seconds, 120);
+    reportTest(
+      'TEST 6.1: Successful Claim & Ownership Assignment',
+      true,
+      'Claimed job with persisted locked_by, locked_at, heartbeat_at, preserved lease_timeout_seconds=120, attempts=1'
+    );
+
+    const competeJob = await jobRepo.createJob({
+      doc_id: leaseDoc.id,
+      mode: 'lease_compete_mode',
+      status: 'queued',
+    });
+    const competeResults = await Promise.all([
+      jobRepo.claimJob('worker-comp-1', { mode: 'lease_compete_mode' }),
+      jobRepo.claimJob('worker-comp-2', { mode: 'lease_compete_mode' }),
+      jobRepo.claimJob('worker-comp-3', { mode: 'lease_compete_mode' }),
+    ]);
+    const competeWinners = competeResults.filter((r) => r !== null);
+    assert.strictEqual(competeWinners.length, 1);
+    assert.strictEqual(competeWinners[0].id, competeJob.id);
+    const competeDbRow = await jobRepo.findById(competeJob.id);
+    assert.strictEqual(competeDbRow.locked_by, competeWinners[0].locked_by);
+    assert.strictEqual(competeDbRow.attempts, 1);
+    reportTest(
+      'TEST 6.2: Competing Worker Claims Ownership Integrity',
+      true,
+      `Single winner (${competeWinners[0].locked_by}) recorded persistently in locked_by across 3 concurrent claimants`
+    );
+
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id = ?`,
+      [claimedLeaseJob.id]
+    );
+    const preHeartbeat = await jobRepo.findById(claimedLeaseJob.id);
+    const postHeartbeat = await jobRepo.heartbeatJob(claimedLeaseJob.id, 'worker-lease-alpha');
+    assert.strictEqual(postHeartbeat.id, claimedLeaseJob.id);
+    assert.strictEqual(postHeartbeat.status, 'running');
+    assert.strictEqual(postHeartbeat.locked_by, 'worker-lease-alpha');
+    assert.strictEqual(
+      new Date(postHeartbeat.locked_at).getTime(),
+      new Date(preHeartbeat.locked_at).getTime()
+    );
+    assert(
+      new Date(postHeartbeat.heartbeat_at).getTime() > new Date(preHeartbeat.heartbeat_at).getTime()
+    );
+    reportTest(
+      'TEST 6.3: Owner Heartbeat Renewal',
+      true,
+      'Owning worker updated heartbeat_at while preserving locked_at and ownership'
+    );
+
+    await assert.rejects(
+      async () => jobRepo.heartbeatJob(claimedLeaseJob.id, 'worker-impostor'),
+      (err) => err instanceof jobRepo.LeaseOwnershipError
+    );
+    const afterWrongHb = await jobRepo.findById(claimedLeaseJob.id);
+    assert.strictEqual(afterWrongHb.locked_by, 'worker-lease-alpha');
+    assert.strictEqual(
+      new Date(afterWrongHb.heartbeat_at).getTime(),
+      new Date(postHeartbeat.heartbeat_at).getTime()
+    );
+    reportTest(
+      'TEST 6.4: Heartbeat Rejected for Non-Owner',
+      true,
+      'Wrong worker ID rejected with LeaseOwnershipError; heartbeat_at untouched'
+    );
+
+    await assert.rejects(
+      async () => jobRepo.completeJob(claimedLeaseJob.id, 'worker-impostor', { status: 'done', seconds: 9.9 }),
+      (err) => err instanceof jobRepo.LeaseOwnershipError
+    );
+    const afterNonOwnerComplete = await jobRepo.findById(claimedLeaseJob.id);
+    assert.strictEqual(afterNonOwnerComplete.status, 'running');
+    assert.strictEqual(afterNonOwnerComplete.locked_by, 'worker-lease-alpha');
+    reportTest(
+      'TEST 6.5: Completion Rejected for Non-Owner',
+      true,
+      'Non-owner completion rejected with LeaseOwnershipError; job stayed running'
+    );
+
+    await assert.rejects(
+      async () => jobRepo.completeJob(claimedLeaseJob.id, 'worker-lease-alpha', { status: 'queued' }),
+      (err) => err instanceof jobRepo.InvalidJobTransitionError
+    );
+    await assert.rejects(
+      async () => jobRepo.completeJob(claimedLeaseJob.id, 'worker-lease-alpha', { status: 'cancelled' }),
+      (err) => err instanceof jobRepo.InvalidJobTransitionError
+    );
+    const completedDone = await jobRepo.completeJob(claimedLeaseJob.id, 'worker-lease-alpha', {
+      status: 'done',
+      seconds: 2.34,
+      error: null,
+    });
+    assert.strictEqual(completedDone.status, 'done');
+    assert.strictEqual(completedDone.seconds, 2.34);
+    assert.strictEqual(completedDone.locked_by, null);
+    assert.strictEqual(completedDone.locked_at, null);
+    assert.strictEqual(completedDone.heartbeat_at, null);
+    await assert.rejects(
+      async () => jobRepo.completeJob(claimedLeaseJob.id, 'worker-lease-alpha', { status: 'done' }),
+      (err) => err instanceof jobRepo.InvalidJobTransitionError
+    );
+
+    const degJob = await jobRepo.createJob({ doc_id: leaseDoc.id, mode: 'lease_deg_mode', status: 'queued' });
+    const claimedDeg = await jobRepo.claimJob('worker-deg-1', { mode: 'lease_deg_mode' });
+    const completedDeg = await jobRepo.completeJob(claimedDeg.id, 'worker-deg-1', {
+      status: 'degraded',
+      seconds: 4.5,
+      error: 'Docling fallback to PdfPlumber',
+    });
+    assert.strictEqual(completedDeg.status, 'degraded');
+    assert.strictEqual(completedDeg.error, 'Docling fallback to PdfPlumber');
+    assert.strictEqual(completedDeg.locked_by, null);
+    assert.strictEqual(completedDeg.locked_at, null);
+    assert.strictEqual(completedDeg.heartbeat_at, null);
+    reportTest(
+      'TEST 6.6: Completion by Owner & Terminal Lease Cleanup',
+      true,
+      'Verified done/degraded transitions preserve metadata, reject invalid transitions, and clear lease fields'
+    );
+
+    const retryFlowJob = await jobRepo.createJob({
+      doc_id: leaseDoc.id,
+      mode: 'lease_retry_mode',
+      status: 'queued',
+    });
+    const claimAttempt1 = await jobRepo.claimJob('worker-fail-1', { mode: 'lease_retry_mode' });
+    assert.strictEqual(claimAttempt1.attempts, 1);
+
+    await assert.rejects(
+      async () => jobRepo.failJob(claimAttempt1.id, 'worker-wrong', { error: 'Hijack' }),
+      (err) => err instanceof jobRepo.LeaseOwnershipError
+    );
+
+    const fail1 = await jobRepo.failJob(claimAttempt1.id, 'worker-fail-1', {
+      error: 'Transient Python 503',
+      seconds: 0.4,
+      maxAttempts: 3,
+    });
+    assert.strictEqual(fail1.retryable, true);
+    assert.strictEqual(fail1.status, 'queued');
+    assert.strictEqual(fail1.attempts, 1);
+    assert.strictEqual(fail1.error, 'Transient Python 503');
+    assert.strictEqual(fail1.seconds, 0.4);
+    assert.strictEqual(fail1.locked_by, null);
+    assert.strictEqual(fail1.locked_at, null);
+    assert.strictEqual(fail1.heartbeat_at, null);
+    reportTest(
+      'TEST 6.7: Owner Failure & Retry Requeue Semantics',
+      true,
+      'Failure before maxAttempts requeued job, cleared ownership fields, and preserved error telemetry'
+    );
+
+    const claimAttempt2 = await jobRepo.claimJob('worker-fail-2', { mode: 'lease_retry_mode' });
+    assert.strictEqual(claimAttempt2.id, retryFlowJob.id);
+    assert.strictEqual(claimAttempt2.attempts, 2);
+    const fail2 = await jobRepo.failJob(claimAttempt2.id, 'worker-fail-2', {
+      error: 'Timeout attempt 2',
+      maxAttempts: 3,
+    });
+    assert.strictEqual(fail2.retryable, true);
+    assert.strictEqual(fail2.status, 'queued');
+
+    const claimAttempt3 = await jobRepo.claimJob('worker-fail-3', { mode: 'lease_retry_mode' });
+    assert.strictEqual(claimAttempt3.attempts, 3);
+    const fail3 = await jobRepo.failJob(claimAttempt3.id, 'worker-fail-3', {
+      error: 'Exhausted final attempt',
+      seconds: 1.2,
+      maxAttempts: 3,
+    });
+    assert.strictEqual(fail3.retryable, false);
+    assert.strictEqual(fail3.status, 'failed');
+    assert.strictEqual(fail3.attempts, 3);
+    assert.strictEqual(fail3.error, 'Exhausted final attempt');
+    assert.strictEqual(fail3.locked_by, null);
+    assert.strictEqual(fail3.locked_at, null);
+    assert.strictEqual(fail3.heartbeat_at, null);
+    const noMoreClaims = await jobRepo.claimJob('worker-fail-4', { mode: 'lease_retry_mode' });
+    assert.strictEqual(noMoreClaims, null);
+    reportTest(
+      'TEST 6.8: Retry Exhaustion & Terminal Failure Cleanup',
+      true,
+      'Job exceeding maxAttempts=3 transitioned to terminal failed with lease fields cleared'
+    );
+
+    const expShortJob = await jobRepo.createJob({
+      doc_id: leaseDoc.id,
+      mode: 'lease_expire_mode',
+      status: 'queued',
+      lease_timeout_seconds: 15,
+    });
+    const expLongJob = await jobRepo.createJob({
+      doc_id: leaseDoc.id,
+      mode: 'lease_long_mode',
+      status: 'queued',
+      lease_timeout_seconds: 120,
+    });
+    const expExhaustedJob = await jobRepo.createJob({
+      doc_id: leaseDoc.id,
+      mode: 'lease_exhaust_mode',
+      status: 'queued',
+      lease_timeout_seconds: 15,
+    });
+
+    const claimedShort = await jobRepo.claimJob('worker-crashed-1', { mode: 'lease_expire_mode' });
+    const claimedLong = await jobRepo.claimJob('worker-alive-long', { mode: 'lease_long_mode' });
+    const claimedExh = await jobRepo.claimJob('worker-crashed-exh', { mode: 'lease_exhaust_mode' });
+
+    await query(
+      `UPDATE jobs SET attempts = 3, error = 'Prior crash context' WHERE id = ?`,
+      [claimedExh.id]
+    );
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id IN (?, ?, ?)`,
+      [claimedShort.id, claimedLong.id, claimedExh.id]
+    );
+
+    const recoverySummary = await jobRepo.recoverExpiredLeases({ maxAttempts: 3 });
+    assert.strictEqual(recoverySummary.recoveredCount, 2);
+    assert.strictEqual(recoverySummary.requeuedCount, 1);
+    assert.strictEqual(recoverySummary.failedCount, 1);
+
+    const postShort = await jobRepo.findById(claimedShort.id);
+    assert.strictEqual(postShort.status, 'queued');
+    assert.strictEqual(postShort.locked_by, null);
+    assert.strictEqual(postShort.locked_at, null);
+    assert.strictEqual(postShort.heartbeat_at, null);
+    assert.strictEqual(postShort.lease_timeout_seconds, 15);
+    assert(postShort.error.includes('worker-crashed-1'));
+
+    const postLong = await jobRepo.findById(claimedLong.id);
+    assert.strictEqual(postLong.status, 'running');
+    assert.strictEqual(postLong.locked_by, 'worker-alive-long');
+
+    const postExh = await jobRepo.findById(claimedExh.id);
+    assert.strictEqual(postExh.status, 'failed');
+    assert.strictEqual(postExh.locked_by, null);
+    assert.strictEqual(postExh.locked_at, null);
+    assert.strictEqual(postExh.heartbeat_at, null);
+    assert(postExh.error.includes('worker-crashed-exh'));
+    assert(postExh.error.includes('Prior crash context'));
+
+    await assert.rejects(
+      async () => jobRepo.heartbeatJob(claimedShort.id, 'worker-crashed-1'),
+      (err) => err instanceof jobRepo.InvalidJobTransitionError
+    );
+    const reclaimedByNew = await jobRepo.claimJob('worker-rescuer-2', { mode: 'lease_expire_mode' });
+    assert.strictEqual(reclaimedByNew.id, claimedShort.id);
+    assert.strictEqual(reclaimedByNew.locked_by, 'worker-rescuer-2');
+    assert.strictEqual(reclaimedByNew.attempts, 2);
+
+    await assert.rejects(
+      async () => jobRepo.heartbeatJob(claimedShort.id, 'worker-crashed-1'),
+      (err) => err instanceof jobRepo.LeaseOwnershipError
+    );
+    await assert.rejects(
+      async () => jobRepo.failJob(claimedShort.id, 'worker-crashed-1', { error: 'Stale write' }),
+      (err) => err instanceof jobRepo.LeaseOwnershipError
+    );
+    const intactAfterStaleAttempt = await jobRepo.findById(claimedShort.id);
+    assert.strictEqual(intactAfterStaleAttempt.status, 'running');
+    assert.strictEqual(intactAfterStaleAttempt.locked_by, 'worker-rescuer-2');
+    assert.strictEqual(intactAfterStaleAttempt.attempts, 2);
+    await jobRepo.completeJob(claimedShort.id, 'worker-rescuer-2', { status: 'done', seconds: 1.0 });
+    await jobRepo.completeJob(claimedLong.id, 'worker-alive-long', { status: 'done', seconds: 1.0 });
+    reportTest(
+      'TEST 6.9: Expired Lease Recovery & Stale Worker Fence-Out',
+      true,
+      'Per-job lease_timeout_seconds evaluated accurately; requeued/failed cleanly; old worker blocked from heartbeat or fail after reclaim'
+    );
+
+    const raceRecJob1 = await jobRepo.createJob({ doc_id: leaseDoc.id, mode: 'rec_race_1', status: 'queued', lease_timeout_seconds: 10 });
+    const raceRecJob2 = await jobRepo.createJob({ doc_id: leaseDoc.id, mode: 'rec_race_2', status: 'queued', lease_timeout_seconds: 10 });
+    await jobRepo.claimJob('worker-dead-r1', { mode: 'rec_race_1' });
+    await jobRepo.claimJob('worker-dead-r2', { mode: 'rec_race_2' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id IN (?, ?)`,
+      [raceRecJob1.id, raceRecJob2.id]
+    );
+
+    const rec1Locked = createBarrier();
+    const rec1Continue = createBarrier();
+    let rec2Summary = null;
+
+    const rec1Promise = jobTestAdapter.recoverExpiredLeasesWithHook(
+      { limit: 1, maxAttempts: 3 },
+      {
+        afterJobLock: async (lockedRows) => {
+          assert.strictEqual(lockedRows[0].id, raceRecJob1.id);
+          rec1Locked.resolve();
+          rec2Summary = await jobRepo.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+          await rec1Continue.promise;
+        },
+      }
+    );
+
+    await rec1Locked.promise;
+    rec1Continue.resolve();
+    const rec1Summary = await rec1Promise;
+
+    assert.strictEqual(rec1Summary.recoveredCount, 1);
+    assert.strictEqual(rec1Summary.jobs[0].job.id, raceRecJob1.id);
+    assert.strictEqual(rec2Summary.recoveredCount, 1);
+    assert.strictEqual(rec2Summary.jobs[0].job.id, raceRecJob2.id);
+    reportTest(
+      'TEST 6.10: Two Recovery Processes Racing (SKIP LOCKED)',
+      true,
+      'Second concurrent recovery skipped locked job1 via SKIP LOCKED and recovered only job2'
+    );
+
+    const hbRaceJob = await jobRepo.createJob({ doc_id: leaseDoc.id, mode: 'hb_rec_race', status: 'queued', lease_timeout_seconds: 20 });
+    await jobRepo.claimJob('worker-hb-racer', { mode: 'hb_rec_race' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 40 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 40 SECOND)
+       WHERE id = ?`,
+      [hbRaceJob.id]
+    );
+
+    const hbRecLocked = createBarrier();
+    const hbRecProceed = createBarrier();
+    const recFirstPromise = jobTestAdapter.recoverExpiredLeasesWithHook(
+      { limit: 5, maxAttempts: 3 },
+      {
+        afterLock: async () => {
+          hbRecLocked.resolve();
+          await hbRecProceed.promise;
+        },
+      }
+    );
+    await hbRecLocked.promise;
+    const racingHbPromise = jobRepo.heartbeatJob(hbRaceJob.id, 'worker-hb-racer');
+    hbRecProceed.resolve();
+
+    const [recResA, hbResA] = await Promise.allSettled([recFirstPromise, racingHbPromise]);
+    assert.strictEqual(recResA.status, 'fulfilled');
+    assert.strictEqual(recResA.value.recoveredCount, 1);
+    assert.strictEqual(hbResA.status, 'rejected');
+    assert(hbResA.reason instanceof jobRepo.InvalidJobTransitionError);
+
+    await jobRepo.claimJob('worker-hb-racer-2', { mode: 'hb_rec_race' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 40 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 40 SECOND)
+       WHERE id = ?`,
+      [hbRaceJob.id]
+    );
+    const hbHoldLocked = createBarrier();
+    const hbHoldProceed = createBarrier();
+    let recDuringHbSummary = null;
+    const hbFirstPromise = jobTestAdapter.heartbeatJobWithHook(hbRaceJob.id, 'worker-hb-racer-2', {
+      afterLock: async () => {
+        hbHoldLocked.resolve();
+        recDuringHbSummary = await jobRepo.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+        await hbHoldProceed.promise;
+      },
+    });
+    await hbHoldLocked.promise;
+    hbHoldProceed.resolve();
+    const hbFirstResult = await hbFirstPromise;
+    assert.strictEqual(hbFirstResult.status, 'running');
+    assert.strictEqual(recDuringHbSummary.recoveredCount, 0);
+    const postHbRecCheck = await jobRepo.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+    assert.strictEqual(postHbRecCheck.recoveredCount, 0);
+    await jobRepo.completeJob(hbRaceJob.id, 'worker-hb-racer-2', { status: 'done', seconds: 0.5 });
+    reportTest(
+      'TEST 6.11: Heartbeat vs Lease Recovery Race (Both Interleavings)',
+      true,
+      'Verified mutual exclusion: recovery-first rejects late heartbeat; heartbeat-first refreshes lease and prevents recovery'
+    );
+
+    const compRecJobA = await jobRepo.createJob({ doc_id: leaseDoc.id, mode: 'comp_rec_a', status: 'queued', lease_timeout_seconds: 15 });
+    await jobRepo.claimJob('worker-cr-a', { mode: 'comp_rec_a' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id = ?`,
+      [compRecJobA.id]
+    );
+
+    const recWinLocked = createBarrier();
+    const recWinProceed = createBarrier();
+    const recWinPromise = jobTestAdapter.recoverExpiredLeasesWithHook(
+      { limit: 5, maxAttempts: 3 },
+      {
+        afterLock: async () => {
+          recWinLocked.resolve();
+          await recWinProceed.promise;
+        },
+      }
+    );
+    await recWinLocked.promise;
+    const compLosePromise = jobRepo.completeJob(compRecJobA.id, 'worker-cr-a', { status: 'done', seconds: 2.0 });
+    recWinProceed.resolve();
+
+    const [recWinOut, compLoseOut] = await Promise.allSettled([recWinPromise, compLosePromise]);
+    assert.strictEqual(recWinOut.status, 'fulfilled');
+    assert.strictEqual(recWinOut.value.recoveredCount, 1);
+    assert.strictEqual(compLoseOut.status, 'rejected');
+    assert(compLoseOut.reason instanceof jobRepo.InvalidJobTransitionError);
+    const crStateA = await jobRepo.findById(compRecJobA.id);
+    assert.strictEqual(crStateA.status, 'queued');
+    assert.strictEqual(crStateA.locked_by, null);
+
+    const compRecJobB = await jobRepo.createJob({ doc_id: leaseDoc.id, mode: 'comp_rec_b', status: 'queued', lease_timeout_seconds: 15 });
+    await jobRepo.claimJob('worker-cr-b', { mode: 'comp_rec_b' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id = ?`,
+      [compRecJobB.id]
+    );
+
+    const compWinLocked = createBarrier();
+    const compWinProceed = createBarrier();
+    let recDuringCompOut = null;
+    const compWinPromise = jobTestAdapter.completeJobWithHook(
+      compRecJobB.id,
+      'worker-cr-b',
+      { status: 'done', seconds: 3.1 },
+      {
+        afterLock: async () => {
+          compWinLocked.resolve();
+          recDuringCompOut = await jobRepo.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+          await compWinProceed.promise;
+        },
+      }
+    );
+    await compWinLocked.promise;
+    compWinProceed.resolve();
+    const compWinOut = await compWinPromise;
+    assert.strictEqual(compWinOut.status, 'done');
+    assert.strictEqual(compWinOut.locked_by, null);
+    assert.strictEqual(recDuringCompOut.recoveredCount, 0);
+    const postCompRecOut = await jobRepo.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+    assert.strictEqual(postCompRecOut.recoveredCount, 0);
+    reportTest(
+      'TEST 6.12: Completion vs Lease Recovery Race (Both Interleavings)',
+      true,
+      'Verified serialization: recovery-first rejects late completion; completion-first commits done without recovery interference'
+    );
+
+    const delRecDoc = await documentRepo.createDocument({
+      document_id: 'test-repo-del-rec-001',
+      filename: 'del_rec.pdf',
+      sha256: 'e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5',
+      path: '/data/del_rec.pdf',
+      pages_count: 1,
+      doc_type: 'user_upload',
+      split: 'none',
+      status: 'queued',
+    });
+    const delRecJob = await jobRepo.createJob({
+      doc_id: delRecDoc.id,
+      mode: 'del_rec_mode',
+      status: 'queued',
+      lease_timeout_seconds: 15,
+    });
+    await jobRepo.claimJob('worker-del-rec', { mode: 'del_rec_mode' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id = ?`,
+      [delRecJob.id]
+    );
+
+    const delConn = await getConnection();
+    const delHeldLock = createBarrier();
+    let recWhileDelHeld = null;
+    try {
+      await delConn.beginTransaction();
+      const [delJobIdRows] = await delConn.query(
+        `SELECT id FROM jobs WHERE doc_id = ? ORDER BY id ASC`,
+        [delRecDoc.id]
+      );
+      const delJobIds = delJobIdRows.map((row) => row.id);
+      const [delJobRows] = delJobIds.length > 0
+        ? await delConn.query(`SELECT * FROM jobs WHERE id IN (?) ORDER BY id ASC FOR UPDATE`, [delJobIds])
+        : [[]];
+      assert.strictEqual(delJobRows[0].status, 'running');
+      delHeldLock.resolve();
+      await delHeldLock.promise;
+      recWhileDelHeld = await jobRepo.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+      assert.strictEqual(recWhileDelHeld.recoveredCount, 0);
+      await delConn.rollback();
+    } finally {
+      delConn.release();
+    }
+
+    const recHoldForDel = createBarrier();
+    const recProceedForDel = createBarrier();
+    const recDelPromise = jobTestAdapter.recoverExpiredLeasesWithHook(
+      { limit: 5, maxAttempts: 3 },
+      {
+        afterJobLock: async () => {
+          recHoldForDel.resolve();
+          await recProceedForDel.promise;
+        },
+      }
+    );
+    await recHoldForDel.promise;
+
+    const delAfterRecPromise = (async () => {
+      const c = await getConnection();
+      try {
+        await c.beginTransaction();
+        const [jIdRows] = await c.query(
+          `SELECT id FROM jobs WHERE doc_id = ? ORDER BY id ASC`,
+          [delRecDoc.id]
+        );
+        const jIds = jIdRows.map((row) => row.id);
+        const [jRows] = jIds.length > 0
+          ? await c.query(`SELECT * FROM jobs WHERE id IN (?) ORDER BY id ASC FOR UPDATE`, [jIds])
+          : [[]];
+        const hasRunning = jRows.some((j) => j.status === 'running');
+        if (!hasRunning) {
+          await c.query(`SELECT * FROM documents WHERE id = ? FOR UPDATE`, [delRecDoc.id]);
+          await jobRepo.cancelQueuedJobsForDocument(delRecDoc.id, 'Document deleted before processing', { connection: c });
+          await documentRepo.softDelete(delRecDoc.id, { connection: c });
+        }
+        await c.commit();
+        return { hasRunning };
+      } catch (e) {
+        await c.rollback().catch(() => {});
+        throw e;
+      } finally {
+        c.release();
+      }
+    })();
+
+    await new Promise((r) => setTimeout(r, 80));
+    recProceedForDel.resolve();
+
+    const [recDelRes, delAfterRecRes] = await Promise.all([recDelPromise, delAfterRecPromise]);
+    assert.strictEqual(recDelRes.recoveredCount, 1);
+    assert.strictEqual(delAfterRecRes.hasRunning, false);
+    const finalDelJob = await jobRepo.findById(delRecJob.id);
+    const finalDelDoc = await documentRepo.findById(delRecDoc.id, { includeDeleted: true });
+    assert.strictEqual(finalDelJob.status, 'failed');
+    assert.strictEqual(finalDelJob.error, 'Document deleted before processing');
+    assert.strictEqual(finalDelJob.locked_by, null);
+    assert.strictEqual(finalDelJob.locked_at, null);
+    assert.strictEqual(finalDelJob.heartbeat_at, null);
+    assert(finalDelDoc.deleted_at !== null);
+    reportTest(
+      'TEST 6.13: Deletion vs Lease Recovery Lock-Order Safety',
+      true,
+      'Verified deadlock-free jobs -> documents locking across both deletion-first and recovery-first interleavings'
+    );
 
     // Teardown test data
     await cleanRepositoryTestData();

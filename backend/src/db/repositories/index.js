@@ -19,7 +19,12 @@ export {
 
 export {
   VALID_JOB_STATUSES,
+  TERMINAL_COMPLETION_STATUSES,
   DEFAULT_MAX_RETRY_ATTEMPTS,
+  DEFAULT_LEASE_TIMEOUT_SECONDS,
+  MAX_WORKER_ID_LENGTH,
+  LeaseOwnershipError,
+  InvalidJobTransitionError,
   retryJob,
 } from './jobRepository.js';
 

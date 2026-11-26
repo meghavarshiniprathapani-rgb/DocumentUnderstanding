@@ -11,7 +11,37 @@
 import { getConnection, query, sanitizeError } from '../pool.js';
 
 export const VALID_JOB_STATUSES = new Set(['queued', 'running', 'done', 'degraded', 'failed']);
+export const TERMINAL_COMPLETION_STATUSES = new Set(['done', 'degraded']);
 export const DEFAULT_MAX_RETRY_ATTEMPTS = 3;
+export const DEFAULT_LEASE_TIMEOUT_SECONDS = 300;
+export const MAX_WORKER_ID_LENGTH = 128;
+
+export class LeaseOwnershipError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'LeaseOwnershipError';
+    this.code = 'ERR_LEASE_OWNERSHIP';
+  }
+}
+
+export class InvalidJobTransitionError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'InvalidJobTransitionError';
+    this.code = 'ERR_INVALID_JOB_TRANSITION';
+  }
+}
+
+function normalizeWorkerId(workerId) {
+  if (typeof workerId !== 'string') {
+    throw new Error('workerId must be a non-empty string.');
+  }
+  const trimmed = workerId.trim();
+  if (!trimmed || trimmed.length > MAX_WORKER_ID_LENGTH) {
+    throw new Error(`workerId must be between 1 and ${MAX_WORKER_ID_LENGTH} characters.`);
+  }
+  return trimmed;
+}
 
 /**
  * Normalizes a job row from MySQL into a structured entity.
@@ -24,9 +54,16 @@ function mapJobRow(row) {
     doc_id: Number(row.doc_id),
     mode: row.mode,
     status: row.status,
-    seconds: row.seconds !== null ? Number(row.seconds) : null,
+    seconds: row.seconds !== null && row.seconds !== undefined ? Number(row.seconds) : null,
     error: row.error || null,
     attempts: Number(row.attempts),
+    locked_by: row.locked_by || null,
+    locked_at: row.locked_at || null,
+    heartbeat_at: row.heartbeat_at || null,
+    lease_timeout_seconds:
+      row.lease_timeout_seconds !== null && row.lease_timeout_seconds !== undefined
+        ? Number(row.lease_timeout_seconds)
+        : DEFAULT_LEASE_TIMEOUT_SECONDS,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -78,13 +115,22 @@ export async function createJob(jobData, options = {}) {
     throw new Error(`Invalid job status '${status}'. Allowed: ${Array.from(VALID_JOB_STATUSES).join(', ')}`);
   }
 
+  let leaseTimeoutSeconds = DEFAULT_LEASE_TIMEOUT_SECONDS;
+  if (jobData.lease_timeout_seconds !== undefined && jobData.lease_timeout_seconds !== null) {
+    const parsedTimeout = Number(jobData.lease_timeout_seconds);
+    if (!Number.isInteger(parsedTimeout) || parsedTimeout <= 0) {
+      throw new Error('lease_timeout_seconds must be a positive integer.');
+    }
+    leaseTimeoutSeconds = parsedTimeout;
+  }
+
   const sql = `
-    INSERT INTO jobs (doc_id, mode, status, attempts)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO jobs (doc_id, mode, status, attempts, lease_timeout_seconds)
+    VALUES (?, ?, ?, ?, ?)
   `;
 
   const runner = options?.connection || { query };
-  const [result] = await runner.query(sql, [numericDocId, jobData.mode, status, 0]);
+  const [result] = await runner.query(sql, [numericDocId, jobData.mode, status, 0, leaseTimeoutSeconds]);
   return await findById(result.insertId, { connection: options?.connection });
 }
 
@@ -103,7 +149,12 @@ export async function cancelQueuedJobsForDocument(docId, reason = 'Document dele
 
   const sql = `
     UPDATE jobs
-    SET status = 'failed', error = ?, updated_at = CURRENT_TIMESTAMP
+    SET status = 'failed',
+        error = ?,
+        locked_by = NULL,
+        locked_at = NULL,
+        heartbeat_at = NULL,
+        updated_at = CURRENT_TIMESTAMP
     WHERE doc_id = ? AND status = 'queued'
   `;
 
@@ -206,6 +257,7 @@ export async function listPending(options = {}) {
  * @returns {Promise<Object|null>}
  */
 async function _claimJobCore(workerId = null, options = {}, internalHooks = {}) {
+  const normalizedWorkerId = normalizeWorkerId(workerId);
   const conn = await getConnection();
   try {
     await conn.beginTransaction();
@@ -245,7 +297,14 @@ async function _claimJobCore(workerId = null, options = {}, internalHooks = {}) 
 
     if (!docRows || docRows.length === 0 || docRows[0].deleted_at !== null) {
       await conn.query(
-        `UPDATE jobs SET status = 'failed', error = 'Document deleted before processing', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        `UPDATE jobs
+         SET status = 'failed',
+             error = 'Document deleted before processing',
+             locked_by = NULL,
+             locked_at = NULL,
+             heartbeat_at = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
         [job.id]
       );
       await conn.commit();
@@ -260,18 +319,25 @@ async function _claimJobCore(workerId = null, options = {}, internalHooks = {}) 
       UPDATE jobs
       SET status = 'running',
           attempts = attempts + 1,
+          locked_by = ?,
+          locked_at = CURRENT_TIMESTAMP,
+          heartbeat_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND status = 'queued'
     `;
 
-    await conn.query(updateSql, [job.id]);
+    const [updateResult] = await conn.query(updateSql, [normalizedWorkerId, job.id]);
+    if (updateResult.affectedRows !== 1) {
+      await conn.rollback();
+      return null;
+    }
+
+    const updatedJob = await findById(job.id, { connection: conn });
     await conn.commit();
 
     return {
-      ...mapJobRow(job),
-      status: 'running',
-      attempts: Number(job.attempts) + 1,
-      claimedBy: workerId || null,
+      ...updatedJob,
+      claimedBy: normalizedWorkerId,
     };
   } catch (err) {
     await conn.rollback().catch(() => {});
@@ -393,6 +459,10 @@ export async function updateStatus(id, status, details = {}) {
   const setClauses = ['status = ?', 'updated_at = CURRENT_TIMESTAMP'];
   const params = [status];
 
+  if (status !== 'running') {
+    setClauses.push('locked_by = NULL', 'locked_at = NULL', 'heartbeat_at = NULL');
+  }
+
   if (details.seconds !== undefined) {
     setClauses.push('seconds = ?');
     params.push(details.seconds !== null ? Number(details.seconds) : null);
@@ -430,4 +500,453 @@ export async function incrementAttempts(id) {
 
   const job = await findById(numericId);
   return job ? job.attempts : null;
+}
+
+function normalizePositiveJobId(jobId) {
+  const numericId = Number(jobId);
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    throw new Error(`Valid positive integer jobId is required (got '${jobId}').`);
+  }
+  return numericId;
+}
+
+async function _heartbeatJobCore(jobId, workerId, internalHooks = {}) {
+  const numericId = normalizePositiveJobId(jobId);
+  const normalizedWorkerId = normalizeWorkerId(workerId);
+
+  const conn = await getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(`SELECT * FROM jobs WHERE id = ? LIMIT 1 FOR UPDATE`, [numericId]);
+    if (!rows || rows.length === 0) {
+      throw new LeaseOwnershipError(`Job ${numericId} not found.`);
+    }
+
+    const current = rows[0];
+
+    if (typeof internalHooks?.afterLock === 'function') {
+      await internalHooks.afterLock(mapJobRow(current), conn);
+    }
+
+    if (current.status !== 'running') {
+      throw new InvalidJobTransitionError(
+        `Cannot renew heartbeat for job ${numericId}: status is '${current.status}', expected 'running'.`
+      );
+    }
+
+    if (current.locked_by !== normalizedWorkerId) {
+      throw new LeaseOwnershipError(
+        `Worker '${normalizedWorkerId}' does not own job ${numericId} (locked_by='${current.locked_by || 'none'}').`
+      );
+    }
+
+    const [result] = await conn.query(
+      `UPDATE jobs
+       SET heartbeat_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND status = 'running' AND locked_by = ?`,
+      [numericId, normalizedWorkerId]
+    );
+
+    if (result.affectedRows !== 1) {
+      throw new LeaseOwnershipError(
+        `Failed to renew heartbeat for job ${numericId} owned by '${normalizedWorkerId}'.`
+      );
+    }
+
+    const updated = await findById(numericId, { connection: conn });
+    await conn.commit();
+    return updated;
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    if (err instanceof LeaseOwnershipError || err instanceof InvalidJobTransitionError) {
+      throw err;
+    }
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function heartbeatJob(jobId, workerId) {
+  return _heartbeatJobCore(jobId, workerId, {});
+}
+
+export async function _executeHeartbeatJobForTest(jobId, workerId, internalHooks = {}) {
+  const env = process.env.NODE_ENV;
+  if (env !== 'test' && env !== 'testing') {
+    throw new Error(
+      `_executeHeartbeatJobForTest is strictly disabled outside of explicit test environments. Current NODE_ENV='${env}'.`
+    );
+  }
+  return _heartbeatJobCore(jobId, workerId, internalHooks);
+}
+
+async function _completeJobCore(jobId, workerId, details = {}, internalHooks = {}) {
+  const numericId = normalizePositiveJobId(jobId);
+  const normalizedWorkerId = normalizeWorkerId(workerId);
+  const targetStatus = details?.status !== undefined ? details.status : 'done';
+
+  if (!TERMINAL_COMPLETION_STATUSES.has(targetStatus)) {
+    throw new InvalidJobTransitionError(
+      `Invalid completion status '${targetStatus}'. Allowed: ${Array.from(TERMINAL_COMPLETION_STATUSES).join(', ')}`
+    );
+  }
+
+  const conn = await getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(`SELECT * FROM jobs WHERE id = ? LIMIT 1 FOR UPDATE`, [numericId]);
+    if (!rows || rows.length === 0) {
+      throw new LeaseOwnershipError(`Job ${numericId} not found.`);
+    }
+
+    const current = rows[0];
+
+    if (typeof internalHooks?.afterLock === 'function') {
+      await internalHooks.afterLock(mapJobRow(current), conn);
+    }
+
+    if (current.status !== 'running') {
+      throw new InvalidJobTransitionError(
+        `Cannot complete job ${numericId}: status is '${current.status}', expected 'running'.`
+      );
+    }
+
+    if (current.locked_by !== normalizedWorkerId) {
+      throw new LeaseOwnershipError(
+        `Worker '${normalizedWorkerId}' does not own job ${numericId} (locked_by='${current.locked_by || 'none'}').`
+      );
+    }
+
+    const setClauses = [
+      'status = ?',
+      'locked_by = NULL',
+      'locked_at = NULL',
+      'heartbeat_at = NULL',
+      'updated_at = CURRENT_TIMESTAMP',
+    ];
+    const params = [targetStatus];
+
+    if (details?.seconds !== undefined) {
+      setClauses.push('seconds = ?');
+      params.push(details.seconds !== null ? Number(details.seconds) : null);
+    }
+
+    if (details?.error !== undefined) {
+      setClauses.push('error = ?');
+      params.push(details.error ? String(details.error) : null);
+    }
+
+    const sql = `
+      UPDATE jobs
+      SET ${setClauses.join(', ')}
+      WHERE id = ? AND status = 'running' AND locked_by = ?
+    `;
+
+    const [result] = await conn.query(sql, [...params, numericId, normalizedWorkerId]);
+    if (result.affectedRows !== 1) {
+      throw new LeaseOwnershipError(
+        `Failed to complete job ${numericId} for worker '${normalizedWorkerId}'.`
+      );
+    }
+
+    const updated = await findById(numericId, { connection: conn });
+    await conn.commit();
+    return updated;
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    if (err instanceof LeaseOwnershipError || err instanceof InvalidJobTransitionError) {
+      throw err;
+    }
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function completeJob(jobId, workerId, details = {}) {
+  const safeDetails = {
+    status: details?.status,
+    seconds: details?.seconds,
+    error: details?.error,
+  };
+  return _completeJobCore(jobId, workerId, safeDetails, {});
+}
+
+export async function _executeCompleteJobForTest(jobId, workerId, details = {}, internalHooks = {}) {
+  const env = process.env.NODE_ENV;
+  if (env !== 'test' && env !== 'testing') {
+    throw new Error(
+      `_executeCompleteJobForTest is strictly disabled outside of explicit test environments. Current NODE_ENV='${env}'.`
+    );
+  }
+  const safeDetails = {
+    status: details?.status,
+    seconds: details?.seconds,
+    error: details?.error,
+  };
+  return _completeJobCore(jobId, workerId, safeDetails, internalHooks);
+}
+
+async function _failJobCore(jobId, workerId, details = {}, internalHooks = {}) {
+  const numericId = normalizePositiveJobId(jobId);
+  const normalizedWorkerId = normalizeWorkerId(workerId);
+
+  const maxAttemptsRaw =
+    details?.maxAttempts !== undefined ? Number(details.maxAttempts) : DEFAULT_MAX_RETRY_ATTEMPTS;
+  if (!Number.isInteger(maxAttemptsRaw) || maxAttemptsRaw < 1) {
+    throw new Error('maxAttempts must be a positive integer.');
+  }
+
+  const conn = await getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(`SELECT * FROM jobs WHERE id = ? LIMIT 1 FOR UPDATE`, [numericId]);
+    if (!rows || rows.length === 0) {
+      throw new LeaseOwnershipError(`Job ${numericId} not found.`);
+    }
+
+    const current = rows[0];
+
+    if (typeof internalHooks?.afterJobLock === 'function') {
+      await internalHooks.afterJobLock(mapJobRow(current), conn);
+    }
+
+    if (current.status !== 'running') {
+      throw new InvalidJobTransitionError(
+        `Cannot fail job ${numericId}: status is '${current.status}', expected 'running'.`
+      );
+    }
+
+    if (current.locked_by !== normalizedWorkerId) {
+      throw new LeaseOwnershipError(
+        `Worker '${normalizedWorkerId}' does not own job ${numericId} (locked_by='${current.locked_by || 'none'}').`
+      );
+    }
+
+    const [docRows] = await conn.query(
+      `SELECT id, deleted_at FROM documents WHERE id = ? FOR SHARE`,
+      [current.doc_id]
+    );
+
+    if (typeof internalHooks?.afterLock === 'function') {
+      await internalHooks.afterLock(mapJobRow(current), conn);
+    }
+
+    const docDeleted = !docRows || docRows.length === 0 || docRows[0].deleted_at !== null;
+    const allowRetry = details?.retryable !== false && !docDeleted && Number(current.attempts) < maxAttemptsRaw;
+    const nextStatus = allowRetry ? 'queued' : 'failed';
+
+    const setClauses = [
+      'status = ?',
+      'locked_by = NULL',
+      'locked_at = NULL',
+      'heartbeat_at = NULL',
+      'updated_at = CURRENT_TIMESTAMP',
+    ];
+    const params = [nextStatus];
+
+    if (details?.seconds !== undefined) {
+      setClauses.push('seconds = ?');
+      params.push(details.seconds !== null ? Number(details.seconds) : null);
+    }
+
+    if (details?.error !== undefined) {
+      setClauses.push('error = ?');
+      params.push(details.error ? String(details.error) : null);
+    } else if (docDeleted) {
+      setClauses.push('error = ?');
+      params.push('Document deleted before processing');
+    }
+
+    const sql = `
+      UPDATE jobs
+      SET ${setClauses.join(', ')}
+      WHERE id = ? AND status = 'running' AND locked_by = ?
+    `;
+
+    const [result] = await conn.query(sql, [...params, numericId, normalizedWorkerId]);
+    if (result.affectedRows !== 1) {
+      throw new LeaseOwnershipError(
+        `Failed to update failure status for job ${numericId} owned by '${normalizedWorkerId}'.`
+      );
+    }
+
+    const updated = await findById(numericId, { connection: conn });
+    await conn.commit();
+
+    return {
+      ...updated,
+      retryable: allowRetry,
+    };
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    if (err instanceof LeaseOwnershipError || err instanceof InvalidJobTransitionError) {
+      throw err;
+    }
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function failJob(jobId, workerId, details = {}) {
+  const safeDetails = {
+    error: details?.error,
+    seconds: details?.seconds,
+    retryable: details?.retryable,
+    maxAttempts: details?.maxAttempts,
+  };
+  return _failJobCore(jobId, workerId, safeDetails, {});
+}
+
+export async function _executeFailJobForTest(jobId, workerId, details = {}, internalHooks = {}) {
+  const env = process.env.NODE_ENV;
+  if (env !== 'test' && env !== 'testing') {
+    throw new Error(
+      `_executeFailJobForTest is strictly disabled outside of explicit test environments. Current NODE_ENV='${env}'.`
+    );
+  }
+  const safeDetails = {
+    error: details?.error,
+    seconds: details?.seconds,
+    retryable: details?.retryable,
+    maxAttempts: details?.maxAttempts,
+  };
+  return _failJobCore(jobId, workerId, safeDetails, internalHooks);
+}
+
+async function _recoverExpiredLeasesCore(options = {}, internalHooks = {}) {
+  const limit = Math.max(1, Math.min(Number(options?.limit) || 10, 100));
+  const maxAttemptsRaw =
+    options?.maxAttempts !== undefined ? Number(options.maxAttempts) : DEFAULT_MAX_RETRY_ATTEMPTS;
+  const maxAttempts = Number.isInteger(maxAttemptsRaw) && maxAttemptsRaw >= 1
+    ? maxAttemptsRaw
+    : DEFAULT_MAX_RETRY_ATTEMPTS;
+
+  const conn = await getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      `SELECT * FROM jobs
+       WHERE status = 'running'
+         AND COALESCE(heartbeat_at, locked_at) IS NOT NULL
+         AND COALESCE(heartbeat_at, locked_at) < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL lease_timeout_seconds SECOND)
+       ORDER BY id ASC
+       LIMIT ?
+       FOR UPDATE SKIP LOCKED`,
+      [limit]
+    );
+
+    if (!rows || rows.length === 0) {
+      await conn.commit();
+      return {
+        recoveredCount: 0,
+        requeuedCount: 0,
+        failedCount: 0,
+        jobs: [],
+      };
+    }
+
+    if (typeof internalHooks?.afterJobLock === 'function') {
+      await internalHooks.afterJobLock(rows.map(mapJobRow), conn);
+    }
+
+    const recoveredJobs = [];
+    let requeuedCount = 0;
+    let failedCount = 0;
+
+    for (const row of rows) {
+      const [docRows] = await conn.query(
+        `SELECT id, deleted_at FROM documents WHERE id = ? FOR SHARE`,
+        [row.doc_id]
+      );
+
+      if (typeof internalHooks?.afterLock === 'function') {
+        await internalHooks.afterLock(mapJobRow(row), conn);
+      }
+
+      const docDeleted = !docRows || docRows.length === 0 || docRows[0].deleted_at !== null;
+      const canRetry = !docDeleted && Number(row.attempts) < maxAttempts;
+      const nextStatus = canRetry ? 'queued' : 'failed';
+      const ownerLabel = row.locked_by || 'unknown';
+
+      let diagError;
+      if (docDeleted) {
+        diagError = 'Document deleted before processing';
+      } else if (canRetry) {
+        const msg = `Lease expired after ${row.lease_timeout_seconds}s while owned by worker '${ownerLabel}'; requeued for retry`;
+        diagError = row.error ? `${msg}; previous error: ${row.error}` : msg;
+      } else {
+        const msg = `Lease expired after ${row.lease_timeout_seconds}s while owned by worker '${ownerLabel}' with max retry attempts (${maxAttempts}) exhausted`;
+        diagError = row.error ? `${msg}; previous error: ${row.error}` : msg;
+      }
+
+      await conn.query(
+        `UPDATE jobs
+         SET status = ?,
+             error = ?,
+             locked_by = NULL,
+             locked_at = NULL,
+             heartbeat_at = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND status = 'running'`,
+        [nextStatus, diagError, row.id]
+      );
+
+      const updated = await findById(row.id, { connection: conn });
+      if (nextStatus === 'queued') {
+        requeuedCount += 1;
+      } else {
+        failedCount += 1;
+      }
+
+      recoveredJobs.push({
+        action: nextStatus === 'queued' ? 'requeued' : 'failed',
+        previousOwner: row.locked_by || null,
+        job: updated,
+      });
+    }
+
+    await conn.commit();
+
+    return {
+      recoveredCount: recoveredJobs.length,
+      requeuedCount,
+      failedCount,
+      jobs: recoveredJobs,
+    };
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function recoverExpiredLeases(options = {}) {
+  const safeOptions = {
+    limit: options?.limit,
+    maxAttempts: options?.maxAttempts,
+  };
+  return _recoverExpiredLeasesCore(safeOptions, {});
+}
+
+export async function _executeRecoverExpiredLeasesForTest(options = {}, internalHooks = {}) {
+  const env = process.env.NODE_ENV;
+  if (env !== 'test' && env !== 'testing') {
+    throw new Error(
+      `_executeRecoverExpiredLeasesForTest is strictly disabled outside of explicit test environments. Current NODE_ENV='${env}'.`
+    );
+  }
+  const safeOptions = {
+    limit: options?.limit,
+    maxAttempts: options?.maxAttempts,
+  };
+  return _recoverExpiredLeasesCore(safeOptions, internalHooks);
 }

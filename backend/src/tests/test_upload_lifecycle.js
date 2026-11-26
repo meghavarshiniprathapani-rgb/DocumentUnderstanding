@@ -920,6 +920,109 @@ async function runUploadLifecycleTestSuite() {
 
     reportTest('SCENARIO 20.4: Deterministic Lock-Order Verification (DELETE Holds Job Lock First, Worker Skips Locked Job)', true, 'DELETE held job lock first; Worker used SKIP LOCKED and returned null; DELETE completed successfully with 200');
 
+    const raceDocE = await documentRepository.createDocument({
+      document_id: 'test-m163-race-e',
+      filename: 'race_e.pdf',
+      sha256: 'ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07ee07',
+      path: path.join(TEST_UPLOAD_DIR, 'test-m163-race-e_race_e.pdf'),
+      pages_count: 1,
+      doc_type: 'user_upload'
+    });
+    fs.writeFileSync(raceDocE.path, validPdfBuffer);
+
+    const raceJobE = await jobRepository.createJob({
+      doc_id: raceDocE.id,
+      mode: 'race_mode_e',
+      status: 'queued',
+      lease_timeout_seconds: 15
+    });
+    await jobRepository.claimJob('worker-race-e', { mode: 'race_mode_e' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id = ?`,
+      [raceJobE.id]
+    );
+
+    const recJobLockedE = createDeferred();
+    const recProceedE = createDeferred();
+    const recPromiseE = jobTestAdapter.recoverExpiredLeasesWithHook(
+      { limit: 5, maxAttempts: 3 },
+      {
+        afterJobLock: async () => {
+          recJobLockedE.resolve();
+          await recProceedE.promise;
+        }
+      }
+    );
+    await recJobLockedE.promise;
+
+    const deletePromiseE = makeRequest(`/api/v1/documents/${raceDocE.document_id}`, {
+      method: 'DELETE'
+    });
+    await new Promise((r) => setTimeout(r, 80));
+    recProceedE.resolve();
+
+    const [recOutE, deleteResE] = await Promise.all([recPromiseE, deletePromiseE]);
+    assert.strictEqual(recOutE.recoveredCount, 1);
+    assert.strictEqual(deleteResE.status, 200);
+    const dbCheckJobE = await jobRepository.findById(raceJobE.id);
+    assert.strictEqual(dbCheckJobE.status, 'failed');
+    assert.strictEqual(dbCheckJobE.error, 'Document deleted before processing');
+    assert.strictEqual(dbCheckJobE.locked_by, null);
+    assert(!fs.existsSync(raceDocE.path));
+    reportTest('SCENARIO 20.5: HTTP DELETE vs Lease Recovery Lock Ordering (Recovery First)', true, 'Recovery released job back to queued; DELETE proceeded without deadlock, canceled job, and purged document');
+
+    const raceDocF = await documentRepository.createDocument({
+      document_id: 'test-m163-race-f',
+      filename: 'race_f.pdf',
+      sha256: 'ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08ff08',
+      path: path.join(TEST_UPLOAD_DIR, 'test-m163-race-f_race_f.pdf'),
+      pages_count: 1,
+      doc_type: 'user_upload'
+    });
+    fs.writeFileSync(raceDocF.path, validPdfBuffer);
+
+    const raceJobF = await jobRepository.createJob({
+      doc_id: raceDocF.id,
+      mode: 'race_mode_f',
+      status: 'queued',
+      lease_timeout_seconds: 15
+    });
+    await jobRepository.claimJob('worker-race-f', { mode: 'race_mode_f' });
+    await query(
+      `UPDATE jobs
+       SET locked_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND),
+           heartbeat_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 SECOND)
+       WHERE id = ?`,
+      [raceJobF.id]
+    );
+
+    const deleteJobLockedF = createDeferred();
+    const deleteProceedF = createDeferred();
+    _setTestDeleteHook({
+      afterJobLock: async () => {
+        deleteJobLockedF.resolve();
+        await deleteProceedF.promise;
+      }
+    });
+    const deletePromiseF = makeRequest(`/api/v1/documents/${raceDocF.document_id}`, {
+      method: 'DELETE'
+    });
+    await deleteJobLockedF.promise;
+    const recWhileDelF = await jobRepository.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+    deleteProceedF.resolve();
+
+    const deleteResF = await deletePromiseF;
+    _setTestDeleteHook(null);
+    assert.strictEqual(recWhileDelF.recoveredCount, 0);
+    assert.strictEqual(deleteResF.status, 409);
+    assert(fs.existsSync(raceDocF.path));
+    const recAfterDelF = await jobRepository.recoverExpiredLeases({ limit: 5, maxAttempts: 3 });
+    assert.strictEqual(recAfterDelF.recoveredCount, 1);
+    reportTest('SCENARIO 20.6: HTTP DELETE vs Lease Recovery Lock Ordering (DELETE First)', true, 'DELETE returned 409 for active expired running job while recovery safely skipped via SKIP LOCKED and recovered cleanly afterwards');
+
     console.log('\n--- SECTION 21: RETRYABLE FILESYSTEM CLEANUP SUITE ---');
     const testPermPath = path.join(TEST_UPLOAD_DIR, 'perm_fail_test.pdf');
     fs.writeFileSync(testPermPath, validPdfBuffer);
