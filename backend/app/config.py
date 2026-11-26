@@ -64,6 +64,14 @@ class Settings(BaseSettings):
         ],
         description="List of allowed CORS origins for web client communication",
     )
+    internal_api_secret: str = Field(
+        default="retrieva-internal-secret-change-me",
+        description="Shared secret for internal worker-to-python API communication",
+    )
+    upload_dir: str = Field(
+        default="data/uploads",
+        description="Configured directory where uploaded PDF files reside",
+    )
 
     @field_validator("config_version")
     @classmethod

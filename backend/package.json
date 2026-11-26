@@ -4,10 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "node src/server.js",
+    "test": "node src/tests/test_documents.js",
+    "test:express": "node src/tests/test_express.js",
+    "test:documents": "node src/tests/test_documents.js",
+    "test:lifecycle": "node src/tests/test_upload_lifecycle.js",
+    "test:db": "node src/db/tests/test_repositories.js",
     "migrate": "node src/db/migrator.js"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "dotenv": "^16.4.7",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
     "mysql2": "^3.12.0"
   }
 }

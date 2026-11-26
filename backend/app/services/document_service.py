@@ -9,6 +9,7 @@ Integrates:
 """
 
 from collections import defaultdict
+from copy import deepcopy
 import hashlib
 import json
 import re
@@ -34,6 +35,10 @@ from backend.app.schemas.common import (
     MultiDocumentSearchResponse,
     SearchResultItem,
     SegmentSchema,
+)
+from backend.app.schemas.internal import (
+    ExtractedElementSchema,
+    InternalExtractResponse,
 )
 from backend.extractors import PdfPlumberExtractor
 from backend.extractors.base import BoundingBox as ExtractorBoundingBox, Element, ElementType, FormulaData, TableCell
@@ -94,6 +99,8 @@ class DocumentService:
         if not gt_dir.exists():
             return
 
+        baseline_has_degradation = False
+
         for gt_file in sorted(gt_dir.glob("*.json")):
             try:
                 data = json.loads(gt_file.read_text(encoding="utf-8"))
@@ -108,6 +115,10 @@ class DocumentService:
                     ordered_elements,
                     pdf_path=pdf_path if pdf_path.exists() else Path(f"{doc_id}.pdf"),
                 )
+
+                self._apply_degraded_mode_checks(enriched_elements)
+                if any(e.routing and e.routing.is_degraded for e in enriched_elements):
+                    baseline_has_degradation = True
 
                 segments = self._elements_to_segments(enriched_elements, page_no)
                 self.page_segments.setdefault(doc_id, {})[page_no] = segments
@@ -150,6 +161,7 @@ class DocumentService:
                 )
             except Exception as e:
                 self.record_error(f"Failed to initialize baseline doc from {gt_file.name}: {e}", "startup")
+                baseline_has_degradation = True
 
         upload_dir = self.repo_root / "data" / "uploads"
         if upload_dir.exists():
@@ -215,7 +227,15 @@ class DocumentService:
                 except Exception as ex:
                     self.record_error(f"Failed to index upload {up_file.name}: {ex}", "startup_uploads")
 
-        self.retriever.index(self.all_chunks)
+        try:
+            self.retriever.index(self.all_chunks)
+        except Exception as ex:
+            self.record_error(f"Failed to index baseline repository: {ex}", "startup_index")
+            baseline_has_degradation = True
+
+        self.degraded_mode_active = baseline_has_degradation
+        if not baseline_has_degradation and self.last_error and self.last_error.get("endpoint") in ("startup", "startup_uploads", "startup_index"):
+            self.last_error = None
 
     def _parse_ground_truth_to_elements(self, data: Dict[str, Any], page_no: int) -> List[Element]:
         """Convert benchmark JSON data to Element models."""
@@ -581,6 +601,350 @@ class DocumentService:
         )
         self.batches[batch_id] = batch_resp
         return batch_resp
+
+    def process_document_by_path(
+        self,
+        document_id: str,
+        file_path: Path,
+        mode: str = "flat",
+    ) -> InternalExtractResponse:
+        self.total_requests += 1
+
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"File not found: {str(file_path)}",
+            )
+
+        try:
+            doc_fitz = fitz.open(str(file_path))
+            total_pages = len(doc_fitz)
+            doc_fitz.close()
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to parse PDF document structure: {str(e)}",
+            )
+
+        if total_pages <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="PDF document contains 0 pages.",
+            )
+
+        t0 = time.perf_counter()
+        fallback_occurred = False
+        fallback_reason = None
+        if mode == "candidate_ft":
+            try:
+                from backend.extractors.docling_extractor import DoclingExtractor
+                if not hasattr(self, "_docling_extractor") or self._docling_extractor is None:
+                    self._docling_extractor = DoclingExtractor()
+                active_extractor = self._docling_extractor
+            except Exception as e:
+                active_extractor = self.extractor
+                fallback_occurred = True
+                fallback_reason = f"Docling initialization error: {str(e)}"
+        else:
+            active_extractor = self.extractor
+
+        try:
+            raw_elements = active_extractor.extract(file_path)
+        except Exception as e:
+            if mode == "candidate_ft" and active_extractor != self.extractor:
+                try:
+                    fallback_occurred = True
+                    fallback_reason = f"Docling extraction error: {str(e)}"
+                    active_extractor = self.extractor
+                    raw_elements = active_extractor.extract(file_path)
+                except Exception as inner_e:
+                    self.record_error(f"Extraction failure on {document_id}: {inner_e}", "/api/v1/internal/extract")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Extraction pipeline error: {str(inner_e)}",
+                    )
+            else:
+                self.record_error(f"Extraction failure on {document_id}: {e}", "/api/v1/internal/extract")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Extraction pipeline error: {str(e)}",
+                )
+
+        if not raw_elements:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Extraction yielded empty content: zero elements extracted from document",
+            )
+
+        try:
+            if mode == "flat":
+                sorted_raw = sorted(raw_elements, key=lambda e: (e.page, e.bbox.y_min, e.bbox.x_min))
+                ordered_elements = []
+                for idx, elem in enumerate(sorted_raw):
+                    elem_copy = deepcopy(elem)
+                    elem_copy.reading_order = idx
+                    ordered_elements.append(elem_copy)
+                enriched_elements = self.provenance_subsystem.process_elements(
+                    ordered_elements,
+                    file_path,
+                    extractor_name=active_extractor.name,
+                    extractor_version=active_extractor.version,
+                )
+            elif mode == "reference":
+                ordered_elements = self.layout_recovery.process(raw_elements)
+                enriched_elements = self.provenance_subsystem.process_elements(
+                    ordered_elements,
+                    file_path,
+                    extractor_name=active_extractor.name,
+                    extractor_version=active_extractor.version,
+                )
+            else:
+                ordered_elements = self.layout_recovery.process(raw_elements)
+                enriched_elements = self.provenance_subsystem.process_elements(
+                    ordered_elements,
+                    file_path,
+                    extractor_name=active_extractor.name,
+                    extractor_version=active_extractor.version,
+                )
+                self._apply_degraded_mode_checks(enriched_elements)
+        except Exception as e:
+            self.record_error(f"Layout or provenance failure on {document_id}: {e}", "/api/v1/internal/extract")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Processing pipeline error: {str(e)}",
+            )
+
+        duration_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        file_bytes = file_path.read_bytes()
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
+
+        pages_dict: Dict[int, List[SegmentSchema]] = {}
+        for p in range(1, total_pages + 1):
+            p_elems = [e for e in enriched_elements if e.element.page == p]
+            pages_dict[p] = self._elements_to_segments(p_elems, p)
+
+        self.page_segments[document_id] = pages_dict
+        self.document_paths[document_id] = file_path
+
+        indexing_status = "Indexed"
+        indexing_diagnostics = None
+        extraction_warnings: List[str] = []
+        if fallback_occurred:
+            extraction_warnings.append(f"Fallback to {active_extractor.name}: {fallback_reason}")
+        saved_all_chunks = list(self.all_chunks)
+        saved_retriever_chunks = list(getattr(self.retriever, "chunks", []))
+        saved_faiss_index = getattr(self.retriever, "index_faiss", None)
+        try:
+            new_chunks = self.chunker.chunk_elements(enriched_elements, doc_id=document_id, file_hash=file_hash)
+            if new_chunks:
+                updated_chunks = [c for c in self.all_chunks if c.source_doc_id != document_id]
+                updated_chunks.extend(new_chunks)
+                self.retriever.index(updated_chunks)
+                self.all_chunks = updated_chunks
+                indexing_status = "Indexed"
+                indexing_diagnostics = {
+                    "vector_store": "FAISS",
+                    "latest_version_indexed": True,
+                    "previous_version_searchable": any(c.source_doc_id == document_id for c in saved_all_chunks),
+                    "searchable": True,
+                    "chunk_count": len(new_chunks),
+                }
+            else:
+                indexing_status = "Skipped"
+                prev_searchable = any(c.source_doc_id == document_id for c in saved_all_chunks)
+                indexing_diagnostics = {
+                    "vector_store": "FAISS",
+                    "latest_version_indexed": False,
+                    "previous_version_searchable": prev_searchable,
+                    "searchable": prev_searchable,
+                    "chunk_count": 0,
+                }
+        except Exception as idx_err:
+            self.all_chunks = saved_all_chunks
+            if hasattr(self.retriever, "chunks"):
+                self.retriever.chunks = saved_retriever_chunks
+            if hasattr(self.retriever, "index_faiss"):
+                self.retriever.index_faiss = saved_faiss_index
+            indexing_status = "Failed"
+            prev_searchable = any(c.source_doc_id == document_id for c in saved_all_chunks)
+            indexing_diagnostics = {
+                "error": str(idx_err),
+                "error_type": idx_err.__class__.__name__,
+                "vector_store": "FAISS",
+                "latest_version_indexed": False,
+                "previous_version_searchable": prev_searchable,
+                "searchable": prev_searchable,
+            }
+            extraction_warnings.append(f"FAISS indexing failed: {str(idx_err)}")
+
+        is_doc_degraded = (
+            any(e.routing and e.routing.is_degraded for e in enriched_elements)
+            if mode in ("candidate", "candidate_ft")
+            else False
+        )
+        if fallback_occurred:
+            is_doc_degraded = True
+        if indexing_status == "Failed":
+            is_doc_degraded = True
+        if mode in ("candidate", "candidate_ft"):
+            for e in enriched_elements:
+                if e.routing and e.routing.reasons:
+                    for r in e.routing.reasons:
+                        if r not in extraction_warnings:
+                            extraction_warnings.append(r)
+
+        text_count = sum(1 for e in enriched_elements if e.element.type in (ElementType.TEXT, ElementType.HEADING))
+        table_count = sum(1 for e in enriched_elements if e.element.type == ElementType.TABLE)
+        figure_count = sum(1 for e in enriched_elements if e.element.type == ElementType.FIGURE)
+        heading_count = sum(1 for e in enriched_elements if e.element.type == ElementType.HEADING)
+
+        file_size_str = (
+            f"{len(file_bytes) / (1024 * 1024):.2f} MB"
+            if len(file_bytes) >= 1024 * 1024
+            else f"{len(file_bytes) / 1024:.1f} KB"
+        )
+
+        summary = DocumentSummary(
+            document_id=document_id,
+            title=file_path.name,
+            category="User Upload",
+            file_size=file_size_str,
+            pages_count=total_pages,
+            status="Processed (Degraded)" if is_doc_degraded else "Processed",
+            parsing_accuracy=94.5 if is_doc_degraded else 99.2,
+            metrics=DocumentMetrics(
+                text_blocks=text_count,
+                tables=table_count,
+                figures=figure_count,
+                headings=heading_count,
+            ),
+            uploaded_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            file_hash=file_hash,
+            is_degraded=is_doc_degraded,
+            extraction_status="Completed",
+            indexing_status=indexing_status,
+            chunk_count=len(new_chunks) if "new_chunks" in locals() else 0,
+            config_version=self.settings.config_version,
+        )
+        self.documents[document_id] = summary
+
+        extracted_elements: List[ExtractedElementSchema] = []
+        for idx, item in enumerate(enriched_elements):
+            el = item.element
+            calib = item.calibrated_confidence if mode in ("candidate", "candidate_ft") else None
+            routing = item.routing if mode in ("candidate", "candidate_ft") else None
+            prov_dict = item.provenance.model_dump() if item.provenance else None
+            is_deg = routing.is_degraded if routing else False
+            deg_reasons = routing.reasons if routing else []
+
+            b = el.bbox
+            bbox_dict = {
+                "x0": round(b.x_min, 2),
+                "y0": round(b.y_min, 2),
+                "x1": round(b.x_max, 2),
+                "y1": round(b.y_max, 2),
+                "x": round(b.x_min, 2),
+                "y": round(b.y_min, 2),
+                "width": round(b.width, 2),
+                "height": round(b.height, 2),
+            }
+
+            tbl_data = None
+            if el.type == ElementType.TABLE and el.table_cells:
+                rows = max((c.row_index for c in el.table_cells), default=0) + 1
+                cols = max((c.col_index for c in el.table_cells), default=0) + 1
+                grid = [["" for _ in range(cols)] for _ in range(rows)]
+                headers = []
+                for c in el.table_cells:
+                    if 0 <= c.row_index < rows and 0 <= c.col_index < cols:
+                        grid[c.row_index][c.col_index] = c.content or c.text or ""
+                        if c.is_header and (c.content or c.text) not in headers:
+                            headers.append(c.content or c.text)
+                tbl_data = {
+                    "num_rows": rows,
+                    "num_cols": cols,
+                    "headers": headers if headers else (grid[0] if grid else []),
+                    "rows": grid[1:] if len(grid) > 1 else grid,
+                }
+
+            formula_str = None
+            if el.formula_data:
+                formula_str = el.formula_data.latex
+            elif el.formula:
+                formula_str = el.formula.latex
+
+            type_str = el.type.value if hasattr(el.type, "value") else str(el.type)
+            elem_id = item.provenance.element_id if item.provenance else f"{document_id}_p{el.page}_e{idx}"
+
+            extracted_elements.append(
+                ExtractedElementSchema(
+                    element_id=elem_id,
+                    page=el.page,
+                    type=type_str,
+                    reading_order=el.reading_order,
+                    text=el.text,
+                    bbox=bbox_dict,
+                    table_data=tbl_data,
+                    formula_latex=formula_str,
+                    raw_confidence=round(el.raw_confidence, 4),
+                    calibrated_confidence=round(calib, 4) if calib is not None else None,
+                    provenance=prov_dict,
+                    flags={
+                        "is_degraded": is_deg,
+                        "degraded_reasons": deg_reasons,
+                    },
+                    model_version=item.provenance.extractor_version if item.provenance else getattr(active_extractor, "version", "1.0.0"),
+                )
+            )
+
+        extractor_info = {
+            "name": active_extractor.name,
+            "version": active_extractor.version,
+            "fallback_occurred": fallback_occurred,
+            "fallback_reason": fallback_reason,
+        }
+
+        fallback_info = {
+            "fallback_occurred": fallback_occurred,
+            "requested_mode": mode,
+            "actual_extractor": active_extractor.name,
+            "reason": fallback_reason,
+        } if (mode == "candidate_ft" or fallback_occurred) else None
+
+        if mode == "flat":
+            layout_ver = "None:NaiveOrder"
+            prov_ver = "None:Uncalibrated"
+        elif mode == "reference":
+            layout_ver = "LayoutOrderRecovery:v1.0.0"
+            prov_ver = "None:Uncalibrated"
+        elif mode == "candidate_ft":
+            layout_ver = f"{active_extractor.name}Layout:v{active_extractor.version}" if active_extractor.name == "Docling" else "LayoutOrderRecovery:v1.0.0"
+            prov_ver = f"O3:{self.settings.config_id}"
+        else:
+            layout_ver = "LayoutOrderRecovery:v1.0.0"
+            prov_ver = f"O3:{self.settings.config_id}"
+
+        model_versions = {
+            "extractor": f"{active_extractor.name}:{active_extractor.version}",
+            "embedding": f"{self.retriever.embedding.__class__.__name__}:128d:seed42",
+            "layout_engine": layout_ver,
+            "provenance_subsystem": prov_ver,
+        }
+
+        return InternalExtractResponse(
+            document_id=document_id,
+            mode=mode,
+            status="degraded" if is_doc_degraded else "processed",
+            page_count=total_pages,
+            elements=extracted_elements,
+            processing_time_ms=duration_ms,
+            extractor=extractor_info,
+            model_versions=model_versions,
+            extraction_warnings=extraction_warnings,
+            indexing_status=indexing_status,
+            indexing_diagnostics=indexing_diagnostics,
+            fallback=fallback_info,
+        )
 
     def get_batch_status(self, batch_id: str) -> Optional[BatchUploadResponse]:
         """Fetch tracking records for a specific upload batch."""

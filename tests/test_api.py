@@ -47,25 +47,21 @@ def test_list_documents(client: TestClient, test_settings):
 
 def test_get_document_detail(client: TestClient):
     """Ensures existing document metadata is returned, 404 for unknown ID."""
-    # Existing
     response = client.get("/api/v1/documents/doc-001")
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["document_id"] == "doc-001"
 
-    # Missing
     bad_response = client.get("/api/v1/documents/non-existent-id")
     assert bad_response.status_code == 404
 
 
 def test_upload_document_validation(client: TestClient, test_settings):
     """Ensures upload validates PDF MIME type and size limits."""
-    # 1. Reject non-PDF file
     txt_file = {"file": ("test.txt", BytesIO(b"Hello world"), "text/plain")}
     res_bad_format = client.post("/api/v1/documents/upload", files=txt_file)
     assert res_bad_format.status_code == 400
 
-    # 2. Accept valid PDF
     pdf_content = b"%PDF-1.4 Mock PDF Stream Data"
     pdf_file = {"file": ("sample.pdf", BytesIO(pdf_content), "application/pdf")}
     res_valid = client.post("/api/v1/documents/upload", files=pdf_file)
@@ -90,3 +86,31 @@ def test_execute_search_endpoint(client: TestClient, test_settings):
     payload = response.json()
     assert payload["config_version"] == test_settings.config_version
     assert isinstance(payload["data"], list)
+
+
+def test_baseline_initialization_successful_health(client: TestClient, test_settings):
+    from backend.app.services import get_document_service
+    ds = get_document_service()
+    ds._initialize_baseline_repository()
+    assert ds.degraded_mode_active is False
+    assert ds.last_error is None
+    res = client.get("/api/v1/health")
+    assert res.status_code == 200
+    assert res.json()["data"]["status"] == "healthy"
+    assert res.json()["data"]["degraded_mode_active"] is False
+
+
+def test_baseline_initialization_genuine_degradation_health(client: TestClient):
+    from unittest.mock import patch
+    from backend.app.services import get_document_service
+    ds = get_document_service()
+    with patch.object(ds, "_parse_ground_truth_to_elements", side_effect=RuntimeError("Simulated baseline ground truth parsing failure")):
+        ds._initialize_baseline_repository()
+        assert ds.degraded_mode_active is True
+        res = client.get("/api/v1/health")
+        assert res.status_code == 200
+        assert res.json()["data"]["status"] == "degraded"
+        assert res.json()["data"]["degraded_mode_active"] is True
+    ds._initialize_baseline_repository()
+    assert ds.degraded_mode_active is False
+    assert ds.last_error is None
