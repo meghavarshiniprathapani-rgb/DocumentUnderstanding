@@ -840,6 +840,8 @@ class DocumentService:
                         self.retriever.chunks = saved_retriever_chunks
                     if hasattr(self.retriever, "index_faiss"):
                         self.retriever.index_faiss = saved_faiss_index
+                    if hasattr(self.retriever, "bm25"):
+                        self.retriever.bm25.index(saved_retriever_chunks)
                     indexing_status = "Failed"
                     is_doc_degraded = True
                     indexing_diagnostics = {
@@ -1374,6 +1376,8 @@ class DocumentService:
                     self.retriever.chunks = saved_retriever_chunks
                 if hasattr(self.retriever, "index_faiss"):
                     self.retriever.index_faiss = saved_faiss_index
+                if hasattr(self.retriever, "bm25"):
+                    self.retriever.bm25.index(saved_retriever_chunks)
                 self.record_error(f"Persisted element indexing failed on {document_id}: {idx_err}", "/api/v1/internal/index")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1493,8 +1497,8 @@ class DocumentService:
         content_type: Optional[str] = "All",
         min_score: Optional[float] = 0.50,
         top_k: int = 10,
+        use_hybrid: Optional[bool] = None,
     ) -> List[SearchResultItem]:
-        """Execute real vector retrieval with FAISS and format compatible search items."""
         target_ids = None
         if document_ids:
             target_ids = [d for d in document_ids if d and d.lower() != "all"]
@@ -1504,7 +1508,12 @@ class DocumentService:
             target_ids = [document_id]
 
         with self._state_lock:
-            raw_results = self.retriever.retrieve(query, top_k=top_k * 3, document_ids=target_ids)
+            raw_results = self.retriever.retrieve(
+                query,
+                top_k=top_k * 3,
+                document_ids=target_ids,
+                use_hybrid=use_hybrid,
+            )
             docs_snapshot = dict(self.documents)
 
         search_items: List[SearchResultItem] = []
@@ -1937,6 +1946,8 @@ class DocumentService:
                     self.retriever.chunks = saved_retriever_chunks
                 if hasattr(self.retriever, "index_faiss"):
                     self.retriever.index_faiss = saved_faiss_index
+                if hasattr(self.retriever, "bm25"):
+                    self.retriever.bm25.index(saved_retriever_chunks)
                 self.record_error(f"Recovery FAISS rebuild failed: {idx_err}", "/api/v1/internal/recovery")
                 return {"synced": False, "recovered_count": 0, "reason": str(idx_err)}
 

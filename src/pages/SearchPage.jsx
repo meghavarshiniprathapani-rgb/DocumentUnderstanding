@@ -534,7 +534,7 @@ export const SearchPage = ({
             <div className="space-y-4">
               {results.map((result) => {
                 const isCoordsVisible = showCoordsMap[result.id];
-                const isLowConfidence = result.isDegraded || (result.confidence !== undefined && result.confidence < 0.60) || (result.calibratedConfidence !== undefined && result.calibratedConfidence < 0.60);
+                const isLowConfidence = result.isDegraded || (result.confidence !== undefined && result.confidence !== null && result.confidence < 0.60) || (result.calibratedConfidence !== undefined && result.calibratedConfidence !== null && result.calibratedConfidence < 0.60);
 
                 return (
                   <div key={result.id} className="bg-white border border-slate-200/90 hover:border-rose-300 rounded-2xl p-5 shadow-xs space-y-4 transition-all hover:shadow-md">
@@ -546,7 +546,7 @@ export const SearchPage = ({
                         <div>
                           <div className="flex items-center gap-2">
                             <h3
-                              onClick={() => handleOpenViewer(result.documentId, result.id, result.pageNumber || 1)}
+                              onClick={() => handleOpenViewer(result.documentId, result.elementId || result.id, result.pageNumber || 1)}
                               className="text-sm sm:text-base font-extrabold text-slate-900 hover:text-rose-900 cursor-pointer transition-colors leading-tight"
                             >
                               {result.resultTitle || `Extracted ${result.contentType}`}
@@ -585,7 +585,7 @@ export const SearchPage = ({
                         </div>
 
                         <button
-                          onClick={() => handleOpenViewer(result.documentId, result.id, result.pageNumber || 1)}
+                          onClick={() => handleOpenViewer(result.documentId, result.elementId || result.id, result.pageNumber || 1)}
                           className="px-4 py-2 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center space-x-1.5 shrink-0 cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />

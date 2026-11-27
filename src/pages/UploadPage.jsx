@@ -132,10 +132,66 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
       setProcessingState('completed');
       setBatchResult(result);
 
+      const hasSuccessStatus = (rawStatus) => {
+        const st = (rawStatus || '').toLowerCase();
+        return ['success', 'duplicate', 'queued', 'ready', 'processed', 'degraded'].includes(st);
+      };
+
       if (onUploadComplete && result.items && result.items.length > 0) {
-        const firstSuccess = result.items.find(i => i.status === 'success' || i.status === 'duplicate');
+        const firstSuccess = result.items.find(i => hasSuccessStatus(i.status));
         if (firstSuccess) {
           onUploadComplete(firstSuccess.filename, firstSuccess.document_id);
+        }
+      }
+
+      if (!isDemoMode() && result?.items?.some(i => ['queued', 'processing'].includes((i.status || '').toLowerCase()) && i.document_id)) {
+        const pendingIds = result.items
+          .filter(i => ['queued', 'processing'].includes((i.status || '').toLowerCase()) && i.document_id)
+          .map(i => i.document_id);
+
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const refreshed = await Promise.all(
+            pendingIds.map(id => api.getDocument(id).catch(() => null))
+          );
+          const refreshedById = new Map(
+            refreshed.filter(Boolean).map(doc => [doc.id, doc])
+          );
+          if (refreshedById.size === 0) {
+            continue;
+          }
+
+          let stillPending = false;
+          for (const id of pendingIds) {
+            const latest = refreshedById.get(id);
+            if (!latest || ['queued', 'processing'].includes((latest.status || '').toLowerCase())) {
+              stillPending = true;
+              break;
+            }
+          }
+
+          setBatchResult(prev => {
+            if (!prev || !Array.isArray(prev.items)) return prev;
+            const nextItems = prev.items.map(item => {
+              const latest = item.document_id ? refreshedById.get(item.document_id) : null;
+              if (!latest) {
+                return item;
+              }
+              const latestStatus = (latest.status || '').toLowerCase();
+              return {
+                ...item,
+                status: latest.status,
+                pages_count: latest.pagesCount ?? item.pages_count,
+                chunk_count: latest.chunkCount ?? item.chunk_count,
+                error: latestStatus === 'failed' ? (item.error || 'Worker processing failed') : item.error,
+              };
+            });
+            return { ...prev, items: nextItems };
+          });
+
+          if (!stillPending) {
+            break;
+          }
         }
       }
     } catch (err) {
@@ -387,22 +443,30 @@ export const UploadPage = ({ setActiveTab, onUploadComplete }) => {
                       <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
                         <span>Size: {item.file_size}</span>
                         <span>•</span>
-                        <span>Pages: {item.pages_count}</span>
+                        <span>Pages: {item.pages_count ?? item.summary?.pages_count ?? 1}</span>
                         <span>•</span>
-                        <span>Chunks: {item.chunk_count}</span>
+                        <span>Chunks: {item.chunk_count ?? item.summary?.chunk_count ?? 0}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    {item.status === 'success' && (
+                    {['ready', 'processed', 'success'].includes((item.status || '').toLowerCase()) && (
                       <Badge variant="success" size="sm">Indexed & Ready</Badge>
                     )}
-                    {item.status === 'duplicate' && (
-                      <Badge variant="neutral" size="sm">Duplicate (Existing)</Badge>
+                    {['queued', 'processing'].includes((item.status || '').toLowerCase()) && (
+                      <Badge variant="info" size="sm">
+                        {(item.status || '').toLowerCase() === 'processing' ? 'Processing' : 'Queued for Worker'}
+                      </Badge>
                     )}
-                    {item.status === 'failed' && (
-                      <Badge variant="error" size="sm">Failed: {item.error || 'Extraction error'}</Badge>
+                    {(item.status || '').toLowerCase() === 'degraded' && (
+                      <Badge variant="warning" size="sm">Degraded (Indexed)</Badge>
+                    )}
+                    {(item.status || '').toLowerCase() === 'duplicate' && (
+                      <Badge variant="default" size="sm">Duplicate (Existing)</Badge>
+                    )}
+                    {(item.status || '').toLowerCase() === 'failed' && (
+                      <Badge variant="warning" size="sm">Failed: {item.error || 'Extraction error'}</Badge>
                     )}
                   </div>
                 </div>

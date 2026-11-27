@@ -128,60 +128,263 @@ function validateElement(elem, index) {
  * @param {number|string} [options.docId] - Optional docId to override across all elements
  * @returns {Promise<{insertedCount: number, affectedRows: number}>}
  */
+async function _insertElementsWithConnection(conn, resolvedDocId, elements) {
+  const sql = `
+    INSERT INTO elements (
+      doc_id, mode, type, page, reading_order, text, bbox, structured, confidence, provenance, flags, model_version
+    ) VALUES ?
+  `;
+
+  const serializeJson = (val) => (val !== undefined && val !== null ? JSON.stringify(val) : null);
+
+  const values = elements.map((elem) => [
+    resolvedDocId || Number(elem.doc_id),
+    elem.mode,
+    elem.type,
+    Number(elem.page),
+    Number(elem.reading_order),
+    elem.text !== undefined ? String(elem.text) : '',
+    serializeJson(elem.bbox),
+    serializeJson(elem.structured),
+    Number(elem.confidence !== undefined ? elem.confidence : 1.0),
+    serializeJson(elem.provenance),
+    serializeJson(elem.flags),
+    elem.model_version ? String(elem.model_version).slice(0, 64) : null,
+  ]);
+
+  const [result] = await conn.query(sql, [values]);
+  return {
+    insertedCount: elements.length,
+    affectedRows: result.affectedRows,
+  };
+}
+
 export async function bulkInsert(elements, options = {}) {
   if (!Array.isArray(elements) || elements.length === 0) {
     return { insertedCount: 0, affectedRows: 0 };
   }
 
+  const externalConn = options?.connection || null;
   let resolvedDocId = null;
   if (options.docId) {
-    resolvedDocId = await resolveNumericDocId(options.docId);
+    resolvedDocId = await resolveNumericDocId(options.docId, externalConn);
     if (!resolvedDocId) {
       throw new ElementValidationError(`Could not resolve document id '${options.docId}'.`);
     }
   }
 
-  // Pre-validate all elements prior to beginning transaction
   for (let i = 0; i < elements.length; i++) {
     const elem = { ...elements[i] };
     if (resolvedDocId) elem.doc_id = resolvedDocId;
     validateElement(elem, i);
   }
 
+  if (externalConn) {
+    return await _insertElementsWithConnection(externalConn, resolvedDocId, elements);
+  }
+
   const conn = await getConnection();
   try {
     await conn.beginTransaction();
-
-    const sql = `
-      INSERT INTO elements (
-        doc_id, mode, type, page, reading_order, text, bbox, structured, confidence, provenance, flags, model_version
-      ) VALUES ?
-    `;
-
-    const serializeJson = (val) => (val !== undefined && val !== null ? JSON.stringify(val) : null);
-
-    const values = elements.map((elem) => [
-      resolvedDocId || Number(elem.doc_id),
-      elem.mode,
-      elem.type,
-      Number(elem.page),
-      Number(elem.reading_order),
-      elem.text !== undefined ? String(elem.text) : '',
-      serializeJson(elem.bbox),
-      serializeJson(elem.structured),
-      Number(elem.confidence !== undefined ? elem.confidence : 1.0),
-      serializeJson(elem.provenance),
-      serializeJson(elem.flags),
-      elem.model_version || null,
-    ]);
-
-    const [result] = await conn.query(sql, [values]);
+    const res = await _insertElementsWithConnection(conn, resolvedDocId, elements);
     await conn.commit();
+    return res;
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
 
+export async function replacePersistedElementsFenced(jobId, workerId, details = {}) {
+  const numericJobId = Number(jobId);
+  if (!Number.isInteger(numericJobId) || numericJobId <= 0) {
+    throw new ElementValidationError('Valid positive jobId is required.');
+  }
+  if (typeof workerId !== 'string' || !workerId.trim()) {
+    throw new ElementValidationError('Valid workerId is required.');
+  }
+  const normalizedWorkerId = workerId.trim();
+  const claimToken =
+    typeof details.claimToken === 'string'
+      ? details.claimToken.trim()
+      : typeof details.claim_token === 'string'
+        ? details.claim_token.trim()
+        : '';
+  if (!claimToken) {
+    const err = new Error('Valid claimToken is required for fenced element persistence.');
+    err.name = 'LeaseOwnershipError';
+    err.code = 'ERR_LEASE_OWNERSHIP';
+    throw err;
+  }
+  const leaseGeneration =
+    details.leaseGeneration !== undefined
+      ? Number(details.leaseGeneration)
+      : details.lease_generation !== undefined
+        ? Number(details.lease_generation)
+        : undefined;
+  if (leaseGeneration !== undefined && (!Number.isInteger(leaseGeneration) || leaseGeneration < 1)) {
+    const err = new Error('leaseGeneration must be a positive integer.');
+    err.name = 'LeaseOwnershipError';
+    err.code = 'ERR_LEASE_OWNERSHIP';
+    throw err;
+  }
+
+  const mode = details.mode;
+  if (!mode || !VALID_MODES.has(mode)) {
+    throw new ElementValidationError(
+      `Invalid mode '${mode}'. Allowed modes: ${Array.from(VALID_MODES).join(', ')}`
+    );
+  }
+  if (!Array.isArray(details.elements) || details.elements.length === 0) {
+    throw new ElementValidationError('elements must be a non-empty array.');
+  }
+
+  const conn = await getConnection();
+  try {
+    await conn.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    await conn.beginTransaction();
+
+    const [jobRows] = await conn.query(`SELECT * FROM jobs WHERE id = ? LIMIT 1 FOR UPDATE`, [
+      numericJobId,
+    ]);
+    if (!jobRows || jobRows.length === 0) {
+      const err = new Error(`Job ${numericJobId} not found.`);
+      err.name = 'LeaseOwnershipError';
+      err.code = 'ERR_LEASE_OWNERSHIP';
+      throw err;
+    }
+    const currentJob = jobRows[0];
+    if (currentJob.status !== 'running') {
+      const err = new Error(
+        `Cannot persist elements for job ${numericJobId}: status is '${currentJob.status}', expected 'running'.`
+      );
+      err.name = 'InvalidJobTransitionError';
+      err.code = 'ERR_INVALID_JOB_TRANSITION';
+      throw err;
+    }
+    if (currentJob.locked_by !== normalizedWorkerId) {
+      const err = new Error(
+        `Worker '${normalizedWorkerId}' does not own job ${numericJobId} (locked_by='${currentJob.locked_by || 'none'}').`
+      );
+      err.name = 'LeaseOwnershipError';
+      err.code = 'ERR_LEASE_OWNERSHIP';
+      throw err;
+    }
+    if (!currentJob.claim_token || currentJob.claim_token !== claimToken) {
+      const err = new Error(
+        `Worker '${normalizedWorkerId}' presented stale or mismatched claim token for job ${numericJobId}.`
+      );
+      err.name = 'LeaseOwnershipError';
+      err.code = 'ERR_LEASE_OWNERSHIP';
+      throw err;
+    }
+    if (leaseGeneration !== undefined && Number(currentJob.lease_generation) !== leaseGeneration) {
+      const err = new Error(
+        `Worker '${normalizedWorkerId}' presented stale lease generation ${leaseGeneration} for job ${numericJobId} (current=${currentJob.lease_generation}).`
+      );
+      err.name = 'LeaseOwnershipError';
+      err.code = 'ERR_LEASE_OWNERSHIP';
+      throw err;
+    }
+    if (currentJob.mode !== mode) {
+      throw new ElementValidationError(
+        `Mode mismatch: job ${numericJobId} has mode '${currentJob.mode}', got '${mode}'.`
+      );
+    }
+
+    const [docRows] = await conn.query(`SELECT id, deleted_at FROM documents WHERE id = ? LIMIT 1 FOR UPDATE`, [
+      currentJob.doc_id,
+    ]);
+    if (!docRows || docRows.length === 0 || docRows[0].deleted_at !== null) {
+      const err = new Error(`Parent document ${currentJob.doc_id} does not exist or is soft-deleted.`);
+      err.name = 'InvalidJobTransitionError';
+      err.code = 'ERR_INVALID_JOB_TRANSITION';
+      err.retryable = false;
+      throw err;
+    }
+
+    const replaceResult = await replaceByDocumentAndMode(
+      currentJob.doc_id,
+      mode,
+      details.elements,
+      { connection: conn }
+    );
+
+    await conn.commit();
     return {
-      insertedCount: elements.length,
-      affectedRows: result.affectedRows,
+      jobId: numericJobId,
+      docId: Number(currentJob.doc_id),
+      mode,
+      ...replaceResult,
     };
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    if (
+      err?.name === 'LeaseOwnershipError' ||
+      err?.name === 'InvalidJobTransitionError' ||
+      err instanceof ElementValidationError
+    ) {
+      throw err;
+    }
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function replaceByDocumentAndMode(docIdOrDocumentId, mode, elements, options = {}) {
+  if (!mode || !VALID_MODES.has(mode)) {
+    throw new ElementValidationError(
+      `Invalid mode '${mode}'. Allowed modes: ${Array.from(VALID_MODES).join(', ')}`
+    );
+  }
+  if (!Array.isArray(elements)) {
+    throw new ElementValidationError('elements must be an array.');
+  }
+
+  const externalConn = options?.connection || null;
+  const resolvedDocId = await resolveNumericDocId(docIdOrDocumentId, externalConn);
+  if (!resolvedDocId) {
+    throw new ElementValidationError(`Could not resolve document id '${docIdOrDocumentId}'.`);
+  }
+
+  for (let i = 0; i < elements.length; i++) {
+    const elem = { ...elements[i], doc_id: resolvedDocId, mode };
+    validateElement(elem, i);
+  }
+
+  const runReplace = async (conn) => {
+    const [delResult] = await conn.query(
+      `DELETE FROM elements WHERE doc_id = ? AND mode = ?`,
+      [resolvedDocId, mode]
+    );
+    const insertRes =
+      elements.length > 0
+        ? await _insertElementsWithConnection(
+            conn,
+            resolvedDocId,
+            elements.map((elem) => ({ ...elem, doc_id: resolvedDocId, mode }))
+          )
+        : { insertedCount: 0, affectedRows: 0 };
+    return {
+      deletedCount: Number(delResult.affectedRows || 0),
+      insertedCount: insertRes.insertedCount,
+      affectedRows: insertRes.affectedRows,
+    };
+  };
+
+  if (externalConn) {
+    return await runReplace(externalConn);
+  }
+
+  const conn = await getConnection();
+  try {
+    await conn.beginTransaction();
+    const res = await runReplace(conn);
+    await conn.commit();
+    return res;
   } catch (err) {
     await conn.rollback().catch(() => {});
     throw sanitizeError(err);

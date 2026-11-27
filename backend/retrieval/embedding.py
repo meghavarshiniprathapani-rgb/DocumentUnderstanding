@@ -6,6 +6,7 @@ Provides:
   semantic embedding with L2 normalization, compatible with FAISS IndexFlatIP.
 """
 
+import hashlib
 import math
 import re
 from abc import ABC, abstractmethod
@@ -58,6 +59,10 @@ class DenseDeterministicEmbedding(BaseEmbedding):
     def dimension(self) -> int:
         return self._dim
 
+    def _feature_bin(self, token: str) -> int:
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        return int.from_bytes(digest[:8], byteorder="little") % self._hash_bins
+
     def _tokenize_to_features(self, text: str) -> dict[int, float]:
         """Extract multi-granularity lexical and subword features into hash bins."""
         lowered = text.lower()
@@ -65,25 +70,22 @@ class DenseDeterministicEmbedding(BaseEmbedding):
 
         feature_counts: dict[int, float] = {}
 
-        # 1. Word unigrams and bigrams
         for i, w in enumerate(words):
-            idx = abs(hash(w)) % self._hash_bins
+            idx = self._feature_bin(w)
             feature_counts[idx] = feature_counts.get(idx, 0.0) + 1.5
 
             if i + 1 < len(words):
                 bigram = f"{w}_{words[i+1]}"
-                b_idx = abs(hash(bigram)) % self._hash_bins
+                b_idx = self._feature_bin(bigram)
                 feature_counts[b_idx] = feature_counts.get(b_idx, 0.0) + 2.0
 
-        # 2. Character n-grams (3-gram to 5-gram) for math symbols, numbers, and spelling variations
         clean_str = re.sub(r"\s+", " ", lowered).strip()
         for n in (3, 4, 5):
             for i in range(len(clean_str) - n + 1):
                 ngram = clean_str[i : i + n]
-                ng_idx = abs(hash(ngram)) % self._hash_bins
+                ng_idx = self._feature_bin(ngram)
                 feature_counts[ng_idx] = feature_counts.get(ng_idx, 0.0) + 0.8
 
-        # Apply logarithmic sublinear term weighting: 1 + log(tf)
         weighted_features = {}
         for k, v in feature_counts.items():
             weighted_features[k] = 1.0 + math.log(v)

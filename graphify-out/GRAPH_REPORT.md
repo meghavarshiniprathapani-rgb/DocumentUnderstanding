@@ -1,100 +1,100 @@
-# Graph Report - DocumentUnderstanding  (2026-11-26)
+# Graph Report - DocumentUnderstanding  (2026-11-27)
 
 ## Corpus Check
-- 246 files · ~216,122 words
+- 278 files · ~269,262 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 13 file(s) not represented in the graph (top: (none) 7, .css 2, .example 1)
 
 ## Summary
-- 5252 nodes · 11612 edges · 255 communities (153 shown, 102 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 623 edges (avg confidence: 0.9)
+- 5561 nodes · 12626 edges · 463 communities (154 shown, 309 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 713 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `229fff4e`
+- Built from commit: `3992dcc7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - pdf.worker.min.mjs
-- run_acceptance.py
+- run_retrieval_eval.py
 - package.json
-- test_retrieval.py
-- TemplateNamespace
+- FaissRetriever
+- getStringOption
 - OptionObject
-- test_oracle_metrics.py
-- XFAObjectArray
-- XFAObject
-- Element
+- main.py
+- isCmd
+- EvaluatorPreprocessor
+- .ensureBuffer
 - ProvenanceConfig
 - StringObject
-- LocaleSetNamespace
-- LayoutOrderRecovery
-- ConfigNamespace
+- ConnectionSetNamespace
+- test_oracle_metrics.py
+- Element
 - test_leakage.py
 - Option01
 - PDFEditor
-- XRef
+- BaseResponse
 - CFFCompiler
-- .success
+- .[wl]
 - shadow
-- PDFDocument
-- XhtmlObject
-- .getTextContent
+- RefSet
+- test_lease_recovery.js
+- query
 - Dict
 - ContentObject
 - RefMap
 - test_api_integration.py
-- PartialEvaluator
-- getStringOption
-- DeviceRgbCS
-- Parser
+- .loadFont
+- Caption
+- warn
+- test_python_worker.js
 - jobRepository.js
-- Text
+- DataBuilder
 - ChunkedStream
-- .checkAndRepair
-- .checkAndRepair
+- M1.6.4.2 — Phase 1 Verification and Hardening Report
+- unreachable
 - ._create
-- WidgetAnnotation
-- CFFDict
-- documents.js
+- test_e2e_upload_to_search.js
+- ADR 001: Evaluation and Selection of Primary Document Extraction Architecture
+- XhtmlNamespace
 - PsWasmCompiler
 - Annotation
-- ConnectionSetNamespace
-- test_upload_lifecycle.js
+- XFAObjectArray
+- src/config.js
 - Glyph
 - IntegerObject
-- .parseShading
-- common.py
+- FormatError
+- WorkerRunner
 - FileSpec
+- ColorSpace
 - StructElementNode
-- get_latest_evaluation_report
 - NegativeAnomalyRecord
-- assert
-- compileCharString
+- valueToHtml
+- CipherTransformFactory
 - OperatorList
 - BaseStream
-- parseCMap
+- v1/internal.py
 - DocumentService
-- EvalState
+- Retrieva AI (AIML-59) — M1.6.5 Final Stabilization & Submission Readiness Guide
 - warn
 - PsNode
 - Page
 - Retrieva AI — Multi-Document Intelligence Architecture (`docs/multi_document_architecture.md`)
-- GroundTruthElement
+- oracle_schema.py
 - calculateSHA512
 - CFFParser
 - .createDocumentHandler
 - ExclGroup
-- ErrorFont
-- Value
+- getMeasurement
+- ExData
 - Type1Parser
 - documents
 - steps
-- Settings
-- run_acceptance_benchmark
-- .constructor
-- unreachable
+- ConfigNamespace
+- .get
+- pool.js
+- isArrayEqual
 - CMap
 - migrator.js
 - Retrieva AI — Evidence Layer & Partitioning Plan
@@ -102,13 +102,13 @@
 - questions
 - questions
 - Binder
-- document_service.py
+- compileCharString
 - IccColorSpace
-- XFAFactory
-- stringToBytes
+- main.py
+- JpegStream
 - XMLParserBase
 - Retrieva AI — Ground-Truth Annotation Guide
-- .makeFilter
+- ImageResizer
 - BasePdfManager
 - Builder
 - .constructPostScript
@@ -117,24 +117,24 @@
 - M1.6.4.1 — Worker Architecture and Integration Contract Audit
 - Settings
 - ButtonWidgetAnnotation
-- assert
+- .success
 - Retrieva AI — Acceptance Verification & Evaluation Integrity Report
-- ADR 001: Evaluation and Selection of Primary Document Extraction Architecture
-- incrementalUpdate
+- NullOptimizer
+- assert
 - SingleIntersector
-- test_eval.py
+- StringStream
 - Util
 - Retrieva AI — REST API Reference Manual
 - Retrieva AI — Production Operations & Reliability Guide
 - CalRGBCS
-- SimpleDOMNode
-- query
-- JpegStream
-- NullOptimizer
-- test_multi_document.py
+- SimpleXMLParser
+- get_health
+- FontFinder
+- M1.6.4 Phase 1: Python Internal Extraction Endpoint Specification & Implementation Report
+- Stream
 - Provenance, Multi-Signal Confidence, and Degraded Routing Subsystem (O3)
-- isArrayEqual
-- t
+- AESBaseCipher
+- lexer_Lexer
 - backend/package.json
 - DecodeStream
 - Retrieva AI — Multi-Modal Document Intelligence & Cross-Document Spatial Retrieval System
@@ -142,126 +142,324 @@
 - Downstream Retrieval Evaluation: Naive Ingestion vs. O2 Reference vs. O2+O3
 - BasePDFStreamReader
 - XFAParser
-- M1.6.4.2 — Phase 1 Verification and Hardening Report
+- IdentityToUnicodeMap
 - .makeHexColor
-- Stream
+- toStyle
 - Datasets
-- FontFinder
+- incrementalUpdate
 - XFAAttribute
 - Retrieva AI — Final Acceptance Evaluation Report
 - Jbig2Stream
 - LabCS
-- lexer_Lexer
+- stringToBytes
 - Retrieva AI — Environment Verification Report
 - Retrieva AI — Frontend Testing Report
-- run_ablation.py
-- AESBaseCipher
-- ._initialize_baseline_repository
+- Settings
+- SimpleDOMNode
+- assert
 - react
-- pool.js
-- IdentityToUnicodeMap
-- WasmImage
-- PsJsCompiler
+- BinaryCMapStream
+- JpegImage
+- PDFDocument
+- .getOperatorList
 - XRefWrapper
 - 3. Complete Step-by-Step User Workflow
-- .setBorderStyle
-- BasePDFStreamRangeReader
+- .parseKid
+- .getTextContent
 - test_api.py
-- v1/internal.py
+- DeviceGrayCS
 - MetadataParser
 - Endpoints Summary
 - .oxlintrc.json
-- .translateFont
-- StringStream
+- .checkAndRepair
+- decodeScan
 - App.jsx
-- repositories/index.js
+- PartialEvaluator
 - 2. Reproducible Baseline Snapshot
 - api.js
-- M1.6.4 Phase 1: Python Internal Extraction Endpoint Specification & Implementation Report
-- Template
+- Commands
 - xdp_Xdp
 - 7. Quickstart & Reproduction Guide
 - vercel.json
-- .get
+- .fallbackToSystemFont
 - Retrieva AI — Architecture Documentation
-- M1.6.4.3.1 — Worker Lease Database Migration Specification & Audit
-- PageSet
-- .#Ee
+- FlateStream
+- XFAFactory
 - signature_Signature
 - Stylesheet
-- MathClamp
+- DeviceCmykCS
 - Retrieva AI — Backend Testing Report
-- Type1Font
+- calculateSHA256
 - Retrieva AI — Data Repository
 - scripts
-- ColorSpace
-- BrotliStream
+- DeviceRgbCS
 - SearchPage.jsx
-- calculateSHA256
-- run_baseline.py
-- .constructor
-- ImageEdit
-- .metadata
+- setFontFamily
+- .save
+- PsJsCompiler
+- XFAObject
+- XhtmlObject
+- .#Ee
+- Font
 - Button
+- TemplateNamespace
+- 8. Frontend User Experience Design
+- CalGrayCS
+- .currentPage
+- detect_scrambled_reading_order
+- Reproducible Builds & Development Environments
+- BasePDFStreamRangeReader
+- .parse
+- MeshStreamReader
+- BaseShading
+- .getOperatorList
+- BrotliStream
+- Text
+- Element
+- Br
+- .setBorderStyle
+- TextState
+- CFFFont
+- .#z
+- PageArea
+- JpxStream
+- upload_document
+- DeviceRgbaCS
+- B
+- PageSet
+- bidi
+- HTMLResult
+- EquateRange
+- DecryptStream
+- .process
+- t
+- AlternateCS
+- TimeSlotManager
+- Arc
+- AutoSave
+- Compression
+- retrieva-ai
+- config_Encryption
+- config_Message
+- config_Script
+- Debug
+- Destination
+- DuplexOption
+- EncryptionLevel
+- FlipLabel
+- MediumInfo
+- Output
+- Overprint
+- Permissions
+- PrintScaling
+- RenderPolicy
+- ScriptModel
+- Threshold
+- Type
+- ValidationMessaging
+- ViewerPreferences
+- Xsl
+- DateElement
+- LocaleSetNamespace
+- getFontSubstitution
+- Integer
+- Template
+- Traverse
+- Ui
+- reload_accepted_config
+- Assist
+- BehaviorOverride
+- Border
+- Exclude
+- Packets
+- PageRange
+- Record
+- Relevant
+- Rename
+- ValidateApprovalSignatures
+- Window
+- Decimal
+- Fill
+- Float
+- .i
+- ImageEdit
+- Linear
+- LockDocument
+- LZWStream
+- searchNode
 - Margin
 - Occur
-- Option10
+- Overflow
+- P
 - Radial
 - Root
 - Solid
-- AlternateCS
-- BinaryCMapStream
-- .currentPage
-- Retrieva AI — Negative Testing Report (NT1 – NT5)
-- Reproducible Builds & Development Environments
-- FlateStream
-- DeviceGrayCS
-- MeshStreamReader
-- DeviceCmykCS
-- ExData
-- Ui
-- CCITTFaxStream
-- CalGrayCS
-- CFFStrings
-- MurmurHash3_64
-- lookupMatrix
-- PageArea
-- get_health
-- test_faiss_failure_injection_and_search_preservation
-- TimeStamp
-- reload_accepted_config
-- DateTimeEdit
-- 2. Structured JSON Logging
-- Assist
-- EquateRange
-- PageRange
-- Linear
+- SubjectDN
+- template_Pattern
 - Variables
+- client
+- Acrobat
+- Acrobat7
+- AddSilentPrint
+- AddViewerPreferences
+- Agent
+- Amd
+- AppearanceFilter
 - Attributes
+- Base
+- Bind
+- BindItems
+- Bookend
 - BreakBefore
+- Cache
 - Calculate
-- NullCipher
-- Cmd
-- config_Encryption
-- DuplexOption
+- CalendarSymbols
+- Certificate
+- Certificates
+- Change
+- Common
+- Compress
+- CompressLogicalStructure
+- Config
+- config_Encrypt
+- config_FontInfo
+- config_Picture
+- config_Template
+- config_Validate
+- Conformance
+- Creator
+- DefaultTypeface
+- Driver
+- DynamicRender
+- Embed
+- Equate
+- ExcludeNS
+- GroupParent
 - IfEmpty
-- retrieva-ai
+- IncludeXDPContent
+- IncrementalLoad
+- IncrementalMerge
+- Interactive
 - Jog
+- LabelPrinter
+- Layout
+- LocaleSet
 - Log
-- Output
+- MapElement
+- Messaging
+- Mode
+- NameAttr
+- NeverEmbed
+- OpenAction
+- OutputBin
 - OutputXSL
-- Pcl
+- Pagination
+- PaginationOverride
+- Pdf
+- Pdfa
+- PlaintextMetadata
 - Presence
-- RenderPolicy
+- Present
+- PrinterName
+- PrintHighQuality
+- RunScripts
 - Severity
+- SilentPrint
+- Staple
+- StartNode
+- SubmitFormat
+- SubmitUrl
+- Tagged
+- TemplateCache
+- Trace
+- Transform
+- Uri
+- Version
+- VersionControl
 - WebClient
 - Whitespace
+- Xdc
+- Xdp
+- Zpl
+- ConnectionSet
+- EffectiveOutputPolicy
+- RootElement
+- XmlConnection
+- XsdConnection
+- parseExpression
+- CurrencySymbol
+- CurrencySymbols
+- DatePattern
+- DatePatterns
+- DateTimeEdit
+- DateTimeSymbols
+- DefaultUi
+- Desc
+- DigestMethod
+- DigestMethods
+- Encodings
+- Encrypt
 - EncryptData
+- Encryption
+- EncryptionMethod
+- Era
+- EraNames
+- Event
+- Execute
+- ExObject
+- Format
 - Hyphenation
+- Issuers
+- Items
+- Keep
 - KeyUsage
+- Li
+- Line
+- locale_set_Locale
+- locale_set_LocaleSet
+- Meridiem
+- MeridiemNames
+- Month
+- MonthNames
+- NumberPattern
+- NumberPatterns
+- NumberSymbol
+- NumberSymbols
+- TimePattern
+- TimePatterns
+- TypeFace
+- TypeFaces
+- Manifest
+- NullCipher
+- NumericEdit
+- Oid
+- Oids
+- Ol
+- PasswordEdit
+- Proto
+- Reason
+- Reasons
+- Rectangle
+- RefElement
+- Script
+- SetProperty
+- Signature
+- SignData
+- Signing
+- Span
+- Sub
+- SubjectDNs
+- Sup
 - template_Font
-- Type1CharString
-- valid_pdf_path
+- TimeStamp
+- ToolTip
+- Traversal
+- Validate
+- addChildren
+- getLookupTableFactory
+- getUint8ArrayMemory0
+- _parseVisibilityExpression
+- QCMS
 
 ## God Nodes (most connected - your core abstractions)
 1. `XFAObject` - 217 edges
@@ -271,250 +469,258 @@
 5. `shadow()` - 104 edges
 6. `FormatError` - 89 edges
 7. `getStringOption()` - 85 edges
-8. `XFAObjectArray` - 66 edges
-9. `Element` - 66 edges
-10. `DocumentService` - 64 edges
+8. `query()` - 71 edges
+9. `DocumentService` - 67 edges
+10. `XFAObjectArray` - 66 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Request` --references--> `InternalExtractRequest`  [INFERRED]
+  docs/m164_phase4_2_python_extraction_integration.md → backend/app/schemas/internal.py
+- `6. Element Schema Compatibility` --references--> `ExtractedElementSchema`  [INFERRED]
+  docs/m164_phase1_verification.md → backend/app/schemas/internal.py
+- `Disambiguated Diagnostics Schema` --references--> `InternalExtractResponse`  [INFERRED]
+  docs/m164_phase1_verification.md → backend/app/schemas/internal.py
 - `4.2 Worker Processing Loop` --references--> `claimJob()`  [INFERRED]
   docs/m164_worker_architecture_audit.md → backend/src/db/repositories/jobRepository.js
 - `Phase 3: Repository Layer Enhancements (Express / MySQL)` --references--> `retryJob()`  [INFERRED]
   docs/m164_worker_architecture_audit.md → backend/src/db/repositories/jobRepository.js
-- `Regression & Migration Audit Suites` --references--> `ChecksumMismatchError`  [INFERRED]
-  docs/m164_phase3_1_worker_lease_migration.md → backend/src/db/migrator.js
-- `2.3 Degraded Path Routing` --references--> `DegradedPathRouter`  [INFERRED]
-  docs/provenance_confidence_subsystem.md → backend/provenance/routing.py
-- `6.1 Field-by-Field Mapping Specification` --references--> `EnrichedElement`  [INFERRED]
-  docs/m164_worker_architecture_audit.md → backend/provenance/schema.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (255 total, 102 thin omitted)
+## Communities (463 total, 309 thin omitted)
 
 ### Community 0 - "pdf.worker.min.mjs"
 Cohesion: 0.01
-Nodes (175): addChildren(), af, Ai, al, an, Ao, ar, as (+167 more)
+Nodes (147): af, Ai, al, an, Ao, ar, as, ba (+139 more)
 
-### Community 1 - "run_acceptance.py"
-Cohesion: 0.05
-Nodes (29): get_settings(), lifespan(), main(), 3. Negative Anomaly Suite Traceability (NT1 – NT5), detect_flattened_table(), detect_scrambled_reading_order(), NegativeTestAbstentionError, UncheckedDownstreamRetrievalError (+21 more)
+### Community 1 - "run_retrieval_eval.py"
+Cohesion: 0.07
+Nodes (16): calculate_bootstrap_ci(), calculate_per_condition_breakdowns(), compute_aggregate_retrieval_metrics(), evaluate_retrieval_query(), execute_ablation_study(), load_dev_partitions(), load_ground_truth(), load_manifest_records() (+8 more)
 
 ### Community 2 - "package.json"
 Cohesion: 0.08
 Nodes (34): dependencies, cors@^2.8.6, dotenv@^18.0.10, express@^5.3.0, lucide-react@^1.47.0, mysql2@^3.24.6, pdfjs-dist@^6.4.299, react@^19.2.8 (+26 more)
 
-### Community 3 - "test_retrieval.py"
-Cohesion: 0.05
-Nodes (15): BaseChunker, NaiveFlatChunker, BaseEmbedding, DenseDeterministicEmbedding, BaseRetriever, FaissRetriever, Chunk, RetrievalResult (+7 more)
+### Community 3 - "FaissRetriever"
+Cohesion: 0.04
+Nodes (20): BaseChunker, NaiveFlatChunker, BaseEmbedding, DenseDeterministicEmbedding, BaseRetriever, FaissRetriever, Chunk, RetrievalResult (+12 more)
 
-### Community 4 - "TemplateNamespace"
-Cohesion: 0.02
-Nodes (31): AppearanceFilter, Barcode, Bind, BindItems, Bookend, Border, BreakAfter, Comb (+23 more)
+### Community 4 - "getStringOption"
+Cohesion: 0.19
+Nodes (4): getInteger(), getKeyword(), getRatio(), getStringOption()
 
 ### Community 5 - "OptionObject"
-Cohesion: 0.02
-Nodes (28): ADBE_JSConsole, ADBE_JSDebugger, AutoSave, config_Validate, Conformance, Destination, DigestMethod, DynamicRender (+20 more)
+Cohesion: 0.18
+Nodes (4): ADBE_JSConsole, ADBE_JSDebugger, Encoding, OptionObject
 
-### Community 6 - "test_oracle_metrics.py"
-Cohesion: 0.08
-Nodes (20): 2.2 KPI-2: Table Structure Fidelity, 2.4 KPI-4: Formula Extraction Match Rate, calculate_critical_scene_failure_rate(), calculate_formula_match(), calculate_levenshtein_distance(), calculate_per_condition_breakdowns(), calculate_table_structure_fidelity(), calculate_teds_style_score() (+12 more)
+### Community 6 - "main.py"
+Cohesion: 0.11
+Nodes (6): get_latest_evaluation_report(), validate_pdf_path(), create_app(), lifespan(), 3.1 FastAPI Application & Entry Point, test_stale_version_fencing_without_express_and_via_api()
 
-### Community 7 - "XFAObjectArray"
-Cohesion: 0.02
-Nodes (30): Acrobat, Agent, Common, Config, config_FontInfo, ConnectionSet, Data, Desc (+22 more)
+### Community 7 - "isCmd"
+Cohesion: 0.26
+Nodes (15): BinaryCMapReader, createBuiltInCMap(), expectInt(), expectString(), extendCMap(), isCmd(), parseBfChar(), parseBfRange() (+7 more)
 
-### Community 8 - "XFAObject"
-Cohesion: 0.02
-Nodes (17): Arc, Break, Certificates, Compress, ContentArea, Encrypt, Equate, Keep (+9 more)
+### Community 8 - "EvaluatorPreprocessor"
+Cohesion: 0.12
+Nodes (4): AppearanceStreamEvaluator, DefaultAppearanceEvaluator, EvaluatorPreprocessor, PDFFunctionFactory
 
-### Community 9 - "Element"
-Cohesion: 0.06
-Nodes (24): BaseExtractor, BoundingBox, Element, ElementType, FormulaData, TableCell, DoclingExtractor, get_extractor() (+16 more)
+### Community 9 - ".ensureBuffer"
+Cohesion: 0.15
+Nodes (4): Ascii85Stream, AsciiHexStream, PredictorStream, RunLengthStream
 
 ### Community 10 - "ProvenanceConfig"
-Cohesion: 0.06
-Nodes (25): apply_platt_scaling(), combine_confidence_signals(), compute_expected_calibration_error(), fit_platt_parameters(), ProvenanceConfig, DegradedPathRouter, CalibrationReport, ConfidenceSignals (+17 more)
+Cohesion: 0.04
+Nodes (44): get_settings(), apply_platt_scaling(), combine_confidence_signals(), compute_expected_calibration_error(), fit_platt_parameters(), ProvenanceConfig, DegradedPathRouter, CalibrationReport (+36 more)
 
 ### Community 11 - "StringObject"
-Cohesion: 0.03
-Nodes (25): Amd, Base, Certificate, config_Picture, Creator, Enforce, ExcludeNS, GroupParent (+17 more)
+Cohesion: 0.11
+Nodes (7): Enforce, Handler, Locale, Picture, Producer, Speak, StringObject
 
-### Community 12 - "LocaleSetNamespace"
-Cohesion: 0.03
-Nodes (25): CalendarSymbols, CurrencySymbol, CurrencySymbols, DatePattern, DatePatterns, DateTimeSymbols, Day, DayNames (+17 more)
+### Community 12 - "ConnectionSetNamespace"
+Cohesion: 0.09
+Nodes (8): connection_set_Uri, ConnectionSetNamespace, EffectiveInputPolicy, Operation, SoapAction, SoapAddress, WsdlAddress, WsdlConnection
 
-### Community 13 - "LayoutOrderRecovery"
-Cohesion: 0.08
-Nodes (14): LayoutConfig, LayoutOrderRecovery, recover_reading_order(), run_kpi1_report(), create_floating_sidebar_fixture(), create_one_column_fixture(), create_three_column_fixture(), create_two_column_fixture() (+6 more)
+### Community 13 - "test_oracle_metrics.py"
+Cohesion: 0.04
+Nodes (38): 2.2 KPI-2: Table Structure Fidelity, 2.4 KPI-4: Formula Extraction Match Rate, calculate_critical_scene_failure_rate(), calculate_f1_score(), calculate_formula_match(), calculate_iou(), calculate_levenshtein_distance(), calculate_precision_recall() (+30 more)
 
-### Community 14 - "ConfigNamespace"
-Cohesion: 0.03
-Nodes (20): Acrobat7, Cache, Compression, config_Message, config_Script, config_Template, ConfigNamespace, Debug (+12 more)
+### Community 14 - "Element"
+Cohesion: 0.06
+Nodes (18): main(), BaseExtractor, FormulaData, TableCell, DoclingExtractor, get_extractor(), __getattr__(), PdfPlumberExtractor (+10 more)
 
 ### Community 15 - "test_leakage.py"
 Cohesion: 0.06
-Nodes (31): 5. Leakage Prevention Guarantees & Enforcement, Layer 1: Document ID Mutual Exclusion, Layer 2: Page-Level Entity Boundary, Layer 3: Derived Artifact Boundary, Layer 4: Cryptographic Lock Verification, DataLeakageError, extract_doc_id_from_identifier(), run_leakage_audit() (+23 more)
+Nodes (30): 5. Leakage Prevention Guarantees & Enforcement, Layer 1: Document ID Mutual Exclusion, Layer 2: Page-Level Entity Boundary, Layer 3: Derived Artifact Boundary, Layer 4: Cryptographic Lock Verification, DataLeakageError, extract_doc_id_from_identifier(), run_leakage_audit() (+22 more)
 
 ### Community 16 - "Option01"
-Cohesion: 0.03
-Nodes (20): AddSilentPrint, AddViewerPreferences, Change, CompressLogicalStructure, config_Encrypt, ContentCopy, DocumentAssembly, Embed (+12 more)
+Cohesion: 0.07
+Nodes (10): BooleanElement, ContentCopy, DocumentAssembly, FormFieldFilling, Linearized, ModifyAnnots, Option01, PickTrayByPDFSize (+2 more)
 
-### Community 18 - "XRef"
-Cohesion: 0.09
-Nodes (7): AbortException, InvalidPDFException, isCmd(), na, XRef, XRefEntryException, XRefParseException
+### Community 17 - "PDFEditor"
+Cohesion: 0.08
+Nodes (4): isName(), PageData, PDFEditor, writeValue()
+
+### Community 18 - "BaseResponse"
+Cohesion: 0.06
+Nodes (18): delete_document(), get_analytics_summary(), get_batch_status(), get_document(), get_document_file(), get_page_layout(), list_documents(), execute_aggregate_search() (+10 more)
 
 ### Community 19 - "CFFCompiler"
 Cohesion: 0.13
 Nodes (3): CFFCompiler, CFFIndex, CFFOffsetTracker
 
-### Community 20 - ".success"
-Cohesion: 0.08
-Nodes (30): applyAssist(), ariaLabel(), CheckButton, checkDimensions(), ChoiceList, computeBbox(), Corner, createWrapper() (+22 more)
+### Community 20 - ".[wl]"
+Cohesion: 0.22
+Nodes (17): applyAssist(), checkDimensions(), computeBbox(), createWrapper(), fixDimensions(), getBorderDims(), handleBreak(), handleOverflow() (+9 more)
 
 ### Community 21 - "shadow"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (14): Catalog, appendIfJavaScriptDict(), parseNestedOrder(), parseOrder(), createValidAbsoluteUrl(), FeatureTest, fetchDest(), fetchRemoteDest() (+6 more)
 
-### Community 22 - "PDFDocument"
+### Community 22 - "RefSet"
+Cohesion: 0.10
+Nodes (7): addPageError(), _collectAction(), _collectJS(), NameOrNumberTree, ObjectLoader, RefSet, StructElementNode
+
+### Community 23 - "test_lease_recovery.js"
+Cohesion: 0.17
+Nodes (20): BACKEND_ROOT, buildIndexEnvelope(), buildSearchEnvelope(), buildValidEnvelope(), cleanLeaseRecoveryTestData(), createBarrier(), createPipelineHandler(), createTestDocAndJob() (+12 more)
+
+### Community 24 - "query"
 Cohesion: 0.09
-Nodes (6): _collectAction(), _collectJS(), find(), isName(), PDFDocument, RefSet
-
-### Community 23 - "XhtmlObject"
-Cohesion: 0.04
-Nodes (19): a, B, Body, Br, buildHuffmanTable(), Html, I, Li (+11 more)
-
-### Community 24 - ".getTextContent"
-Cohesion: 0.08
-Nodes (19): Commands, addFakeSpaces(), appendEOL(), applyInverseRotation(), buildTextContentItem(), closePendingMarkedContentItems(), compareWithLastPosition(), ensureTextContentItem() (+11 more)
+Nodes (40): query(), createDocument(), DuplicateDocumentError, findByDocumentId(), findById(), findBySha256(), listDocuments(), mapDocumentRow() (+32 more)
 
 ### Community 25 - "Dict"
-Cohesion: 0.07
-Nodes (4): codePointIter(), Dict, FakeUnicodeFont, stringToUTF16HexString()
+Cohesion: 0.06
+Nodes (9): codePointIter(), createImage(), createImageDict(), createPNGLikeImage(), createRawImage(), Dict, FakeUnicodeFont, paethPredictor() (+1 more)
 
 ### Community 26 - "ContentObject"
-Cohesion: 0.04
-Nodes (13): AlwaysEmbed, BehaviorOverride, ContentObject, DefaultTypeface, Exclude, NeverEmbed, Range, Record (+5 more)
+Cohesion: 0.18
+Nodes (3): AlwaysEmbed, ContentObject, Range
 
 ### Community 27 - "RefMap"
-Cohesion: 0.04
-Nodes (17): addCachedImageOps(), argIsDict(), BaseLocalCache, clearGlobalCaches(), DocumentData, GlobalColorSpaceCache, GlobalImageCache, isNumberArray() (+9 more)
+Cohesion: 0.06
+Nodes (7): DocumentData, GlobalColorSpaceCache, GlobalImageCache, LocalFunctionCache, makeSet(), Ref, RefMap
 
 ### Community 28 - "test_api_integration.py"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (15): create_sample_pdf_bytes(), test_degraded_flag_never_silent(), test_get_page_layout_out_of_bounds_404(), test_get_page_layout_segments_and_provenance(), test_get_page_layout_unknown_document_404(), test_health_metrics_payload(), test_recovery_path_reload_accepted_bundle(), test_search_content_type_filtering() (+7 more)
 
-### Community 29 - "PartialEvaluator"
-Cohesion: 0.18
-Nodes (4): isPDFFunction(), normalizeBlendMode(), PartialEvaluator, buildPath()
+### Community 29 - ".loadFont"
+Cohesion: 0.10
+Nodes (4): ErrorFont, MurmurHash3_64, buildPath(), TranslatedFont
 
-### Community 30 - "getStringOption"
-Cohesion: 0.07
-Nodes (14): BatchOutput, parseOperand(), config_Area, getFloat(), getInteger(), getKeyword(), getMeasurement(), getRatio() (+6 more)
+### Community 30 - "Caption"
+Cohesion: 0.13
+Nodes (6): Caption, Draw, Field, getCurrentPara(), setPara(), _setValue()
 
-### Community 32 - "Parser"
-Cohesion: 0.24
-Nodes (3): isWhiteSpace(), Parser, ParserEOFException
+### Community 31 - "warn"
+Cohesion: 0.08
+Nodes (14): CmykICCBasedCS, decodeString(), fetchSync(), sanitizeTTProgram(), info(), isDefaultDecodeHelper(), isDict(), Lexer (+6 more)
+
+### Community 32 - "test_python_worker.js"
+Cohesion: 0.06
+Nodes (76): BACKEND_ROOT, buildIndexEnvelope(), buildSearchEnvelope(), buildValidEnvelope(), cleanPythonWorkerTestData(), createBarrier(), __dirname, __filename (+68 more)
 
 ### Community 33 - "jobRepository.js"
-Cohesion: 0.14
-Nodes (35): cancelQueuedJobsForDocument(), claimJob(), _claimJobCore(), completeJob(), _completeJobCore(), createJob(), _executeClaimJobForTest(), _executeCompleteJobForTest() (+27 more)
+Cohesion: 0.11
+Nodes (53): cancelQueuedJobsForDocument(), claimJob(), _claimJobCore(), completeJob(), _completeJobCore(), createJob(), _executeClaimJobForTest(), _executeCompleteJobForTest() (+45 more)
 
-### Community 34 - "Text"
-Cohesion: 0.05
-Nodes (9): BooleanElement, DateElement, DateTime, Decimal, Float, Integer, Text, Time (+1 more)
+### Community 34 - "DataBuilder"
+Cohesion: 0.12
+Nodes (9): adjustMapping(), createCmapTable(), createNameTable(), createOS2Table(), createPostscriptName(), createPostTable(), DataBuilder, getUnicodeRangeFor() (+1 more)
 
 ### Community 35 - "ChunkedStream"
 Cohesion: 0.09
 Nodes (5): arrayBuffersToBytes(), ChunkedStream, ChunkedStreamManager, MissingDataException, NetworkPdfManager
 
-### Community 36 - ".checkAndRepair"
+### Community 36 - "M1.6.4.2 — Phase 1 Verification and Hardening Report"
 Cohesion: 0.08
-Nodes (19): createCmapTable(), createNameTable(), createOS2Table(), createPostscriptName(), createPostTable(), DataBuilder, readNameTable(), readTableEntry() (+11 more)
-
-### Community 37 - ".checkAndRepair"
-Cohesion: 0.05
-Nodes (21): adjustWidths(), amendFallbackToUnicode(), applyStandardFontGlyphMap(), bn, buildToFontChar(), CFFFont, ds, Font (+13 more)
+Nodes (23): 1. Complete Python Test Suite, 1. Mode Correctness and Pipeline Routing, 2. candidate_ft Environment Evidence & Experimental Integrity, 3. Indexing Diagnostics and Worker Contract, 3. Node.js Express & Repository Regression Suites, 4. FAISS Partial-Mutation Failure and Rollback, 5. Health-State Reset Review & Baseline Integrity, 6. Element Schema Compatibility (+15 more)
 
 ### Community 38 - "._create"
-Cohesion: 0.09
-Nodes (16): CaretAnnotation, CircleAnnotation, FileAttachmentAnnotation, getPdfColorArray(), getQuadPoints(), HighlightAnnotation, LineAnnotation, LinkAnnotation (+8 more)
-
-### Community 39 - "WidgetAnnotation"
-Cohesion: 0.18
-Nodes (5): escapeString(), numberToString(), SignatureWidgetAnnotation, TextWidgetAnnotation, WidgetAnnotation
-
-### Community 40 - "CFFDict"
-Cohesion: 0.12
-Nodes (4): CFF, CFFDict, CFFPrivateDict, CFFTopDict
-
-### Community 41 - "documents.js"
 Cohesion: 0.07
-Nodes (39): createApp(), config, __dirname, __filename, createCorsMiddleware(), errorHandler(), structuredLoggerMiddleware(), notFoundHandler() (+31 more)
+Nodes (22): CaretAnnotation, CircleAnnotation, FileAttachmentAnnotation, getPdfColorArray(), getQuadPoints(), HighlightAnnotation, InkAnnotation, LineAnnotation (+14 more)
+
+### Community 39 - "test_e2e_upload_to_search.js"
+Cohesion: 0.08
+Nodes (40): app, closePool(), resetPool(), startServer(), stopServer(), resetRecoveryState(), cleanTestData(), makeRequest() (+32 more)
+
+### Community 40 - "ADR 001: Evaluation and Selection of Primary Document Extraction Architecture"
+Cohesion: 0.15
+Nodes (12): 1. Context & Problem Statement, 2. Architectural Comparison of Candidates, 3.1 Performance & Resource Footprint (KPI-6), 3.2 Reading-Order Recovery Gains (KPI-1), 3. Empirical Benchmark Results, 4. Architectural Analysis & Trade-offs, 5. Architectural Decision, 6. Verification & Reproducibility Runbook (+4 more)
+
+### Community 41 - "XhtmlNamespace"
+Cohesion: 0.22
+Nodes (3): Html, Ul, XhtmlNamespace
 
 ### Community 42 - "PsWasmCompiler"
 Cohesion: 0.24
 Nodes (5): encodeASCIIString(), PsWasmCompiler, section(), unsignedLEB128(), vec()
 
 ### Community 43 - "Annotation"
-Cohesion: 0.08
-Nodes (4): Annotation, getRgbColor(), lookupNormalRect(), PopupAnnotation
+Cohesion: 0.07
+Nodes (4): Annotation, Body, getRgbColor(), lookupRect()
 
-### Community 44 - "ConnectionSetNamespace"
-Cohesion: 0.06
-Nodes (12): connection_set_Uri, ConnectionSetNamespace, EffectiveInputPolicy, EffectiveOutputPolicy, Operation, RootElement, SoapAction, SoapAddress (+4 more)
+### Community 44 - "XFAObjectArray"
+Cohesion: 0.11
+Nodes (4): Data, DayNames, EncryptionMethods, XFAObjectArray
 
-### Community 45 - "test_upload_lifecycle.js"
-Cohesion: 0.15
-Nodes (23): app, closePool(), resetPool(), _setTestFailJobInsert(), _setTestDeleteHook(), startServer(), stopServer(), cleanTestData() (+15 more)
+### Community 45 - "src/config.js"
+Cohesion: 0.05
+Nodes (67): createApp(), config, __dirname, __filename, _setTestFailJobInsert(), createCorsMiddleware(), errorHandler(), structuredLoggerMiddleware() (+59 more)
 
 ### Community 46 - "Glyph"
 Cohesion: 0.07
 Nodes (6): CompositeGlyph, Contour, GlyfTable, Glyph, GlyphHeader, SimpleGlyph
 
 ### Community 47 - "IntegerObject"
-Cohesion: 0.07
-Nodes (10): AdobeExtensionLevel, Copies, CurrentPage, IntegerObject, Level, MsgId, NumberOfCopies, Part (+2 more)
+Cohesion: 0.05
+Nodes (13): AdjustData, AdobeExtensionLevel, CompressObjectStream, Copies, CurrentPage, IntegerObject, Level, MsgId (+5 more)
 
-### Community 48 - ".parseShading"
-Cohesion: 0.15
-Nodes (6): BaseShading, buildMeshVertexData(), DummyShading, FunctionBasedShading, Pattern, RadialAxialShading
+### Community 48 - "FormatError"
+Cohesion: 0.18
+Nodes (9): FormatError, getB(), getColorConversionBatchSize(), getTilingPatternIR(), isNumberArray(), lookupMatrix(), lookupNormalRect(), MeshShading (+1 more)
 
-### Community 49 - "common.py"
+### Community 49 - "WorkerRunner"
 Cohesion: 0.10
-Nodes (11): execute_aggregate_search(), execute_search(), BaseResponse, BatchItemStatus, BoundingBox, CrossDocumentEvidence, DocumentMetrics, HealthData (+3 more)
+Nodes (13): WorkerRunner, 4. Polling Loop & Error Backoff Behavior, 6. Verification & Integration Test Evidence, M1.6.4.4.1 — Standalone Node.js Worker Foundation, 1. Overview & Architecture Changes, 2. Exact Request and Response Contract, 4. Authentication and Secret Redaction, 7. Verification & Test Results (+5 more)
 
 ### Community 50 - "FileSpec"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (6): FileSpec, getSoundFormat(), MediaAnnotation, RichMediaAnnotation, ScreenAnnotation, SoundAnnotation
 
-### Community 51 - "StructElementNode"
-Cohesion: 0.10
-Nodes (5): NameOrNumberTree, NumberTree, StructElementNode, StructTreePage, nodeToSerializable()
+### Community 52 - "StructElementNode"
+Cohesion: 0.15
+Nodes (3): NumberTree, StructTreePage, nodeToSerializable()
 
 ### Community 53 - "NegativeAnomalyRecord"
 Cohesion: 0.09
 Nodes (11): NegativeAnomalyRecord, NegativeTestRecorder, 1. Executive Defect Summary, 2. Detailed Defect Catalog, 3. Overall Campaign Test Disposition, DEF-001: Semantic Substitution of Charter KPIs (KPI-4 & KPI-5), DEF-002: Silent Catch-and-Fallback to Mock Data in Client API Layer, DEF-003: Missing Canonical `negative_latest.json` Telemetry Link (+3 more)
 
-### Community 54 - "assert"
-Cohesion: 0.12
-Nodes (4): convertBlackAndWhiteToRGBA(), convertToRGBA(), ImageResizer, PDFImage
+### Community 54 - "valueToHtml"
+Cohesion: 0.17
+Nodes (3): DateTime, Time, valueToHtml()
 
-### Community 55 - "compileCharString"
-Cohesion: 0.08
-Nodes (10): compileCharString(), CompiledFont, compileGlyf(), FontRendererFactory, getFloat214(), getSubroutineBias(), lookupCmap(), parseCff() (+2 more)
+### Community 55 - "CipherTransformFactory"
+Cohesion: 0.19
+Nodes (4): ARCFourCipher, calculateMD5(), CipherTransformFactory, PasswordException
 
-### Community 58 - "parseCMap"
-Cohesion: 0.16
-Nodes (18): addHex(), BinaryCMapReader, createBuiltInCMap(), expectInt(), expectString(), extendCMap(), hexToInt(), hexToStr() (+10 more)
+### Community 58 - "v1/internal.py"
+Cohesion: 0.11
+Nodes (16): internal_extract(), internal_index(), internal_recovery_purge(), verify_internal_auth(), BoundingBox, DocumentMetrics, DocumentSummary, SearchQueryRequest (+8 more)
 
 ### Community 59 - "DocumentService"
 Cohesion: 0.08
-Nodes (13): delete_document(), get_analytics_summary(), get_batch_status(), get_document(), get_document_file(), get_page_layout(), list_documents(), upload_document() (+5 more)
+Nodes (13): PersistedElementIndexItem, DocumentService, 4.2 Python Restart Recovery & Soft-Delete Exclusion, _make_item(), _make_pdf(), test_concurrent_indexing_and_search_thread_safety(), writer_task(), test_concurrent_recovery_coalescing_with_force() (+5 more)
+
+### Community 60 - "Retrieva AI (AIML-59) — M1.6.5 Final Stabilization & Submission Readiness Guide"
+Cohesion: 0.15
+Nodes (12): 1. Architecture Overview, 3. Database Schema Overview, 4. End-to-End Extraction, Retrieval & Recovery Pipeline, 5. Local Run Instructions, 6. Exact Verified Test Commands & Results, 7. Known Limitations, 8. End-to-End Demo Walkthrough, Configuration (`.env`) (+4 more)
 
 ### Community 61 - "warn"
-Cohesion: 0.07
-Nodes (12): addPageError(), convertCidString(), DefaultAppearanceEvaluator, EvaluatorPreprocessor, FormatError, info(), isDefaultDecodeHelper(), Lexer (+4 more)
+Cohesion: 0.14
+Nodes (4): CCITTFaxStream, Cmd, isWhiteSpace(), Parser
 
 ### Community 62 - "PsNode"
 Cohesion: 0.09
@@ -522,14 +728,14 @@ Nodes (15): ast_Parser, _nodesEqual(), PsArgNode, PsBinaryNode, PsBlock, PsConst
 
 ### Community 63 - "Page"
 Cohesion: 0.08
-Nodes (6): AnnotationFactory, deepCompare(), getNewAnnotationsMap(), isRefsEqual(), ObjectLoader, Page
+Nodes (5): AnnotationFactory, deepCompare(), getNewAnnotationsMap(), isRefsEqual(), Page
 
 ### Community 64 - "Retrieva AI — Multi-Document Intelligence Architecture (`docs/multi_document_architecture.md`)"
-Cohesion: 0.09
-Nodes (22): 10. Multi-Document Development Benchmark (`eval/run_multi_doc_eval.py`), 11. Implementation Phasing & Task Breakdown, 12. Verification & Safety Invariants, 1. Executive Summary & Architectural Goals, 2. System Architecture & Component Interaction, 3.1 Batch Document Ingestion Flow, 3.2 Cross-Document Search & Evidence Aggregation Flow, 3. Detailed Data Flow (+14 more)
+Cohesion: 0.10
+Nodes (20): 10. Multi-Document Development Benchmark (`eval/run_multi_doc_eval.py`), 11. Implementation Phasing & Task Breakdown, 12. Verification & Safety Invariants, 1. Executive Summary & Architectural Goals, 2. System Architecture & Component Interaction, 3.1 Batch Document Ingestion Flow, 3.2 Cross-Document Search & Evidence Aggregation Flow, 3. Detailed Data Flow (+12 more)
 
-### Community 65 - "GroundTruthElement"
-Cohesion: 0.13
+### Community 65 - "oracle_schema.py"
+Cohesion: 0.11
 Nodes (8): BoundingBox, FormulaAnnotation, GroundTruthElement, PageGroundTruth, TableAnnotation, TableCellAnnotation, test_page_ground_truth_rejects_duplicate_reading_orders(), test_page_ground_truth_schema_valid()
 
 ### Community 66 - "calculateSHA512"
@@ -537,24 +743,24 @@ Cohesion: 0.10
 Nodes (11): AES128Cipher, calculateSHA384(), calculateSHA512(), ch(), littleSigma(), littleSigmaPrime(), maj(), PDF20 (+3 more)
 
 ### Community 67 - "CFFParser"
-Cohesion: 0.14
-Nodes (5): CFFCharset, CFFEncoding, CFFFDSelect, CFFHeader, CFFParser
+Cohesion: 0.15
+Nodes (5): CFFEncoding, CFFFDSelect, CFFParser, looksLikeUnsigned16BitNegative(), recoverSigned16BitBBox()
 
 ### Community 68 - ".createDocumentHandler"
-Cohesion: 0.15
-Nodes (11): LocalPdfManager, ensureNotTerminated(), finishWorkerTask(), getPassword(), loadDocument(), setupDoc(), onFailure(), onSuccess() (+3 more)
+Cohesion: 0.04
+Nodes (27): AbortException, clearGlobalCaches(), JBig2CCITTFaxImage, Jbig2Error, JpxError, JpxImage, LocalPdfManager, MessageHandler (+19 more)
 
 ### Community 69 - "ExclGroup"
-Cohesion: 0.06
-Nodes (9): addHTML(), Area, createLine(), ExclGroup, flushHTML(), getAvailableSpace(), getContainedChildren(), Subform (+1 more)
+Cohesion: 0.05
+Nodes (11): addHTML(), Area, createLine(), ExclGroup, flushHTML(), getAvailableSpace(), getContainedChildren(), Image (+3 more)
 
-### Community 71 - "Value"
-Cohesion: 0.10
-Nodes (6): Caption, Draw, Field, Image, _setValue(), Value
+### Community 70 - "getMeasurement"
+Cohesion: 0.15
+Nodes (3): getMeasurement(), getRelevant(), jf
 
 ### Community 72 - "Type1Parser"
-Cohesion: 0.27
-Nodes (4): decrypt(), isHexDigit(), isSpecial(), Type1Parser
+Cohesion: 0.05
+Nodes (14): CFF, CFFCharset, CFFDict, CFFHeader, CFFPrivateDict, CFFStrings, CFFTopDict, decrypt() (+6 more)
 
 ### Community 73 - "documents"
 Cohesion: 0.10
@@ -564,29 +770,29 @@ Nodes (19): created_date, custodian, documents, access_date, description, docume
 Cohesion: 0.11
 Nodes (18): name, runs-on, steps, jobs, build-lint-test, name, on, pull_request (+10 more)
 
-### Community 75 - "Settings"
-Cohesion: 0.11
-Nodes (7): client(), test_settings(), test_confidence_threshold_bounds(), test_config_version_non_empty(), test_default_settings_validity(), test_upload_size_limit_bounds(), sample_pdf_path()
-
-### Community 76 - "run_acceptance_benchmark"
-Cohesion: 0.06
-Nodes (16): 2.1 KPI-1: Reading-Order Accuracy, 2.3 KPI-3: Downstream Retrieval & Synthesis Quality, 2. Detailed Evidence Breakdown by KPI, Retrieva AI — Source-to-Claim Traceability Matrix, calculate_cohens_kappa(), evaluate_rater_agreement(), map_score_to_tier(), score_chunk_kpi3() (+8 more)
-
-### Community 77 - ".constructor"
+### Community 75 - "ConfigNamespace"
 Cohesion: 0.12
-Nodes (3): AppearanceStreamEvaluator, CmykICCBasedCS, PDFFunctionFactory
+Nodes (5): BatchOutput, config_Area, ConfigNamespace, PageOffset, Pcl
+
+### Community 76 - ".get"
+Cohesion: 0.17
+Nodes (3): Name, PopupAnnotation, StructTreeRoot
+
+### Community 77 - "pool.js"
+Cohesion: 0.12
+Nodes (31): __dirname, __filename, getConnection(), getDedicatedConnection(), getDefaultDbConfig(), getPool(), healthCheck(), PoolAcquisitionTimeoutError (+23 more)
+
+### Community 78 - "isArrayEqual"
+Cohesion: 0.36
+Nodes (3): AES256Cipher, isArrayEqual(), PDFBase
 
 ### Community 80 - "migrator.js"
-Cohesion: 0.13
-Nodes (28): acquireLock(), ChecksumMismatchError, computeChecksum(), detectPartialSchema(), __dirname, DocumentIdentityError, DocumentIdentityMismatchError, DocumentIdentityUnresolvableError (+20 more)
+Cohesion: 0.09
+Nodes (39): acquireLock(), ChecksumMismatchError, computeChecksum(), detectPartialSchema(), __dirname, DocumentIdentityError, DocumentIdentityMismatchError, DocumentIdentityUnresolvableError (+31 more)
 
 ### Community 81 - "Retrieva AI — Evidence Layer & Partitioning Plan"
 Cohesion: 0.12
 Nodes (16): 1. Executive Summary & Foundational Principles, 2.1 Manifest Schema Attributes, 2.2 Pre-Modelling Document Inventory, 2. Document Manifest Specification (`/data/manifest.yaml`), 3.1 The Document-Level Granularity Rule, 3.2 Fixed Seed Determinism ($S = 42$), 3. Partitioning Methodology & Invariants, 4.1 Tamper Detection Invariant (+8 more)
-
-### Community 82 - "TextMeasure"
-Cohesion: 0.17
-Nodes (4): FontInfo, FontSelector, layoutText(), TextMeasure
 
 ### Community 83 - "questions"
 Cohesion: 0.12
@@ -596,113 +802,89 @@ Nodes (15): benchmark_name, created_date, questions, expected_answer, gold_doc_i
 Cohesion: 0.12
 Nodes (15): benchmark_name, created_date, questions, expected_answer, gold_doc_id, gold_element_id, gold_element_type, gold_page (+7 more)
 
-### Community 85 - "Binder"
-Cohesion: 0.17
-Nodes (7): Binder, createDataNode(), createText(), makeMap(), parseExpression(), parseIndex(), searchNode()
-
-### Community 86 - "document_service.py"
-Cohesion: 0.09
-Nodes (12): EnrichedElement, ProvenanceSubsystem, StructuredElementChunker, flush_text_group(), 3.3 Upload & Ingest PDF Document, Key Guarantees, build_pipeline_index(), 5.2 Layout & Reading-Order Recovery (`backend/layout/`) (+4 more)
+### Community 86 - "compileCharString"
+Cohesion: 0.08
+Nodes (10): compileCharString(), CompiledFont, compileGlyf(), FontRendererFactory, getFloat214(), getSubroutineBias(), lookupCmap(), parseCff() (+2 more)
 
 ### Community 87 - "IccColorSpace"
-Cohesion: 0.21
-Nodes (6): getUint8ArrayMemory0(), IccColorSpace, passArray8ToWasm0(), qcms_convert_array(), __wbg_finalize_init(), __wbg_get_imports()
+Cohesion: 0.32
+Nodes (3): IccColorSpace, passArray8ToWasm0(), qcms_convert_array()
 
-### Community 89 - "stringToBytes"
-Cohesion: 0.12
-Nodes (6): ARCFourCipher, calculateMD5(), CipherTransform, CipherTransformFactory, PasswordException, stringToBytes()
+### Community 88 - "main.py"
+Cohesion: 0.26
+Nodes (8): create_test_pdf(), test_analytics_summary_endpoint(), test_batch_upload_duplicate_detection(), test_batch_upload_multiple_documents(), test_client(), test_cross_document_selective_search(), test_delete_document_and_purge_faiss_index(), test_search_aggregate_endpoint()
 
 ### Community 91 - "Retrieva AI — Ground-Truth Annotation Guide"
 Cohesion: 0.13
 Nodes (14): 1. Introduction & Objectives, 2. Coordinate System & Spatial Geometry, 3. Element Types & Classification Criteria, 4. Reading Order Indexing (`reading_order`), 5. Table Grid Structure & Span Topology, 6. Formula Annotation & LaTeX Standards, 7.1 What is a "Critical Scene"?, 7.2 Criteria for Designating Critical Scenes (+6 more)
 
-### Community 92 - ".makeFilter"
-Cohesion: 0.11
-Nodes (6): Ascii85Stream, AsciiHexStream, DecryptStream, LZWStream, PredictorStream, RunLengthStream
+### Community 92 - "ImageResizer"
+Cohesion: 0.20
+Nodes (3): convertBlackAndWhiteToRGBA(), convertToRGBA(), ImageResizer
 
 ### Community 94 - "Builder"
 Cohesion: 0.19
 Nodes (3): Builder, Empty, UnknownNamespace
 
 ### Community 95 - ".constructPostScript"
-Cohesion: 0.29
-Nodes (6): buildPostScriptWasmFunction(), interpolate(), parsePostScriptFunction(), PDFFunction, setArity(), toNumberArray()
+Cohesion: 0.20
+Nodes (8): buildPostScriptWasmFunction(), IndexedCS, interpolate(), MathClamp(), parsePostScriptFunction(), PDFFunction, setArity(), toNumberArray()
 
 ### Community 97 - "fixture_nt4_leakage_manifest.yaml"
 Cohesion: 0.13
 Nodes (14): acceptance_split, id, partition, title, anomaly_type, config_version, derived_artifacts_in_dev_cache, description (+6 more)
 
 ### Community 98 - "M1.6.4.1 — Worker Architecture and Integration Contract Audit"
-Cohesion: 0.06
-Nodes (34): 10.1 Identified Risks & Mitigations, 10.2 Acceptance Test Matrix (M1.6.4), 10. Risks, Failure Modes, and Acceptance Tests, 11. Resource Planning Reference, 1.1 Architectural Context, 1.2 State of Completed Milestones, 1.3 Key Architectural Finding, 1. Executive Summary & Existing Architecture Findings (+26 more)
+Cohesion: 0.05
+Nodes (37): 10.1 Identified Risks & Mitigations, 10.2 Acceptance Test Matrix (M1.6.4), 10. Risks, Failure Modes, and Acceptance Tests, 11. Resource Planning Reference, 1.1 Architectural Context, 1.2 State of Completed Milestones, 1.3 Key Architectural Finding, 1. Executive Summary & Existing Architecture Findings (+29 more)
 
 ### Community 99 - "Settings"
-Cohesion: 0.29
-Nodes (24): Settings, 8. Test Suite Verification & Coverage Matrix, Full Regression Suite Status, 2. Internal Extraction Endpoint Suite, settings(), test_all_four_supported_modes(), test_candidate_ft_fallback_integrity(), test_empty_document_id_rejection() (+16 more)
+Cohesion: 0.27
+Nodes (25): 8. Test Suite Verification & Coverage Matrix, Full Regression Suite Status, 2. Internal Extraction Endpoint Suite, settings(), test_all_four_supported_modes(), test_candidate_ft_fallback_integrity(), test_empty_document_id_rejection(), test_empty_extraction_result() (+17 more)
 
 ### Community 100 - "ButtonWidgetAnnotation"
 Cohesion: 0.16
-Nodes (5): ButtonWidgetAnnotation, ChoiceWidgetAnnotation, collectActions(), getInheritableProperty(), parseDefaultAppearance()
+Nodes (4): ButtonWidgetAnnotation, ChoiceWidgetAnnotation, collectActions(), getInheritableProperty()
 
-### Community 101 - "assert"
-Cohesion: 0.07
-Nodes (15): assert(), BasePDFStream, compileFontInfo(), writeBuffer(), encodeStrings(), fetchSync(), MessageHandler, PDFWorkerStream (+7 more)
+### Community 101 - ".success"
+Cohesion: 0.24
+Nodes (6): Corner, Edge, fixTextIndent(), hasMargin(), mapStyle(), measureToString()
 
 ### Community 102 - "Retrieva AI — Acceptance Verification & Evaluation Integrity Report"
 Cohesion: 0.14
 Nodes (13): 1. Authoritative Charter Acceptance Criteria (AC-1 to AC-4), 2. Six Original Charter Key Performance Indicators (KPI-1 to KPI-6), 3. Auxiliary Subsystem Metrics, 4.1 Frozen Acceptance Partition Cryptographic Verification, 4.2 Documentation Inconsistencies Discovered, 4. Evaluation Integrity & Document Consistency Audit, 5. Formal Acceptance Certification, AC-1: Representative Operation on Frozen Unseen Documents (+5 more)
 
-### Community 103 - "ADR 001: Evaluation and Selection of Primary Document Extraction Architecture"
-Cohesion: 0.15
-Nodes (12): 1. Context & Problem Statement, 2. Architectural Comparison of Candidates, 3.1 Performance & Resource Footprint (KPI-6), 3.2 Reading-Order Recovery Gains (KPI-1), 3. Empirical Benchmark Results, 4. Architectural Analysis & Trade-offs, 5. Architectural Decision, 6. Verification & Reproducibility Runbook (+4 more)
-
-### Community 104 - "incrementalUpdate"
-Cohesion: 0.22
-Nodes (13): bytesToString(), computeIDs(), escapePDFName(), getFontFileType(), getIndexes(), getSizeInBytes(), incrementalUpdate(), isTrueTypeCollectionFile() (+5 more)
-
-### Community 106 - "test_eval.py"
-Cohesion: 0.11
-Nodes (10): calculate_f1_score(), calculate_iou(), calculate_precision_recall(), summarize_benchmark_metrics(), run_evaluation(), test_calculate_iou_disjoint(), test_calculate_iou_exact_match(), test_calculate_iou_partial_overlap() (+2 more)
+### Community 106 - "StringStream"
+Cohesion: 0.17
+Nodes (7): escapeString(), getPdfColor(), numberToString(), parseDefaultAppearance(), SignatureWidgetAnnotation, TextWidgetAnnotation, WidgetAnnotation
 
 ### Community 107 - "Util"
-Cohesion: 0.13
-Nodes (4): looksLikeUnsigned16BitNegative(), recoverSigned16BitBBox(), TranslatedFont, Util
+Cohesion: 0.11
+Nodes (3): FreeTextAnnotation, getTransformMatrix(), Util
 
 ### Community 108 - "Retrieva AI — REST API Reference Manual"
 Cohesion: 0.13
 Nodes (15): 1. Global Response Envelope Schema, 2.1 Root Discovery, 2.2 System Health & Telemetry, 2.3 System Recovery & Bundle Reload, 2. System Endpoints, 3.1 List Documents, 3.2 Get Document Detail, 3.4 Get Page Layout Segments & Provenance (+7 more)
 
 ### Community 109 - "Retrieva AI — Production Operations & Reliability Guide"
+Cohesion: 0.13
+Nodes (14): 1. Overview & Service Architecture, 2.1 Logging Design & Format, 2.2 Response Headers, 2.3 Error Logging & Tracking, 2. Structured JSON Logging, 3.1 Endpoint Specification, 3.2 Metrics Payload, 3.3 Key Health Indicators (+6 more)
+
+### Community 111 - "SimpleXMLParser"
+Cohesion: 0.16
+Nodes (5): DatasetReader, DatasetXMLParser, parseXFAPath(), SimpleXMLParser, updateXFA()
+
+### Community 114 - "M1.6.4 Phase 1: Python Internal Extraction Endpoint Specification & Implementation Report"
 Cohesion: 0.14
-Nodes (13): 1. Overview & Service Architecture, 3.1 Endpoint Specification, 3.2 Metrics Payload, 3.3 Key Health Indicators, 3. Operational Health Monitoring (`/api/v1/health`), 4.1 Trigger Conditions, 4.2 System Behavior in Degraded Mode, 4. Degraded Mode & Anomaly Handling (+5 more)
+Nodes (13): 1. Overview & Architectural Role, 3.1 Request Contract, 3.2 Response Contract, 3. Exact Request & Response Contract Examples, 4. Authentication & Security Design, 5. File Validation & Path Security, 6. Extraction Pipeline Call Chain, 7.1 Existing In-Memory Architecture (+5 more)
 
-### Community 111 - "SimpleDOMNode"
-Cohesion: 0.11
-Nodes (5): DatasetXMLParser, parseXFAPath(), SimpleDOMNode, SimpleXMLParser, updateXFA()
-
-### Community 112 - "query"
-Cohesion: 0.24
-Nodes (19): query(), createDocument(), DuplicateDocumentError, findByDocumentId(), findById(), findBySha256(), listDocuments(), mapDocumentRow() (+11 more)
-
-### Community 113 - "JpegStream"
-Cohesion: 0.08
-Nodes (14): decodeScan(), decodeHuffman(), readBit(), receive(), receiveAndExtend(), DNLMarkerError, EOIMarkerError, findNextFileMarker() (+6 more)
-
-### Community 115 - "test_multi_document.py"
-Cohesion: 0.33
-Nodes (8): create_test_pdf(), test_analytics_summary_endpoint(), test_batch_upload_duplicate_detection(), test_batch_upload_multiple_documents(), test_client(), test_cross_document_selective_search(), test_delete_document_and_purge_faiss_index(), test_search_aggregate_endpoint()
+### Community 115 - "Stream"
+Cohesion: 0.12
+Nodes (3): NullStream, Stream, StreamsSequenceStream
 
 ### Community 116 - "Provenance, Multi-Signal Confidence, and Degraded Routing Subsystem (O3)"
 Cohesion: 0.18
 Nodes (10): 1. Overview & Architectural Goals, 2.1 Provenance Record & Cryptographic Audit Trail, 2.2 Multi-Signal Confidence Fusion & Platt Calibration, 2.3 Degraded Path Routing, 2. Core Subsystem Components, 3.1 Effect Size Analysis (95% Bootstrap Confidence Intervals), 3. Empirical Ablation Study Results, 4. Honest Negative Results & Engineering Trade-Offs (+2 more)
-
-### Community 117 - "isArrayEqual"
-Cohesion: 0.36
-Nodes (3): AES256Cipher, isArrayEqual(), PDFBase
-
-### Community 118 - "t"
-Cohesion: 0.10
-Nodes (17): adjustMapping(), buildComponentData(), decodeBlock(), decodeMcu(), en(), receiveInstance(), updateMemoryViews(), getBlockBufferOffset() (+9 more)
 
 ### Community 119 - "backend/package.json"
 Cohesion: 0.10
@@ -720,25 +902,25 @@ Nodes (9): 1. Overview & Objective, 2. Observable Scoring Criteria (0–100 Poin
 Cohesion: 0.20
 Nodes (9): 1. Executive Summary, 2. Quantitative Benchmark Results, 3.1 Table Lookups (Critical Finding), 3.2 Multi-Column Reading Order, 3. Condition-Wise Modality Breakdown, 4.1 Inter-Rater Reliability (Cohen's Kappa), 4. KPI-3 Rubric Analysis & Inter-Rater Consensus, 5. Architectural Recommendations & Conclusion (+1 more)
 
-### Community 126 - "M1.6.4.2 — Phase 1 Verification and Hardening Report"
-Cohesion: 0.11
-Nodes (17): 1. Complete Python Test Suite, 1. Mode Correctness and Pipeline Routing, 2. candidate_ft Environment Evidence & Experimental Integrity, 3. Indexing Diagnostics and Worker Contract, 3. Node.js Express & Repository Regression Suites, 6. Element Schema Compatibility, 7. Authentication and File Security, 8. Test Execution Evidence and Suite Results (+9 more)
-
-### Community 128 - "Stream"
-Cohesion: 0.12
-Nodes (3): NullStream, Stream, StreamsSequenceStream
+### Community 128 - "toStyle"
+Cohesion: 0.23
+Nodes (6): ariaLabel(), CheckButton, ChoiceList, isRequired(), TextEdit, toStyle()
 
 ### Community 129 - "Datasets"
 Cohesion: 0.20
 Nodes (3): Datasets, datasets_Data, DatasetsNamespace
 
-### Community 130 - "FontFinder"
-Cohesion: 0.16
-Nodes (7): FontFinder, getCurrentPara(), makeObj(), selectFont(), serializeFontFamily(), setFontFamily(), stripQuotes()
+### Community 130 - "incrementalUpdate"
+Cohesion: 0.20
+Nodes (12): bytesToString(), computeIDs(), escapePDFName(), getFontFileType(), getIndexes(), getSizeInBytes(), incrementalUpdate(), isTrueTypeCollectionFile() (+4 more)
 
 ### Community 132 - "Retrieva AI — Final Acceptance Evaluation Report"
 Cohesion: 0.22
 Nodes (9): 1. Executive Summary, 2. Cryptographic Partition Lock & Zero-Leakage Audit, 3. Negative Anomaly Suite Audit (Zero Silent Failures), 4. Key Performance Indicator (KPI) Acceptance Matrix, 5. Stratified Subgroup Performance Breakdowns (AC-3), 6. Parity Evaluation: Reference (O2) vs. Final (O2+O3) (AC-4), 7. Downstream Retrieval & Synthesis Quality (KPI-3), 8. Non-Tuning & Methodological Integrity Certification (+1 more)
+
+### Community 135 - "stringToBytes"
+Cohesion: 0.23
+Nodes (4): CipherTransform, stringToBytes(), utf8PasswordToBytes(), utf8StringToString()
 
 ### Community 136 - "Retrieva AI — Environment Verification Report"
 Cohesion: 0.22
@@ -748,41 +930,37 @@ Nodes (8): 1. Executive Environment Summary, 2.1 Python Virtual Environment, 2.2
 Cohesion: 0.22
 Nodes (8): 1. Page-by-Page Verification Matrix, 2.1 PDF Rendering & Bounding-Box Alignment, 2.2 Mathematical Formula & Structured Table Rendering, 2.3 Error and Loading States, 2. Deep Subsystem UI Verifications, 3. Mock Data & Demo Fallback Identification Audit, 4. Frontend Status Summary, Retrieva AI — Frontend Testing Report
 
-### Community 138 - "run_ablation.py"
+### Community 138 - "Settings"
 Cohesion: 0.10
-Nodes (9): calculate_bootstrap_ci(), compute_aggregate_retrieval_metrics(), execute_ablation_study(), load_dev_partitions(), load_ground_truth(), load_manifest_records(), run_pipeline_configuration(), test_bootstrap_ci_constant_array() (+1 more)
+Nodes (7): Settings, client(), test_settings(), test_confidence_threshold_bounds(), test_config_version_non_empty(), test_default_settings_validity(), test_upload_size_limit_bounds()
 
-### Community 140 - "._initialize_baseline_repository"
-Cohesion: 0.12
-Nodes (4): 5. Health-State Reset Review & Baseline Integrity, Baseline Health Tracking Architecture, 5. Unified FAISS Retrieval Architecture, Enhancements
+### Community 140 - "assert"
+Cohesion: 0.15
+Nodes (7): assert(), compileFontInfo(), writeBuffer(), encodeStrings(), PDFImage, toRomanNumerals(), writeStrings()
 
 ### Community 141 - "react"
 Cohesion: 0.28
 Nodes (11): lucide-react, react, Badge(), PageHeader(), StatCard(), DocumentCanvas(), DocumentInspectorPanel(), DashboardPage() (+3 more)
 
-### Community 142 - "pool.js"
-Cohesion: 0.24
-Nodes (13): __dirname, __filename, getConnection(), getDedicatedConnection(), getDefaultDbConfig(), getPool(), healthCheck(), PoolAcquisitionTimeoutError (+5 more)
+### Community 144 - "PDFDocument"
+Cohesion: 0.05
+Nodes (5): find(), InvalidPDFException, PDFDocument, XRef, XRefParseException
 
-### Community 144 - "WasmImage"
-Cohesion: 0.17
-Nodes (3): JpxError, JpxImage, WasmImage
-
-### Community 146 - "XRefWrapper"
-Cohesion: 0.21
-Nodes (3): fetchBinaryData(), XRefWrapper, zn
+### Community 145 - ".getOperatorList"
+Cohesion: 0.18
+Nodes (4): addCachedImageOps(), argIsDict(), EvalState, LocalColorSpaceCache
 
 ### Community 147 - "3. Complete Step-by-Step User Workflow"
 Cohesion: 0.25
 Nodes (8): 3. Complete Step-by-Step User Workflow, Step 1: Batch Upload (`/upload`), Step 2: Automated Pipeline Processing (Behind the Scenes), Step 3: Library Management (`/library`), Step 4: Cross-Document Intelligent Search (`/search`), Step 5: Evidence Synthesis & Consensus Analysis, Step 6: Interactive 2D Bounding Box Canvas Viewer (`/viewer`), Step 7: Live Real-File Dashboard (`/dashboard`)
 
+### Community 149 - ".getTextContent"
+Cohesion: 0.26
+Nodes (15): addFakeSpaces(), appendEOL(), applyInverseRotation(), buildTextContentItem(), closePendingMarkedContentItems(), compareWithLastPosition(), ensureTextContentItem(), flushTextContentItem() (+7 more)
+
 ### Community 150 - "test_api.py"
 Cohesion: 0.14
 Nodes (11): get_document_service(), Automated Health Verification, 2.5 Benchmark Suite Execution Evidence, test_baseline_initialization_genuine_degradation_health(), test_baseline_initialization_successful_health(), test_execute_search_endpoint(), test_get_document_detail(), test_health_endpoint() (+3 more)
-
-### Community 151 - "v1/internal.py"
-Cohesion: 0.19
-Nodes (8): internal_extract(), validate_pdf_path(), verify_internal_auth(), ExtractedElementSchema, InternalExtractRequest, InternalExtractResponse, 2. Files Created and Modified, Phase 1: Python Internal Extraction Endpoint (FastAPI)
 
 ### Community 153 - "Endpoints Summary"
 Cohesion: 0.33
@@ -792,33 +970,29 @@ Nodes (5): 1. Health Discovery, 2. Document Repository, 3. Multi-Modal Spatial S
 Cohesion: 0.33
 Nodes (5): plugins, rules, react/only-export-components, react/rules-of-hooks, $schema
 
-### Community 155 - ".translateFont"
-Cohesion: 0.26
-Nodes (8): getStandardFontName(), getXfaFontDict(), getXfaFontName(), isKnownFontName(), _n, normalizeCSSFontFamily(), normalizeFontName(), nr
+### Community 155 - ".checkAndRepair"
+Cohesion: 0.21
+Nodes (10): readNameTable(), readTableEntry(), readTables(), sanitizeGlyph(), int16(), isMacNameRecord(), isWinNameRecord(), signedInt16() (+2 more)
 
-### Community 156 - "StringStream"
-Cohesion: 0.18
-Nodes (7): getPdfColor(), InkAnnotation, StampAnnotation, StringStream, stringToAsciiOrUTF16BE(), stringToUTF16String(), writeLineToCurveToAppearance()
+### Community 156 - "decodeScan"
+Cohesion: 0.29
+Nodes (8): decodeScan(), decodeHuffman(), readBit(), receive(), receiveAndExtend(), DNLMarkerError, EOIMarkerError, JpegError
 
 ### Community 157 - "App.jsx"
 Cohesion: 0.25
 Nodes (9): App(), Footer(), Header(), Sidebar(), EvaluationPage(), LoginPage(), SignUpPage(), UploadPage() (+1 more)
 
-### Community 158 - "repositories/index.js"
-Cohesion: 0.08
-Nodes (36): bulkInsert(), countByDocument(), deleteByDocumentAndMode(), ElementValidationError, findByDocument(), findByDocumentAndMode(), findByPage(), mapElementRow() (+28 more)
+### Community 158 - "PartialEvaluator"
+Cohesion: 0.10
+Nodes (12): CMapFactory, getStandardFontName(), getXfaFontDict(), getXfaFontName(), isKnownFontName(), isPDFFunction(), _n, normalizeCSSFontFamily() (+4 more)
 
 ### Community 159 - "2. Reproducible Baseline Snapshot"
-Cohesion: 0.10
-Nodes (16): create_app(), 1. Executive Summary & Objective, 2.1 Git & Environment State, 2.2 Core Package & Model Versions, 2.3 Certified Empirical KPI Baseline (from `docs/acceptance_report.md`), 2.4 Controlled Negative Anomaly Suite (NT1–NT5), 2. Reproducible Baseline Snapshot, 3.1 FastAPI Application & Entry Point (+8 more)
+Cohesion: 0.14
+Nodes (13): 1. Executive Summary & Objective, 2.1 Git & Environment State, 2.2 Core Package & Model Versions, 2.3 Certified Empirical KPI Baseline (from `docs/acceptance_report.md`), 2.4 Controlled Negative Anomaly Suite (NT1–NT5), 2. Reproducible Baseline Snapshot, 3.3 Frontend Component Inventory (`src/`), 3. Inventory of Existing Implementation (+5 more)
 
 ### Community 160 - "api.js"
 Cohesion: 0.24
 Nodes (10): MOCK_DOCUMENTS, MOCK_OVERVIEW_METRICS, MOCK_SEARCH_ITEMS, MOCK_SEARCH_RESULTS, MOCK_SYSTEM_METRICS, SettingsPage(), fetchJson(), getApiBaseUrl() (+2 more)
-
-### Community 161 - "M1.6.4 Phase 1: Python Internal Extraction Endpoint Specification & Implementation Report"
-Cohesion: 0.14
-Nodes (13): 1. Overview & Architectural Role, 3.1 Request Contract, 3.2 Response Contract, 3. Exact Request & Response Contract Examples, 4. Authentication & Security Design, 5. File Validation & Path Security, 6. Extraction Pipeline Call Chain, 7.1 Existing In-Memory Architecture (+5 more)
 
 ### Community 164 - "7. Quickstart & Reproduction Guide"
 Cohesion: 0.33
@@ -828,25 +1002,21 @@ Nodes (6): 7.1 Clone and Setup in One Step, 7.2 Run the Development Stack, 7.3 R
 Cohesion: 0.33
 Nodes (5): buildCommand, framework, outputDirectory, rewrites, $schema
 
-### Community 166 - ".get"
+### Community 166 - ".fallbackToSystemFont"
 Cohesion: 0.13
-Nodes (4): FreeTextAnnotation, getModificationDate(), Name, StructTreeRoot
+Nodes (12): applyStandardFontGlyphMap(), bn, buildToFontChar(), ds, getEncoding(), getUnicodeForGlyph(), recoverGlyphName(), ToUnicodeMap (+4 more)
 
 ### Community 167 - "Retrieva AI — Architecture Documentation"
 Cohesion: 0.14
 Nodes (13): 1. System Architecture Overview, 2. Service Separation & Responsibilities, 3. Storage & State Ownership, 4. Networking, Ports & Environment Configuration, 5. Independent Service Startup, 6. Universal Response Envelope & Traceability Headers, 7.1 Liveness Probe (`GET /api/v1/health`), 7.2 Readiness Probe (`GET /api/v1/ready`) (+5 more)
 
-### Community 168 - "M1.6.4.3.1 — Worker Lease Database Migration Specification & Audit"
-Cohesion: 0.17
-Nodes (11): 1. Schema Changes, 3. Index Design Rationale, 4. Existing-Data Compatibility, 5. Verification & Test Evidence, 6. Known Limitations, Added Columns, Added Indexes, M1.6.4.3.1 — Worker Lease Database Migration Specification & Audit (+3 more)
-
-### Community 173 - "MathClamp"
-Cohesion: 0.26
-Nodes (4): ColorSpaceUtils, getColorConversionBatchSize(), IndexedCS, MathClamp()
-
 ### Community 174 - "Retrieva AI — Backend Testing Report"
 Cohesion: 0.40
 Nodes (4): 1. Backend Subsystem Verification Overview, 2. Backend Test Execution Matrix, 3. Backend Test Status Summary, Retrieva AI — Backend Testing Report
+
+### Community 175 - "calculateSHA256"
+Cohesion: 0.27
+Nodes (9): calculate_sha256_ch(), calculate_sha256_littleSigma(), calculate_sha256_littleSigmaPrime(), calculate_sha256_maj(), calculate_sha256_sigma(), calculate_sha256_sigmaPrime(), calculateSHA256(), PDF17 (+1 more)
 
 ### Community 176 - "Retrieva AI — Data Repository"
 Cohesion: 0.50
@@ -856,73 +1026,105 @@ Nodes (3): Dataset Guidelines, Directory Structure, Retrieva AI — Data Reposit
 Cohesion: 0.20
 Nodes (10): scripts, build, dev, lint, preview, run-backend, run-eval, run-frontend (+2 more)
 
-### Community 178 - "ColorSpace"
-Cohesion: 0.14
-Nodes (3): ColorSpace, DeviceRgbaCS, PatternCS
-
 ### Community 180 - "SearchPage.jsx"
 Cohesion: 0.33
 Nodes (4): EmptyState(), LoadingSkeleton(), LibraryPage(), SearchPage()
 
-### Community 181 - "calculateSHA256"
-Cohesion: 0.27
-Nodes (9): calculate_sha256_ch(), calculate_sha256_littleSigma(), calculate_sha256_littleSigmaPrime(), calculate_sha256_maj(), calculate_sha256_sigma(), calculate_sha256_sigmaPrime(), calculateSHA256(), PDF17 (+1 more)
+### Community 182 - "setFontFamily"
+Cohesion: 0.22
+Nodes (5): FontInfo, selectFont(), serializeFontFamily(), setFontFamily(), stripQuotes()
 
-### Community 182 - "run_baseline.py"
-Cohesion: 0.12
-Nodes (10): calculate_reading_order_accuracy(), evaluate_extractor_on_document(), load_dev_partitions(), load_ground_truth(), run_baseline_evaluation(), run_latency_and_memory_benchmark(), test_reading_order_complete_reversal(), test_reading_order_perfect_match() (+2 more)
+### Community 186 - "XhtmlObject"
+Cohesion: 0.25
+Nodes (4): a, ol, ul, XhtmlObject
 
-### Community 185 - ".metadata"
-Cohesion: 0.28
-Nodes (4): DatasetReader, decodeString(), isDict(), stringToUTF8String()
+### Community 188 - "Font"
+Cohesion: 0.11
+Nodes (7): convertCidString(), Font, fonts_Glyph, In, jn, n, Ps
 
-### Community 186 - "Button"
+### Community 189 - "Button"
 Cohesion: 0.25
 Nodes (4): A, Button, fixURL(), recoverJsURL()
 
-### Community 189 - "Option10"
-Cohesion: 0.25
-Nodes (3): AdjustData, CompressObjectStream, Option10
+### Community 190 - "TemplateNamespace"
+Cohesion: 0.05
+Nodes (14): Barcode, Break, BreakAfter, Comb, Connect, ContentArea, Extras, Filter (+6 more)
+
+### Community 192 - "8. Frontend User Experience Design"
+Cohesion: 0.50
+Nodes (4): 8.1 Upload Page (`UploadPage.jsx`), 8.2 Documents Library (`LibraryPage.jsx`), 8.3 Search Page (`SearchPage.jsx`), 8. Frontend User Experience Design
 
 ### Community 195 - ".currentPage"
 Cohesion: 0.40
 Nodes (3): renderPdf(), loadDocDetails(), loadPageSegments()
 
-### Community 196 - "Retrieva AI — Negative Testing Report (NT1 – NT5)"
-Cohesion: 0.50
-Nodes (3): 1. Executive Summary, 3. Negative Anomaly Telemetry Summary, Retrieva AI — Negative Testing Report (NT1 – NT5)
+### Community 196 - "detect_scrambled_reading_order"
+Cohesion: 0.07
+Nodes (20): 1. Traceability Summary Matrix, 2.1 KPI-1: Reading-Order Accuracy, 2.3 KPI-3: Downstream Retrieval & Synthesis Quality, 2. Detailed Evidence Breakdown by KPI, 3. Negative Anomaly Suite Traceability (NT1 – NT5), Retrieva AI — Source-to-Claim Traceability Matrix, detect_scrambled_reading_order(), verify_downstream_retrieval_check() (+12 more)
 
-### Community 208 - "lookupMatrix"
-Cohesion: 0.47
-Nodes (3): CheckedOperatorList, getTilingPatternIR(), lookupMatrix()
+### Community 200 - ".parse"
+Cohesion: 0.32
+Nodes (6): buildComponentData(), findNextFileMarker(), prepareComponents(), quantizeAndInverse(), readDataBlock(), skipData()
 
-### Community 211 - "test_faiss_failure_injection_and_search_preservation"
+### Community 202 - "BaseShading"
+Cohesion: 0.15
+Nodes (6): BaseShading, buildMeshVertexData(), DummyShading, FunctionBasedShading, Pattern, RadialAxialShading
+
+### Community 203 - ".getOperatorList"
+Cohesion: 0.18
+Nodes (5): BaseLocalCache, LocalGStateCache, LocalImageCache, LocalTilingPatternCache, RegionalImageCache
+
+### Community 206 - "Element"
+Cohesion: 0.04
+Nodes (35): BoundingBox, Element, ElementType, LayoutConfig, LayoutOrderRecovery, recover_reading_order(), StructuredElementChunker, flush_text_group() (+27 more)
+
+### Community 210 - "CFFFont"
+Cohesion: 0.25
+Nodes (3): adjustWidths(), amendFallbackToUnicode(), CFFFont
+
+### Community 218 - "B"
+Cohesion: 0.33
+Nodes (3): B, buildHuffmanTable(), Za
+
+### Community 220 - "bidi"
+Cohesion: 0.33
+Nodes (6): bidi(), createBidiText(), findUnequal(), isEven(), isOdd(), reverseValues()
+
+### Community 224 - ".process"
 Cohesion: 0.40
-Nodes (5): 4. FAISS Partial-Mutation Failure and Rollback, Automated Partial-Mutation Verification, Design & Rollback Architecture, test_faiss_failure_injection_and_search_preservation(), partial_mutation_failing_index()
+Nodes (4): addHex(), hexToInt(), hexToStr(), incHex()
 
-### Community 217 - "2. Structured JSON Logging"
-Cohesion: 0.50
-Nodes (4): 2.1 Logging Design & Format, 2.2 Response Headers, 2.3 Error Logging & Tracking, 2. Structured JSON Logging
+### Community 225 - "t"
+Cohesion: 0.19
+Nodes (13): parseOperand(), decodeBlock(), decodeMcu(), en(), receiveInstance(), updateMemoryViews(), getBlockBufferOffset(), k (+5 more)
+
+### Community 260 - "getFontSubstitution"
+Cohesion: 0.40
+Nodes (5): generateFont(), getFamilyName(), getFontSubstitution(), validateCSSFont(), validateFontName()
+
+### Community 385 - "parseExpression"
+Cohesion: 0.67
+Nodes (3): createDataNode(), parseExpression(), parseIndex()
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `retrieva-ai`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1748 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **102 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1820 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **309 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `DocumentViewerPage()` connect `react` to `.currentPage`, `App.jsx`?**
-  _High betweenness centrality (0.384) - this node is a cross-community bridge._
+  _High betweenness centrality (0.413) - this node is a cross-community bridge._
 - **What connects `retrieva-ai` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `pdf.worker.min.mjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.011998099311000238 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.013157894736842105 - nodes in this community are weakly interconnected._
 - **Why does `isDemoMode()` connect `App.jsx` to `api.js`, `SearchPage.jsx`, `NegativeAnomalyRecord`, `react`?**
-  _High betweenness centrality (0.377) - this node is a cross-community bridge._
-- **Should `run_acceptance.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.049886621315192746 - nodes in this community are weakly interconnected._
+  _High betweenness centrality (0.409) - this node is a cross-community bridge._
+- **Should `run_retrieval_eval.py` be split into smaller, more focused modules?**
+  _Cohesion score 0.06753006475485661 - nodes in this community are weakly interconnected._
 - **Should `package.json` be split into smaller, more focused modules?**
   _Cohesion score 0.07936507936507936 - nodes in this community are weakly interconnected._
-- **Should `test_retrieval.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.05046948356807512 - nodes in this community are weakly interconnected._
+- **Should `FaissRetriever` be split into smaller, more focused modules?**
+  _Cohesion score 0.03729123770304278 - nodes in this community are weakly interconnected._

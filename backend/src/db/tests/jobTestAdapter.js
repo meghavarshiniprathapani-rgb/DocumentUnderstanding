@@ -29,8 +29,8 @@ export const jobTestAdapter = Object.freeze({
   claimJobWithHook: async (workerId = null, options = {}, hooks = {}) => {
     return _executeClaimJobForTest(workerId, options, hooks);
   },
-  heartbeatJobWithHook: async (jobId, workerId, hooks = {}) => {
-    return _executeHeartbeatJobForTest(jobId, workerId, hooks);
+  heartbeatJobWithHook: async (jobId, workerId, claimTokenOrOptions = {}, hooks = {}) => {
+    return _executeHeartbeatJobForTest(jobId, workerId, claimTokenOrOptions, hooks);
   },
   completeJobWithHook: async (jobId, workerId, details = {}, hooks = {}) => {
     return _executeCompleteJobForTest(jobId, workerId, details, hooks);

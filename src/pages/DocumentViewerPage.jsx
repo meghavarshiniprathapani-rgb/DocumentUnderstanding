@@ -10,7 +10,7 @@ import { DocumentInspectorPanel } from '../components/viewer/DocumentInspectorPa
 import { Badge } from '../components/common/Badge';
 import { api, isDemoMode } from '../services/api';
 
-export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSegmentId, setSelectedSegmentId, selectedPageNumber }) => {
+export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSegmentId, setSelectedSegmentId, selectedPageNumber, setActiveTab }) => {
   const [documents, setDocuments] = useState([]);
   const [docId, setDocId] = useState(selectedDocId || '');
   const [currentDoc, setCurrentDoc] = useState(null);
@@ -43,10 +43,18 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
       try {
         const docs = await api.listDocuments();
         if (!isMounted) return;
-        setDocuments(docs);
-        if (docs.length > 0) {
-          const targetId = selectedDocId || docs[0].id;
+        setDocuments(docs || []);
+        if (docs && docs.length > 0) {
+          const matched = selectedDocId && docs.some((d) => d.id === selectedDocId);
+          const targetId = matched ? selectedDocId : docs[0].id;
           setDocId(targetId);
+          if (!matched && setSelectedDocId) {
+            setSelectedDocId(targetId);
+          }
+        } else {
+          setDocId('');
+          setCurrentDoc(null);
+          setPageSegments([]);
         }
       } catch (err) {
         console.warn("Failed to load documents list:", err);
@@ -56,12 +64,15 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
     }
     loadDocs();
     return () => { isMounted = false; };
-  }, [selectedDocId]);
+  }, [selectedDocId, setSelectedDocId]);
 
   // 2. Load selected document details
   useEffect(() => {
     let isMounted = true;
-    if (!docId) return;
+    if (!docId) {
+      setCurrentDoc(null);
+      return;
+    }
 
     async function loadDocDetails() {
       try {
@@ -78,7 +89,10 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
   // 3. Load page layout segments when document or page changes
   useEffect(() => {
     let isMounted = true;
-    if (!docId) return;
+    if (!docId) {
+      setPageSegments([]);
+      return;
+    }
 
     async function loadPageSegments() {
       try {
@@ -86,7 +100,13 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
         if (!isMounted) return;
         setPageSegments(segs);
         if (selectedSegmentId && segs.length > 0) {
-          const match = segs.find(s => s.id === selectedSegmentId || selectedSegmentId.includes(s.id) || s.id.includes(selectedSegmentId));
+          const match = segs.find(
+            (s) =>
+              s.id === selectedSegmentId ||
+              s.element_id === selectedSegmentId ||
+              selectedSegmentId.includes(s.id) ||
+              s.id.includes(selectedSegmentId)
+          );
           if (match) setActiveSegmentId(match.id);
         }
       } catch (err) {
@@ -111,7 +131,7 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
     );
   }
 
-  const effectiveAccuracy = currentDoc?.parsingAccuracy ?? currentDoc?.parsing_accuracy ?? 98.2;
+  const effectiveAccuracy = currentDoc?.parsingAccuracy ?? currentDoc?.parsing_accuracy ?? 0;
   const isDocDegraded = currentDoc?.isDegraded ?? currentDoc?.is_degraded ?? false;
 
   return (
@@ -122,7 +142,7 @@ export const DocumentViewerPage = ({ selectedDocId, setSelectedDocId, selectedSe
         <div className="flex items-center space-x-3">
           <button
             type="button"
-            onClick={() => window.history.back()}
+            onClick={() => (setActiveTab ? setActiveTab('library') : window.history.back())}
             className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-rose-950 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-rose-200 transition-all cursor-pointer group shadow-2xs shrink-0"
             title="Go Back"
           >

@@ -272,15 +272,19 @@ class StructuredElementChunker(BaseChunker):
                 chunk_counter += 1
                 continue
 
-            # CASE 2: Formula - Keep intact
             if elem.type == ElementType.FORMULA:
                 flush_text_group()
-                formula_str = ""
                 f_obj = elem.formula or elem.formula_data
-                if f_obj and f_obj.latex:
-                    formula_str = f"$$\n{f_obj.latex}\n$$"
-                elif elem.text:
-                    formula_str = f"$$\n{elem.text}\n$$"
+                formula_parts = []
+                if elem.text and elem.text.strip():
+                    formula_parts.append(elem.text.strip())
+                if f_obj and f_obj.text and f_obj.text.strip() != (elem.text or "").strip():
+                    formula_parts.append(f_obj.text.strip())
+                if f_obj and f_obj.latex and f_obj.latex.strip():
+                    formula_parts.append(f"$$\n{f_obj.latex.strip()}\n$$")
+                elif not formula_parts:
+                    formula_parts.append("$$$$")
+                formula_str = "\n\n".join(formula_parts)
 
                 frm_meta: dict[str, Any] = {
                     "strategy": "atomic_formula_preservation",

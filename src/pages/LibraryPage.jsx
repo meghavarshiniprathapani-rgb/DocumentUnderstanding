@@ -33,6 +33,7 @@ export const LibraryPage = ({
   const [viewMode, setViewMode] = useState('grid');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -50,15 +51,37 @@ export const LibraryPage = ({
     return () => { isMounted = false; };
   }, []);
 
+  const getDocStatusBadge = (doc) => {
+    const raw = (doc?.status || '').toLowerCase();
+    if (doc?.isDegraded || raw === 'degraded') {
+      return { variant: 'warning', label: 'Degraded' };
+    }
+    if (raw === 'queued' || raw === 'processing') {
+      return { variant: 'info', label: raw === 'processing' ? 'Processing' : 'Queued' };
+    }
+    if (raw === 'failed') {
+      return { variant: 'warning', label: 'Failed' };
+    }
+    if (raw === 'ready' || raw === 'processed') {
+      return { variant: 'success', label: 'Ready' };
+    }
+    return { variant: 'default', label: doc?.status || 'Unknown' };
+  };
+
   const filteredDocs = documents.filter(doc => {
-    const matchesName = (doc.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesName = (doc.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                         (doc.category || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const normalizedStatus = (doc.status || '').toLowerCase();
+
     let matchesStatus = true;
     if (statusFilter === 'Processed') {
-      matchesStatus = doc.status === 'Processed' && !doc.isDegraded;
+      matchesStatus = (normalizedStatus === 'ready' || normalizedStatus === 'processed') && !doc.isDegraded;
+    } else if (statusFilter === 'Queued') {
+      matchesStatus = normalizedStatus === 'queued' || normalizedStatus === 'processing';
     } else if (statusFilter === 'Degraded') {
-      matchesStatus = doc.isDegraded;
+      matchesStatus = Boolean(doc.isDegraded) || normalizedStatus === 'degraded';
+    } else if (statusFilter === 'Failed') {
+      matchesStatus = normalizedStatus === 'failed';
     }
 
     return matchesName && matchesStatus;
@@ -81,15 +104,18 @@ export const LibraryPage = ({
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await api.deleteDocument(deleteTarget.id);
       setDocuments(prev => prev.filter(d => d.id !== deleteTarget.id));
       setSelectedDocIds(prev => prev.filter(id => id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete document:", err);
+      setDeleteError(err?.message || 'Failed to delete document.');
+      setDeleteTarget(null);
     } finally {
       setDeleting(false);
-      setDeleteTarget(null);
     }
   };
 
@@ -114,6 +140,19 @@ export const LibraryPage = ({
           </button>
         }
       />
+
+      {deleteError && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-center justify-between">
+          <span>{deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            className="text-rose-500 hover:text-rose-900 p-1 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {selectedDocIds.length > 0 && (
         <div className="p-4 bg-rose-900 text-white rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
@@ -164,8 +203,10 @@ export const LibraryPage = ({
                 className="bg-slate-50 text-slate-900 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-rose-900"
               >
                 <option value="All">All Statuses</option>
-                <option value="Processed">Processed (Normal)</option>
+                <option value="Processed">Ready / Processed</option>
+                <option value="Queued">Queued / Processing</option>
                 <option value="Degraded">Degraded Mode</option>
+                <option value="Failed">Failed</option>
               </select>
             </div>
 
@@ -276,9 +317,14 @@ export const LibraryPage = ({
                       </div>
 
                       <div className="flex items-center space-x-1.5">
-                        <Badge variant={doc.isDegraded ? 'warning' : 'success'} size="sm">
-                          {doc.isDegraded ? 'Degraded' : (doc.status || 'Processed')}
-                        </Badge>
+                        {(() => {
+                          const badge = getDocStatusBadge(doc);
+                          return (
+                            <Badge variant={badge.variant} size="sm">
+                              {badge.label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -392,9 +438,14 @@ export const LibraryPage = ({
                       </td>
 
                       <td className="py-3.5 px-3">
-                        <Badge variant={doc.isDegraded ? 'warning' : 'success'} size="sm">
-                          {doc.isDegraded ? 'Degraded' : (doc.status || 'Processed')}
-                        </Badge>
+                        {(() => {
+                          const badge = getDocStatusBadge(doc);
+                          return (
+                            <Badge variant={badge.variant} size="sm">
+                              {badge.label}
+                            </Badge>
+                          );
+                        })()}
                       </td>
 
                       <td className="py-3.5 pl-3 text-right space-x-2">

@@ -1,6 +1,6 @@
-import os
 from pathlib import Path
 from unittest.mock import patch
+
 import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
@@ -11,8 +11,14 @@ from backend.app.main import app
 
 @pytest.fixture(scope="module")
 def client() -> TestClient:
+    from backend.app.services import get_document_service
     with TestClient(app) as test_client:
-        yield test_client
+        doc_service = get_document_service()
+        prior_last_error = doc_service.last_error
+        try:
+            yield test_client
+        finally:
+            doc_service.last_error = prior_last_error
 
 
 @pytest.fixture(scope="module")
@@ -449,6 +455,7 @@ def test_faiss_failure_injection_and_search_preservation(client: TestClient, set
 
         def partial_mutation_failing_index(chunks):
             import faiss
+
             from backend.retrieval.schema import Chunk
             doc_service.retriever.chunks = [Chunk(chunk_id="corrupt_partial_chunk", text="corrupt", chunk_type="text", source_doc_id=doc_id, page_number=1, bbox=None)]
             doc_service.retriever.index_faiss = faiss.IndexFlatIP(128)
@@ -498,3 +505,196 @@ def test_faiss_failure_injection_and_search_preservation(client: TestClient, set
                 sample_file.unlink()
             except OSError:
                 pass
+
+
+def test_extract_skip_indexing_and_index_persisted_elements(client: TestClient, settings: Settings, valid_pdf_path: Path):
+    from backend.app.services import get_document_service
+    doc_service = get_document_service()
+    headers = {"X-Internal-Secret": settings.internal_api_secret}
+    doc_id = "doc-test-split-pipeline-001"
+    extract_resp = client.post(
+        "/api/v1/internal/extract",
+        json={
+            "document_id": doc_id,
+            "file_path": str(valid_pdf_path),
+            "mode": "reference",
+            "skip_indexing": True,
+        },
+        headers=headers,
+    )
+    assert extract_resp.status_code == 200
+    ext_data = extract_resp.json()["data"]
+    assert ext_data["indexing_status"] == "Skipped"
+    assert ext_data["indexing_diagnostics"]["latest_version_indexed"] is False
+    assert ext_data["indexing_diagnostics"]["durable_on_disk"] is False
+    assert len(ext_data["elements"]) >= 1
+
+    unauth_resp = client.post(
+        "/api/v1/internal/index",
+        json={
+            "document_id": doc_id,
+            "file_hash": "a" * 64,
+            "filename": valid_pdf_path.name,
+            "mode": "reference",
+            "is_degraded": False,
+            "page_count": ext_data["page_count"],
+            "elements": [
+                {
+                    "page": el["page"],
+                    "type": el["type"],
+                    "reading_order": el["reading_order"],
+                    "text": el["text"],
+                    "bbox": el["bbox"],
+                    "confidence": el["raw_confidence"],
+                }
+                for el in ext_data["elements"]
+            ],
+        },
+        headers={"X-Internal-Secret": "wrong-secret"},
+    )
+    assert unauth_resp.status_code == 401
+
+    index_resp = client.post(
+        "/api/v1/internal/index",
+        json={
+            "document_id": doc_id,
+            "file_hash": "a" * 64,
+            "filename": valid_pdf_path.name,
+            "mode": "reference",
+            "is_degraded": False,
+            "page_count": ext_data["page_count"],
+            "elements": [
+                {
+                    "page": el["page"],
+                    "type": el["type"],
+                    "reading_order": el["reading_order"],
+                    "text": el["text"],
+                    "bbox": el["bbox"],
+                    "confidence": el["raw_confidence"],
+                }
+                for el in ext_data["elements"]
+            ],
+        },
+        headers=headers,
+    )
+    assert index_resp.status_code == 200
+    idx_data = index_resp.json()["data"]
+    assert idx_data["document_id"] == doc_id
+    assert idx_data["mode"] == "reference"
+    assert idx_data["indexing_status"] == "Indexed"
+    assert idx_data["searchable"] is True
+    assert idx_data["chunk_count"] >= 1
+    assert idx_data["indexing_diagnostics"]["vector_store"] == "FAISS"
+    assert idx_data["indexing_diagnostics"]["durable_on_disk"] is False
+    assert idx_data["indexing_diagnostics"]["latest_version_indexed"] is True
+
+    results = doc_service.search("Extraction Test Document Heading", document_id=doc_id, min_score=0.0)
+    assert len(results) >= 1
+    assert results[0].provenance is not None
+    assert results[0].provenance["source_file_hash"] == "a" * 64
+
+
+def test_index_persisted_elements_failure_preserves_prior_version(client: TestClient, settings: Settings):
+    from backend.app.services import get_document_service
+    doc_service = get_document_service()
+    headers = {"X-Internal-Secret": settings.internal_api_secret}
+    doc_id = "doc-test-index-rollback-002"
+
+    init_resp = client.post(
+        "/api/v1/internal/index",
+        json={
+            "document_id": doc_id,
+            "file_hash": "1" * 64,
+            "filename": "v1.pdf",
+            "mode": "reference",
+            "is_degraded": False,
+            "page_count": 1,
+            "elements": [
+                {
+                    "page": 1,
+                    "type": "heading",
+                    "reading_order": 0,
+                    "text": "Orbital Baseline Telemetry AlphaV1",
+                    "bbox": {"x": 10.0, "y": 10.0, "width": 200.0, "height": 20.0},
+                    "confidence": 0.99,
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert init_resp.status_code == 200
+    assert init_resp.json()["data"]["indexing_status"] == "Indexed"
+
+    before_results = doc_service.search("Orbital Baseline Telemetry AlphaV1", document_id=doc_id, min_score=0.0)
+    assert len(before_results) == 1
+    assert before_results[0].provenance["source_file_hash"] == "1" * 64
+    prior_index_ref = doc_service.retriever.index_faiss
+    prior_chunks = list(doc_service.all_chunks)
+
+    with patch.object(doc_service.retriever, "index", side_effect=RuntimeError("Simulated FAISS replacement failure")):
+        fail_resp = client.post(
+            "/api/v1/internal/index",
+            json={
+                "document_id": doc_id,
+                "file_hash": "2" * 64,
+                "filename": "v2.pdf",
+                "mode": "reference",
+                "is_degraded": False,
+                "page_count": 1,
+                "elements": [
+                    {
+                        "page": 1,
+                        "type": "heading",
+                        "reading_order": 0,
+                        "text": "Orbital Replacement Telemetry BetaV2",
+                        "bbox": {"x": 10.0, "y": 10.0, "width": 200.0, "height": 20.0},
+                        "confidence": 0.99,
+                    }
+                ],
+            },
+            headers=headers,
+        )
+        assert fail_resp.status_code == 500
+        import json
+        fail_detail = json.loads(fail_resp.json()["detail"])
+        assert fail_detail["indexing_status"] == "Failed"
+        assert fail_detail["indexing_diagnostics"]["latest_version_indexed"] is False
+        assert fail_detail["indexing_diagnostics"]["previous_version_searchable"] is True
+        assert fail_detail["indexing_diagnostics"]["searchable"] is True
+        assert fail_detail["indexing_diagnostics"]["durable_on_disk"] is False
+        assert doc_service.retriever.index_faiss is prior_index_ref
+        assert len(doc_service.all_chunks) == len(prior_chunks)
+
+    after_fail_results = doc_service.search("Orbital Baseline Telemetry AlphaV1", document_id=doc_id, min_score=0.0)
+    assert len(after_fail_results) == 1
+    assert after_fail_results[0].provenance["source_file_hash"] == "1" * 64
+
+    v2_resp = client.post(
+        "/api/v1/internal/index",
+        json={
+            "document_id": doc_id,
+            "file_hash": "2" * 64,
+            "filename": "v2.pdf",
+            "mode": "reference",
+            "is_degraded": False,
+            "page_count": 1,
+            "elements": [
+                {
+                    "page": 1,
+                    "type": "heading",
+                    "reading_order": 0,
+                    "text": "Orbital Replacement Telemetry BetaV2",
+                    "bbox": {"x": 10.0, "y": 10.0, "width": 200.0, "height": 20.0},
+                    "confidence": 0.99,
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert v2_resp.status_code == 200
+    assert v2_resp.json()["data"]["indexing_status"] == "Indexed"
+    v2_results = doc_service.search("Orbital Replacement Telemetry BetaV2", document_id=doc_id, min_score=0.0)
+    assert len(v2_results) == 1
+    assert v2_results[0].provenance["source_file_hash"] == "2" * 64
+    stale_v1 = doc_service.search("Orbital Baseline Telemetry AlphaV1", document_id=doc_id, min_score=0.5)
+    assert all(r.provenance["source_file_hash"] == "2" * 64 for r in stale_v1)

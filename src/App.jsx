@@ -181,6 +181,7 @@ export default function App() {
               selectedPageNumber={selectedPageNumber}
               setSelectedSegmentId={setSelectedSegmentId}
               setSelectedPageNumber={setSelectedPageNumber}
+              setActiveTab={setActiveTab}
             />
           )}
 

@@ -23,6 +23,7 @@ export {
   DEFAULT_MAX_RETRY_ATTEMPTS,
   DEFAULT_LEASE_TIMEOUT_SECONDS,
   MAX_WORKER_ID_LENGTH,
+  MAX_CLAIM_TOKEN_LENGTH,
   LeaseOwnershipError,
   InvalidJobTransitionError,
   retryJob,

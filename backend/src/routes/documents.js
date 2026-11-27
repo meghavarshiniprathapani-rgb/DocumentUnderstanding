@@ -11,6 +11,7 @@ import { serializeDocument, serializeElement } from '../utils/serializers.js';
 import { uploadSingle, uploadBatch, uploadConcurrencyGuard } from '../middleware/upload.js';
 import { config } from '../config.js';
 import { getConnection } from '../db/pool.js';
+import { purgeDocumentFromPython } from '../services/recoveryService.js';
 import {
   getUploadDir,
   getTempUploadDir,
@@ -541,6 +542,8 @@ documentsRouter.post('/upload-batch', uploadConcurrencyGuard, uploadBatch, async
           document_id: documentId,
           file_hash: sha256,
           file_size: fileSizeStr,
+          pages_count: serialized.pages_count,
+          chunk_count: serialized.chunk_count,
           status: 'Queued',
           progress_percent: 50,
           error: null,
@@ -559,6 +562,8 @@ documentsRouter.post('/upload-batch', uploadConcurrencyGuard, uploadBatch, async
           document_id: null,
           file_hash: sha256,
           file_size: fileSizeStr,
+          pages_count: 0,
+          chunk_count: 0,
           status: 'Failed',
           progress_percent: 0,
           error: fileErr.message || 'Error processing file',
@@ -593,6 +598,89 @@ documentsRouter.post('/upload-batch', uploadConcurrencyGuard, uploadBatch, async
     for (const id of createdDocIds) {
       releaseAllocatedDocumentId(id);
     }
+  }
+});
+
+documentsRouter.get('/analytics/summary', async (req, res, next) => {
+  try {
+    const listResult = await documentRepository.listDocuments({ limit: 500, offset: 0 });
+    const serialized = listResult.documents.map(serializeDocument);
+    let totalChunks = 0;
+    let totalPages = 0;
+    let textBlocks = 0;
+    let tables = 0;
+    let figures = 0;
+    let headings = 0;
+    let accuracySum = 0;
+    let accuracyCount = 0;
+    let degradedCount = 0;
+
+    for (const doc of serialized) {
+      totalChunks += Number(doc.chunk_count || 0);
+      totalPages += Number(doc.pages_count || 0);
+      textBlocks += Number(doc.metrics?.text_blocks || 0);
+      tables += Number(doc.metrics?.tables || 0);
+      figures += Number(doc.metrics?.figures || 0);
+      headings += Number(doc.metrics?.headings || 0);
+      if (doc.is_degraded) {
+        degradedCount += 1;
+      }
+      if (typeof doc.parsing_accuracy === 'number' && doc.parsing_accuracy > 0) {
+        accuracySum += doc.parsing_accuracy;
+        accuracyCount += 1;
+      }
+    }
+
+    return sendSuccess(
+      res,
+      {
+        total_documents: Number(listResult.total || serialized.length),
+        user_uploaded_documents: serialized.filter((d) => d.doc_type === 'user_upload').length,
+        total_chunks: totalChunks,
+        total_pages: totalPages,
+        text_blocks: textBlocks,
+        tables,
+        figures,
+        headings,
+        average_parsing_accuracy: accuracyCount > 0 ? Number((accuracySum / accuracyCount).toFixed(1)) : 0,
+        degraded_documents_count: degradedCount,
+        config_version: config.configVersion,
+        config_id: 'O3-v1.0.0',
+      },
+      'Live analytics across repository documents',
+      200
+    );
+  } catch (err) {
+    return next(err);
+  }
+});
+
+documentsRouter.get('/:id/file', async (req, res, next) => {
+  try {
+    const documentId = req.params.id;
+    if (!documentId || typeof documentId !== 'string' || !documentId.trim()) {
+      return sendError(res, 'Invalid document ID parameter', 400);
+    }
+
+    const doc = await documentRepository.findByDocumentId(documentId.trim());
+    if (!doc || !doc.path) {
+      return sendError(res, `PDF binary for '${documentId}' not found`, 404);
+    }
+
+    const resolvedFilePath = path.resolve(doc.path);
+    const resolvedUploadDir = path.resolve(getUploadDir());
+    if (!resolvedFilePath.startsWith(resolvedUploadDir) && !fs.existsSync(resolvedFilePath)) {
+      return sendError(res, `PDF binary for '${documentId}' not found`, 404);
+    }
+
+    if (!fs.existsSync(resolvedFilePath)) {
+      return sendError(res, `PDF binary for '${documentId}' not found on disk`, 404);
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    return res.sendFile(resolvedFilePath);
+  } catch (err) {
+    return next(err);
   }
 });
 
@@ -694,6 +782,7 @@ documentsRouter.delete('/:id', async (req, res, next) => {
          SET status = 'failed',
              error = 'Document deleted before processing',
              locked_by = NULL,
+             claim_token = NULL,
              locked_at = NULL,
              heartbeat_at = NULL,
              updated_at = CURRENT_TIMESTAMP
@@ -728,6 +817,8 @@ documentsRouter.delete('/:id', async (req, res, next) => {
   if (doc?.path) {
     await safeUnlinkFile(doc.path, 'document_deleted', { docId: doc.id });
   }
+
+  await purgeDocumentFromPython(doc.document_id).catch(() => {});
 
   return sendSuccess(
     res,

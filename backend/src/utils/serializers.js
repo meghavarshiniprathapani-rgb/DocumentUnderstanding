@@ -60,11 +60,29 @@ export function serializeElement(elem) {
       height: Number((y2 - y1).toFixed(2))
     };
   } else if (elem.bbox && typeof elem.bbox === 'object') {
+    const xVal = Number(elem.bbox.x ?? elem.bbox.x_min ?? elem.bbox.x0 ?? 0);
+    const yVal = Number(elem.bbox.y ?? elem.bbox.y_min ?? elem.bbox.y0 ?? 0);
+    const wVal = Number(
+      elem.bbox.width ??
+        (elem.bbox.x_max !== undefined
+          ? Number(elem.bbox.x_max) - xVal
+          : elem.bbox.x1 !== undefined
+            ? Number(elem.bbox.x1) - xVal
+            : 0)
+    );
+    const hVal = Number(
+      elem.bbox.height ??
+        (elem.bbox.y_max !== undefined
+          ? Number(elem.bbox.y_max) - yVal
+          : elem.bbox.y1 !== undefined
+            ? Number(elem.bbox.y1) - yVal
+            : 0)
+    );
     bbox = {
-      x: Number(elem.bbox.x || 0),
-      y: Number(elem.bbox.y || 0),
-      width: Number(elem.bbox.width || 0),
-      height: Number(elem.bbox.height || 0)
+      x: xVal,
+      y: yVal,
+      width: Math.max(0, Number.isFinite(wVal) ? Number(wVal.toFixed(2)) : 0),
+      height: Math.max(0, Number.isFinite(hVal) ? Number(hVal.toFixed(2)) : 0)
     };
   } else {
     bbox = { x: 0, y: 0, width: 0, height: 0 };

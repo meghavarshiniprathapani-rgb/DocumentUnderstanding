@@ -481,10 +481,13 @@ async function runUploadLifecycleTestSuite() {
     });
     fs.writeFileSync(runningDoc.path, validPdfBuffer);
 
-    const createdRunningJob = await jobRepository.createJob({
+    await jobRepository.createJob({
       doc_id: runningDoc.id,
-      mode: 'flat',
-      status: 'running'
+      mode: 'running_protect_mode',
+      status: 'queued'
+    });
+    const createdRunningJob = await jobRepository.claimJob('worker-del-running', {
+      mode: 'running_protect_mode'
     });
 
     const delRunningRes = await makeRequest(`/api/v1/documents/${runningDoc.document_id}`, {
@@ -971,6 +974,7 @@ async function runUploadLifecycleTestSuite() {
     assert.strictEqual(dbCheckJobE.status, 'failed');
     assert.strictEqual(dbCheckJobE.error, 'Document deleted before processing');
     assert.strictEqual(dbCheckJobE.locked_by, null);
+    assert.strictEqual(dbCheckJobE.claim_token, null);
     assert(!fs.existsSync(raceDocE.path));
     reportTest('SCENARIO 20.5: HTTP DELETE vs Lease Recovery Lock Ordering (Recovery First)', true, 'Recovery released job back to queued; DELETE proceeded without deadlock, canceled job, and purged document');
 

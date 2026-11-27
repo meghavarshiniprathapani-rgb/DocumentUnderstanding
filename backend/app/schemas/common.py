@@ -56,6 +56,7 @@ class HealthData(BaseModel):
     confidence_threshold: float
     max_upload_size_mb: int
     max_pages_per_document: int
+    instance_id: Optional[str] = Field(default=None, description="Unique process runtime instance identifier")
 
 
 class BoundingBox(BaseModel):

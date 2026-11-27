@@ -137,29 +137,28 @@ def build_pipeline_index(
         raw_elements = doc_data["elements"]
         pdf_path = doc_data["pdf_path"]
 
-        if pipeline_mode == "Naive_Ingestion":
-            # 1. Naive: no layout recovery, tables & formulas flattened to arbitrary character chunks
+        if pipeline_mode in ("flat", "Naive_Ingestion"):
             chunker = NaiveFlatChunker(chunk_size=320, chunk_overlap=50)
             chunks = chunker.chunk_elements(raw_elements, doc_id=doc_id, file_hash=None)
             all_chunks.extend(chunks)
 
-        elif pipeline_mode == "O2_Reference":
-            # 2. O2 Reference: Layout order recovery applied, tables whole, formulas preserved, no provenance/confidence
+        elif pipeline_mode in ("reference", "O2_Reference"):
             ordered_elements = layout_recovery.process(raw_elements)
             chunker = StructuredElementChunker(max_text_chunk_chars=450)
             chunks = chunker.chunk_elements(ordered_elements, doc_id=doc_id, file_hash=None)
             all_chunks.extend(chunks)
 
-        elif pipeline_mode == "O2_Plus_O3":
-            # 3. O2 + O3: Layout recovery + full O3 Provenance, SHA-256 hash, Platt confidence, and degraded routing
+        elif pipeline_mode in ("candidate", "candidate_ft", "O2_Plus_O3"):
             ordered_elements = layout_recovery.process(raw_elements)
+            strict_thresh = 0.90 if pipeline_mode == "candidate_ft" else 0.85
+            low_thresh = 0.80 if pipeline_mode == "candidate_ft" else 0.75
             subsystem = ProvenanceSubsystem(
                 config=ProvenanceConfig(
                     enabled=True,
                     provenance_tracking_enabled=True,
                     calibration_enabled=True,
-                    low_confidence_threshold=0.75,
-                    critical_scene_strict_threshold=0.85,
+                    low_confidence_threshold=low_thresh,
+                    critical_scene_strict_threshold=strict_thresh,
                 )
             )
             enriched_elements: List[EnrichedElement] = subsystem.process_elements(
@@ -171,8 +170,7 @@ def build_pipeline_index(
             chunks = chunker.chunk_elements(enriched_elements, doc_id=doc_id, file_hash=file_hash)
             all_chunks.extend(chunks)
 
-    # Initialize and populate FAISS index
-    use_conf = pipeline_mode == "O2_Plus_O3"
+    use_conf = pipeline_mode in ("candidate", "candidate_ft", "O2_Plus_O3")
     retriever = FaissRetriever(use_confidence_weighting=use_conf)
     retriever.index(all_chunks)
 
@@ -190,7 +188,7 @@ def run_downstream_retrieval_evaluation() -> Path:
     corpus = prepare_benchmark_corpus(repo_root)
     timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
-    pipelines = ["Naive_Ingestion", "O2_Reference", "O2_Plus_O3"]
+    pipelines = ["flat", "reference", "candidate", "candidate_ft"]
     evaluation_results: Dict[str, Any] = {
         "timestamp": timestamp_str,
         "benchmark": "downstream_retrieval_evaluation",

@@ -7,7 +7,7 @@
 
 import { MOCK_DOCUMENTS, MOCK_SEARCH_ITEMS } from '../mockData/documentsData';
 
-const DEFAULT_API_BASE_URL = 'http://localhost:8000/api/v1';
+const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
 
 export const getApiBaseUrl = () => {
   return localStorage.getItem('retrieva_api_url') || DEFAULT_API_BASE_URL;
@@ -136,6 +136,9 @@ export const api = {
         pagesCount: d.pages_count,
         status: d.status,
         parsingAccuracy: d.parsing_accuracy,
+        chunkCount: d.chunk_count ?? 0,
+        extractionStatus: d.extraction_status,
+        indexingStatus: d.indexing_status,
         metrics: {
           textBlocks: d.metrics?.text_blocks || 0,
           tables: d.metrics?.tables || 0,
@@ -147,8 +150,8 @@ export const api = {
         isDegraded: d.is_degraded
       }));
     } catch (err) {
-      console.warn("listDocuments error, using fallback mock documents:", err);
-      return MOCK_DOCUMENTS;
+      console.warn("listDocuments error:", err);
+      return [];
     }
   },
 
@@ -171,6 +174,9 @@ export const api = {
         pagesCount: d.pages_count,
         status: d.status,
         parsingAccuracy: d.parsing_accuracy,
+        chunkCount: d.chunk_count ?? 0,
+        extractionStatus: d.extraction_status,
+        indexingStatus: d.indexing_status,
         metrics: {
           textBlocks: d.metrics?.text_blocks || 0,
           tables: d.metrics?.tables || 0,
@@ -182,7 +188,7 @@ export const api = {
         isDegraded: d.is_degraded
       };
     } catch {
-      return MOCK_DOCUMENTS.find(d => d.id === docId) || MOCK_DOCUMENTS[0];
+      return null;
     }
   },
 
@@ -403,9 +409,8 @@ export const api = {
         degradedReasons: s.degraded_reasons || []
       }));
     } catch (err) {
-      console.warn(`getPageLayout error for ${docId} p${pageNumber}, using fallback mock:`, err);
-      const doc = MOCK_DOCUMENTS.find(d => d.id === docId) || MOCK_DOCUMENTS[0];
-      return doc.pages?.[0]?.segments || [];
+      console.warn(`getPageLayout error for ${docId} p${pageNumber}:`, err);
+      return [];
     }
   },
 
@@ -439,6 +444,7 @@ export const api = {
 
       return items.map(r => ({
         id: r.id,
+        elementId: r.provenance?.element_id || r.id,
         documentId: r.document_id,
         documentTitle: r.document_title,
         category: r.category,
@@ -459,8 +465,8 @@ export const api = {
         fallbackStrategy: r.fallback_strategy
       }));
     } catch (err) {
-      console.warn("Search API failed, using fallback mock search results:", err);
-      return MOCK_SEARCH_ITEMS;
+      console.warn("Search API failed:", err);
+      throw err;
     }
   },
 

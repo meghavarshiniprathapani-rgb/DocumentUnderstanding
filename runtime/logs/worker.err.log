@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-27T15:55:25.710Z","level":"ERROR","service":"Retrieva AI Worker","worker_id":null,"event":"worker_startup_error","error":"Invalid INTERNAL_API_SECRET=****** be configured and non-empty.","code":"ERR_WORKER_CONFIG"}

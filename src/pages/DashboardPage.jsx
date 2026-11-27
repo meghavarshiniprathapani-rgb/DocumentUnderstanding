@@ -49,9 +49,26 @@ export const DashboardPage = ({ setActiveTab, setSelectedDocId }) => {
   const totalDocs = analytics?.total_documents ?? documents.length;
   const totalPages = analytics?.total_pages ?? documents.reduce((acc, d) => acc + (d.pagesCount || d.pages_count || 1), 0);
   const totalChunks = analytics?.total_chunks ?? 0;
-  const accuracy = analytics?.average_parsing_accuracy 
-    ? (typeof analytics.average_parsing_accuracy === 'number' ? analytics.average_parsing_accuracy.toFixed(1) : analytics.average_parsing_accuracy) 
-    : '99.2';
+  const accuracy = analytics?.average_parsing_accuracy
+    ? (typeof analytics.average_parsing_accuracy === 'number' ? analytics.average_parsing_accuracy.toFixed(1) : analytics.average_parsing_accuracy)
+    : '0.0';
+
+  const getStatusBadge = (doc) => {
+    const raw = (doc?.status || '').toLowerCase();
+    if (doc?.isDegraded || raw === 'degraded') {
+      return { variant: 'warning', label: 'Degraded' };
+    }
+    if (raw === 'queued' || raw === 'processing') {
+      return { variant: 'info', label: raw === 'processing' ? 'Processing' : 'Queued' };
+    }
+    if (raw === 'failed') {
+      return { variant: 'warning', label: 'Failed' };
+    }
+    if (raw === 'ready' || raw === 'processed') {
+      return { variant: 'success', label: 'Ready' };
+    }
+    return { variant: 'default', label: doc?.status || 'Unknown' };
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
@@ -266,12 +283,14 @@ export const DashboardPage = ({ setActiveTab, setSelectedDocId }) => {
                     </td>
 
                     <td className="py-3.5 px-3">
-                      <Badge 
-                        variant={doc.isDegraded ? 'warning' : 'success'}
-                        size="sm"
-                      >
-                        {doc.isDegraded ? 'Degraded' : (doc.status || 'Processed')}
-                      </Badge>
+                      {(() => {
+                        const badge = getStatusBadge(doc);
+                        return (
+                          <Badge variant={badge.variant} size="sm">
+                            {badge.label}
+                          </Badge>
+                        );
+                      })()}
                     </td>
 
                     <td className="py-3.5 px-3 text-slate-500 font-mono text-[11px]">

@@ -206,50 +206,69 @@ A core engineering invariant of Retrieva AI is **absolute factual integrity**:
 
 ---
 
-## 7. Quickstart & Reproduction Guide
+## 7. Quickstart & Complete PowerShell Automation Guide
+
+Retrieva AI provides production-ready, one-command PowerShell 5.1 automation scripts in `scripts/`:
 
 ### Prerequisites
-- **Python**: 3.11, 3.12, or 3.13 (recommended 3.11.9)
-- **Node.js**: v18.0.0 or higher (v20+ recommended)
-- **Git**
+- **Operating System:** Windows 10 / 11 / Server (x64)
+- **PowerShell:** Windows PowerShell 5.1 or PowerShell Core 7+
+- **Python:** 3.11+ (installed in PATH)
+- **Node.js:** v18+ (installed in PATH)
+- **MySQL:** MySQL Server 8.0+ running on port 3306
 
-### 7.1 Clone and Setup in One Step
+---
+
+### 7.1 One-Command Automated Setup (`scripts\setup.ps1`)
+
+Verifies prerequisites, sets up the virtual environment (`.venv`), installs all Python and Node.js dependencies, verifies MySQL connectivity, executes database migrations, and compiles the production frontend:
 
 ```powershell
-# Clone the repository
-git clone https://github.com/Meghavarshini-Prathapani/DocumentUnderstanding.git
-cd DocumentUnderstanding
-
-# Initialize Python virtual environment and install backend + frontend dependencies
-.\make.cmd setup
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
 
-### 7.2 Run the Development Stack
+---
 
-In Terminal 1 (Backend FastAPI server):
+### 7.2 One-Command Stack Startup (`scripts\run.ps1`)
+
+Sequentially launches and health-checks all four stack tiers with detached processes, process tracking (`runtime/pids/pids.json`), and comprehensive log redirection:
+
 ```powershell
-.\make.cmd run-backend
-# Backend starts at: http://127.0.0.1:8000 (Docs at: http://127.0.0.1:8000/docs)
+powershell -ExecutionPolicy Bypass -File scripts\run.ps1
 ```
 
-In Terminal 2 (Frontend React Vite server):
+Once running, the stack provides the following live endpoints:
+- **Web Dashboard:** [http://127.0.0.1:5173](http://127.0.0.1:5173) (Interactive React UI)
+- **Express Orchestrator API:** [http://127.0.0.1:3001/api/v1/health](http://127.0.0.1:3001/api/v1/health)
+- **FastAPI Engine & Interactive Swagger Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Live Logs:** `D:\DocumentUnderstanding\runtime\logs\` (`fastapi.log`, `express.log`, `worker.log`, `frontend.log`)
+
+---
+
+### 7.3 One-Command Graceful Shutdown (`scripts\stop.ps1`)
+
+Reads tracked PIDs, terminates child processes cleanly, verifies port release (5173, 3001, 8000), and removes PID files:
+
 ```powershell
-.\make.cmd run-frontend
-# Frontend starts at: http://127.0.0.1:5173
+powershell -ExecutionPolicy Bypass -File scripts\stop.ps1
 ```
 
-### 7.3 Run All Automated Tests
+---
+
+### 7.4 Running Automated Verification Suites
 
 ```powershell
-# Runs full pytest backend suite (97 tests) and validates frontend production build
-.\make.cmd test
-```
+# 1. Run Python unit & hybrid retrieval test suite
+.\.venv\Scripts\python.exe -m pytest tests/test_retrieval.py tests/test_m168_bm25_rrf.py -v
 
-### 7.4 Run the Frozen Acceptance Benchmark
+# 2. Run Node.js worker recovery hardening suite
+node backend/src/tests/test_recovery_hardening.js
 
-```powershell
-# Executes the certified acceptance evaluation harness across all 6 KPIs and NT1-NT5
-.\make.cmd accept
+# 3. Run End-to-End upload-to-search integration suite
+node backend/src/tests/test_e2e_upload_to_search.js
+
+# 4. Run Downstream Retrieval Evaluation across the 4 Experiment Modes
+.\.venv\Scripts\python.exe -m eval.run_retrieval_eval
 ```
 
 ---
@@ -273,6 +292,21 @@ All metrics below are measured on the **frozen independent acceptance partition*
 - **Inter-Rater Reliability**: $\kappa_w = \mathbf{1.0000}$ (Quadratically weighted Cohen's Kappa).
 
 *Full Certified Acceptance Report:* [docs/acceptance_report.md](docs/acceptance_report.md)
+
+### 8.1 Four Experiment Modes Comparison (14 Development Retrieval Queries)
+
+Retrieva AI formally benchmarks four architectural experiment modes across the standardized 14-question development corpus (`data/questions.yaml`):
+
+| Experiment Mode | Reading-Order Recovery | Table & Formula Preservation | O3 Provenance & Calibrated Conf. | Hit@1 | Hit@3 | MRR | Answer Grounding | KPI-3 Score (0-100) | Cohen's Kappa ($\kappa_w$) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`flat`** | No (Naive stream) | No (Arbitrary character windows) | No | 0.643 | 0.714 | 0.679 | 0.643 | 41.1 / 100 | 0.714 |
+| **`reference`** | Yes (O2 topological) | Yes (Whole tables & LaTeX) | No | **1.000** | **1.000** | **1.000** | **1.000** | 73.6 / 100 | -0.105 |
+| **`candidate`** | Yes (O2 topological) | Yes (Whole tables & LaTeX) | Yes (SHA-256 + Platt calibration) | **1.000** | **1.000** | **1.000** | **1.000** | **95.0 / 100** | **1.000** |
+| **`candidate_ft`**| Yes (O2 topological) | Yes (Whole tables & LaTeX) | Yes (Strict routing thresholds) | **1.000** | **1.000** | **1.000** | **1.000** | **95.0 / 100** | **1.000** |
+
+**Empirical Takeaways:**
+1. **Layout & Table/Formula Structure (`reference` vs `flat`):** Slicing text into naive character windows fragments tabular data and LaTeX math, dropping Hit@1 to 64.3%. Preserving tables and equations intact achieves **100.0% Hit@1** and **1.000 MRR**.
+2. **Provenance & Calibrated Confidence (`candidate` vs `reference`):** Attaching SHA-256 cryptographic lineage and Platt-calibrated multi-signal confidence scores boosts synthesis groundedness (KPI-3) from 73.6 to **95.0 / 100** while guaranteeing perfect quadratic inter-rater agreement ($\kappa_w = 1.000$).
 
 ---
 

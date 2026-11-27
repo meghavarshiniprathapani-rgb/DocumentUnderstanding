@@ -1,6 +1,7 @@
 import { app } from './app.js';
 import { config } from './config.js';
 import { closePool } from './db/pool.js';
+import { ensurePythonRecovered } from './services/recoveryService.js';
 
 let server = null;
 let isShuttingDown = false;
@@ -19,6 +20,9 @@ export async function startServer(port = config.port, host = config.host) {
           timestamp: new Date().toISOString()
         };
         console.log(JSON.stringify(startupLog));
+        if (process.env.NODE_ENV !== 'test') {
+          ensurePythonRecovered().catch(() => {});
+        }
         resolve(server);
       });
       server.on('error', (err) => {

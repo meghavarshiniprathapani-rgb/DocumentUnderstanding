@@ -72,6 +72,10 @@ class Settings(BaseSettings):
         default="data/uploads",
         description="Configured directory where uploaded PDF files reside",
     )
+    express_service_url: str = Field(
+        default="http://127.0.0.1:3001",
+        description="Express orchestrator URL used on startup to recover persisted MySQL elements",
+    )
 
     @field_validator("config_version")
     @classmethod

@@ -39,4 +39,12 @@ export const config = {
   pythonServiceRequired: process.env.PYTHON_SERVICE_REQUIRED === 'true'
 };
 
+Object.defineProperty(config, 'internalApiSecret', {
+  get() {
+    return (process.env.INTERNAL_API_SECRET || 'retrieva-internal-secret-change-me').trim();
+  },
+  enumerable: false,
+  configurable: true,
+});
+
 export default config;

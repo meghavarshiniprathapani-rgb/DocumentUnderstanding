@@ -233,6 +233,26 @@ export async function detectPartialSchema(conn, version) {
     return { isPartial: false, diagnostic: null };
   }
 
+  if (version === '006') {
+    const [cols] = await conn.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs'`
+    );
+    const colNames = new Set(cols.map((r) => r.COLUMN_NAME));
+    const v6Features = [
+      { name: 'jobs.claim_token', exists: colNames.has('claim_token') },
+      { name: 'jobs.lease_generation', exists: colNames.has('lease_generation') },
+    ];
+    const present = v6Features.filter((f) => f.exists).map((f) => f.name);
+    const missing = v6Features.filter((f) => !f.exists).map((f) => f.name);
+    if (present.length > 0 && missing.length > 0) {
+      return {
+        isPartial: true,
+        diagnostic: `Partial v006 schema detected on jobs:\n    Present features: ${present.join(', ')}\n    Missing features: ${missing.join(', ')}`,
+      };
+    }
+    return { isPartial: false, diagnostic: null };
+  }
+
   return { isPartial: false, diagnostic: null };
 }
 
@@ -242,13 +262,14 @@ export async function verifySchema(conn, options = {}) {
     const [history] = await conn.query(
       `SELECT version FROM _migrations ORDER BY id DESC LIMIT 1`
     );
-    targetVersion = history.length > 0 ? history[0].version : '005';
+    targetVersion = history.length > 0 ? history[0].version : '006';
   }
 
   const isV2 = targetVersion === '002' || targetVersion >= '002';
   const isV3 = targetVersion === '003' || targetVersion >= '003';
   const isV4 = targetVersion === '004' || targetVersion >= '004';
   const isV5 = targetVersion === '005' || targetVersion >= '005';
+  const isV6 = targetVersion === '006' || targetVersion >= '006';
 
   const [tables] = await conn.query(
     `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()`
@@ -391,6 +412,17 @@ export async function verifySchema(conn, options = {}) {
     if (jobStatusCol?.COLUMN_TYPE !== "enum('queued','running','done','degraded','failed')") {
       throw new PostMigrationVerificationError(
         `Job status enum mismatch on 'jobs.status': got '${jobStatusCol?.COLUMN_TYPE}'.`
+      );
+    }
+  }
+
+  if (isV6) {
+    assertColumn('jobs', 'claim_token', 'char(36)', true);
+    assertColumn('jobs', 'lease_generation', 'int', false);
+    const leaseGenCol = colMap.get('jobs.lease_generation');
+    if (String(leaseGenCol?.COLUMN_DEFAULT) !== '0') {
+      throw new PostMigrationVerificationError(
+        `Default mismatch on 'jobs.lease_generation': expected '0', got '${leaseGenCol?.COLUMN_DEFAULT}'.`
       );
     }
   }
