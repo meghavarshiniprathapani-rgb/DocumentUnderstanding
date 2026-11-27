@@ -163,11 +163,14 @@ class StructuredElementChunker(BaseChunker):
         current_page = 1
         current_prov = None
         current_cal_conf = None
+        current_raw_confs: List[float] = []
+        current_cal_confs: List[float] = []
+        current_degraded_reasons: List[str] = []
         current_is_degraded = False
 
         def flush_text_group() -> None:
             nonlocal chunk_counter, current_text_group, current_elem_ids, current_bboxes
-            nonlocal current_page, current_prov, current_cal_conf, current_is_degraded
+            nonlocal current_page, current_prov, current_cal_conf, current_raw_confs, current_cal_confs, current_degraded_reasons, current_is_degraded
 
             if not current_text_group:
                 return
@@ -175,6 +178,14 @@ class StructuredElementChunker(BaseChunker):
             joined_text = "\n\n".join(current_text_group).strip()
             if joined_text:
                 union_box = self._union_bboxes(current_bboxes)
+                min_raw_conf = min(current_raw_confs) if current_raw_confs else 1.0
+                min_cal_conf = min(current_cal_confs) if current_cal_confs else current_cal_conf
+                chunk_meta: dict[str, Any] = {
+                    "strategy": "structured_reading_order_grouping",
+                    "element_count": len(current_elem_ids),
+                }
+                if current_degraded_reasons:
+                    chunk_meta["degraded_reasons"] = list(current_degraded_reasons)
                 chunks.append(
                     Chunk(
                         chunk_id=f"{doc_id}_struct_chunk_{chunk_counter}",
@@ -186,13 +197,10 @@ class StructuredElementChunker(BaseChunker):
                         bbox=union_box,
                         element_ids=list(current_elem_ids),
                         provenance=current_prov,
-                        calibrated_confidence=current_cal_conf,
-                        raw_confidence=1.0,
+                        calibrated_confidence=min_cal_conf,
+                        raw_confidence=min_raw_conf,
                         is_degraded=current_is_degraded,
-                        metadata={
-                            "strategy": "structured_reading_order_grouping",
-                            "element_count": len(current_elem_ids),
-                        },
+                        metadata=chunk_meta,
                     )
                 )
                 chunk_counter += 1
@@ -200,6 +208,11 @@ class StructuredElementChunker(BaseChunker):
             current_text_group = []
             current_elem_ids = []
             current_bboxes = []
+            current_prov = None
+            current_cal_conf = None
+            current_raw_confs = []
+            current_cal_confs = []
+            current_degraded_reasons = []
             current_is_degraded = False
 
         for item in elements:
@@ -208,6 +221,11 @@ class StructuredElementChunker(BaseChunker):
             prov = item.provenance if is_enriched else None
             cal_conf = item.calibrated_confidence if is_enriched else None
             is_deg = bool(item.routing.is_degraded) if (is_enriched and item.routing) else False
+            elem_reasons = (
+                [str(r) for r in item.routing.reasons if r]
+                if (is_enriched and item.routing and getattr(item.routing, "reasons", None))
+                else []
+            )
 
             elem_id = str(elem.metadata.get("id", f"elem_{elem.reading_order}"))
 
@@ -227,6 +245,13 @@ class StructuredElementChunker(BaseChunker):
                     content_parts.append(table_md)
                 table_text = "\n\n".join(content_parts)
 
+                tbl_meta: dict[str, Any] = {
+                    "strategy": "atomic_table_preservation",
+                    "num_cells": len(elem.table_cells) if elem.table_cells else 0,
+                }
+                if elem_reasons:
+                    tbl_meta["degraded_reasons"] = list(elem_reasons)
+
                 chunks.append(
                     Chunk(
                         chunk_id=f"{doc_id}_struct_table_{chunk_counter}",
@@ -241,10 +266,7 @@ class StructuredElementChunker(BaseChunker):
                         calibrated_confidence=cal_conf,
                         raw_confidence=elem.raw_confidence,
                         is_degraded=is_deg,
-                        metadata={
-                            "strategy": "atomic_table_preservation",
-                            "num_cells": len(elem.table_cells) if elem.table_cells else 0,
-                        },
+                        metadata=tbl_meta,
                     )
                 )
                 chunk_counter += 1
@@ -260,6 +282,13 @@ class StructuredElementChunker(BaseChunker):
                 elif elem.text:
                     formula_str = f"$$\n{elem.text}\n$$"
 
+                frm_meta: dict[str, Any] = {
+                    "strategy": "atomic_formula_preservation",
+                    "has_latex": bool(elem.formula_data and elem.formula_data.latex),
+                }
+                if elem_reasons:
+                    frm_meta["degraded_reasons"] = list(elem_reasons)
+
                 chunks.append(
                     Chunk(
                         chunk_id=f"{doc_id}_struct_formula_{chunk_counter}",
@@ -274,32 +303,33 @@ class StructuredElementChunker(BaseChunker):
                         calibrated_confidence=cal_conf,
                         raw_confidence=elem.raw_confidence,
                         is_degraded=is_deg,
-                        metadata={
-                            "strategy": "atomic_formula_preservation",
-                            "has_latex": bool(elem.formula_data and elem.formula_data.latex),
-                        },
+                        metadata=frm_meta,
                     )
                 )
                 chunk_counter += 1
                 continue
 
             # CASE 3: Text or Heading
+            text_content = elem.text.strip()
+            if not text_content:
+                continue
+
+            group_len = sum(len(t) for t in current_text_group)
+            if group_len + len(text_content) > self.max_text_chunk_chars:
+                flush_text_group()
+
             current_page = elem.page
             if prov:
                 current_prov = prov
             if cal_conf is not None:
                 current_cal_conf = cal_conf
+                current_cal_confs.append(float(cal_conf))
+            current_raw_confs.append(float(getattr(elem, "raw_confidence", 1.0)))
             if is_deg:
                 current_is_degraded = True
-
-            text_content = elem.text.strip()
-            if not text_content:
-                continue
-
-            # Check if adding this exceeds max_text_chunk_chars
-            group_len = sum(len(t) for t in current_text_group)
-            if group_len + len(text_content) > self.max_text_chunk_chars:
-                flush_text_group()
+            for r in elem_reasons:
+                if r not in current_degraded_reasons:
+                    current_degraded_reasons.append(r)
 
             current_text_group.append(text_content)
             current_elem_ids.append(elem_id)

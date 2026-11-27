@@ -23,7 +23,7 @@ def list_documents(
     doc_service: DocumentService = Depends(get_document_service),
 ) -> BaseResponse[List[DocumentSummary]]:
     """Returns all real indexed documents currently registered in the repository."""
-    docs = list(doc_service.documents.values())
+    docs = doc_service.list_documents()
     return BaseResponse[List[DocumentSummary]](
         status="success",
         message=f"Retrieved {len(docs)} repository documents",
@@ -69,14 +69,15 @@ def get_document(
     doc_service: DocumentService = Depends(get_document_service),
 ) -> BaseResponse[DocumentSummary]:
     """Fetches metadata for a specific document by its ID."""
-    if document_id not in doc_service.documents:
+    summary = doc_service.get_document_summary(document_id)
+    if summary is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Document with ID '{document_id}' not found",
         )
     return BaseResponse[DocumentSummary](
         status="success",
-        data=doc_service.documents[document_id],
+        data=summary,
     )
 
 

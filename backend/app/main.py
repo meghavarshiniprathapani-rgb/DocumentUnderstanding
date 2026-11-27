@@ -6,11 +6,12 @@ request timing, structured logging, and real extraction/retrieval routes.
 
 import json
 import logging
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Dict
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,14 +36,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle management."""
     settings = get_settings()
     doc_service = get_document_service()
+    express_url = (os.getenv("EXPRESS_SERVICE_URL") or settings.express_service_url or "").strip()
+    recovery_summary: Dict[str, Any] = {"synced": False, "recovered_count": 0}
+    if express_url and (os.getenv("EXPRESS_SERVICE_URL") is not None or "PYTEST_CURRENT_TEST" not in os.environ):
+        recovery_summary = doc_service.sync_from_express_recovery(
+            express_url=express_url,
+            internal_secret=os.getenv("INTERNAL_API_SECRET") or settings.internal_api_secret,
+            force=True,
+        )
+    health_snapshot = doc_service.get_health_metrics()
     startup_log = {
         "event": "startup",
         "service": settings.app_name,
         "config_version": settings.config_version,
         "config_id": settings.config_id,
         "environment": settings.environment,
-        "indexed_chunks": len(doc_service.all_chunks),
-        "documents_count": len(doc_service.documents),
+        "instance_id": health_snapshot.instance_id,
+        "indexed_chunks": health_snapshot.index_size,
+        "documents_count": health_snapshot.documents_count,
+        "degraded_mode_active": health_snapshot.degraded_mode_active,
+        "recovered_from_mysql": recovery_summary.get("recovered_count", 0),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     logger.info(json.dumps(startup_log))

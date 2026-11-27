@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -8,6 +9,10 @@ class InternalExtractRequest(BaseModel):
     mode: Literal["flat", "reference", "candidate", "candidate_ft"] = Field(
         default="flat",
         description="Extraction mode arm",
+    )
+    skip_indexing: bool = Field(
+        default=False,
+        description="Defer vector indexing when worker persists elements first",
     )
 
     @field_validator("document_id")
@@ -48,3 +53,62 @@ class InternalExtractResponse(BaseModel):
     indexing_status: str
     indexing_diagnostics: Optional[Dict[str, Any]] = None
     fallback: Optional[Dict[str, Any]] = None
+
+
+class PersistedElementIndexItem(BaseModel):
+    page: int
+    type: str
+    reading_order: int
+    text: str
+    bbox: Any = None
+    structured: Optional[Dict[str, Any]] = None
+    confidence: float = 1.0
+    provenance: Optional[Dict[str, Any]] = None
+    flags: Optional[Any] = None
+    model_version: Optional[str] = None
+
+
+class InternalIndexRequest(BaseModel):
+    document_id: str
+    file_hash: str
+    filename: Optional[str] = None
+    mode: Literal["flat", "reference", "candidate", "candidate_ft"] = "flat"
+    is_degraded: bool = False
+    page_count: int = 1
+    elements: List[PersistedElementIndexItem]
+    job_id: Optional[int] = None
+    worker_id: Optional[str] = None
+    claim_token: Optional[str] = None
+    lease_generation: Optional[int] = None
+    is_recovery: bool = False
+    extraction_warnings: List[str] = Field(default_factory=list)
+
+    @field_validator("document_id")
+    @classmethod
+    def validate_index_document_id(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            raise ValueError("document_id cannot be empty")
+        return s
+
+    @field_validator("file_hash")
+    @classmethod
+    def validate_index_file_hash(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            raise ValueError("file_hash cannot be empty")
+        return s
+
+
+class InternalIndexResponse(BaseModel):
+    document_id: str
+    mode: str
+    indexing_status: str
+    indexing_diagnostics: Dict[str, Any]
+    chunk_count: int
+    searchable: bool
+    processing_time_ms: float
+
+
+class InternalPurgeRequest(BaseModel):
+    document_ids: List[str] = Field(default_factory=list)

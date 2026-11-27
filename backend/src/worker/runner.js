@@ -96,6 +96,7 @@ export class WorkerRunner {
       this.jobHandler = createExtractionJobHandler({
         documentRepository: this.documentRepository,
         elementRepository: this.elementRepository || undefined,
+        jobRepository: this.repository,
         pythonClient: this.pythonClient,
         secrets: this.secrets,
       });

@@ -8,19 +8,22 @@ Integrates:
 - Pre-indexes baseline development documents on startup.
 """
 
-from collections import defaultdict
-from copy import deepcopy
 import hashlib
 import json
+import os
 import re
+import threading
 import time
 import tracemalloc
 import uuid
+from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pymupdf as fitz
+import requests
 from fastapi import HTTPException, status
 
 from backend.app.config import get_settings
@@ -39,12 +42,20 @@ from backend.app.schemas.common import (
 from backend.app.schemas.internal import (
     ExtractedElementSchema,
     InternalExtractResponse,
+    InternalIndexResponse,
+    PersistedElementIndexItem,
 )
 from backend.extractors import PdfPlumberExtractor
-from backend.extractors.base import BoundingBox as ExtractorBoundingBox, Element, ElementType, FormulaData, TableCell
+from backend.extractors.base import BoundingBox as ExtractorBoundingBox
+from backend.extractors.base import Element, ElementType, FormulaData, TableCell
 from backend.layout import LayoutOrderRecovery
 from backend.provenance import ProvenanceConfig, ProvenanceSubsystem
-from backend.provenance.schema import EnrichedElement
+from backend.provenance.schema import (
+    ConfidenceSignals,
+    DegradedRoutingRecord,
+    EnrichedElement,
+    ProvenanceRecord,
+)
 from backend.retrieval import (
     Chunk,
     FaissRetriever,
@@ -57,6 +68,7 @@ class DocumentService:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.instance_id = uuid.uuid4().hex
         self.repo_root = Path(__file__).resolve().parent.parent.parent.parent
         self.start_time = time.time()
         self.total_requests = 0
@@ -77,6 +89,18 @@ class DocumentService:
         self.chunker = StructuredElementChunker(max_text_chunk_chars=450)
         self.retriever = FaissRetriever(use_confidence_weighting=True)
 
+        self._state_lock = threading.RLock()
+        self._recovery_cond = threading.Condition()
+        self._recovery_in_flight: bool = False
+        self._recovery_force_pending: bool = False
+        self._recovery_epoch: int = 0
+        self._last_recovery_summary: Dict[str, Any] = {"synced": False, "recovered_count": 0}
+        self._baseline_doc_ids: Set[str] = set()
+        self._baseline_degraded: bool = False
+        self._indexed_versions: Dict[str, Tuple[int, int]] = {}
+        self._doc_seq: Dict[str, int] = {}
+        self._mutation_seq: int = 0
+
         self.documents: Dict[str, DocumentSummary] = {}
         self.page_segments: Dict[str, Dict[int, List[SegmentSchema]]] = {}
         self.all_chunks: List[Chunk] = []
@@ -85,21 +109,46 @@ class DocumentService:
 
         self._initialize_baseline_repository()
 
+    def _recompute_degraded_mode_locked(self) -> None:
+        doc_degraded = any(d.is_degraded for d in self.documents.values())
+        chunk_degraded = any(c.is_degraded for c in self.all_chunks)
+        self.degraded_mode_active = bool(self._baseline_degraded or doc_degraded or chunk_degraded)
+
+    def _record_doc_mutation_locked(self, document_id: str) -> None:
+        self._mutation_seq += 1
+        self._doc_seq[document_id] = self._mutation_seq
+
+    def list_documents(self) -> List[DocumentSummary]:
+        with self._state_lock:
+            return list(self.documents.values())
+
+    def get_document_summary(self, document_id: str) -> Optional[DocumentSummary]:
+        with self._state_lock:
+            return self.documents.get(document_id)
+
     def record_error(self, message: str, endpoint: str) -> None:
         """Record diagnostic details of the most recent error."""
-        self.last_error = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "message": message,
-            "endpoint": endpoint,
-        }
+        with self._state_lock:
+            self.last_error = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "message": message,
+                "endpoint": endpoint,
+            }
 
     def _initialize_baseline_repository(self) -> None:
         """Pre-indexes frozen development documents from ground truth annotations and PDFs."""
         gt_dir = self.repo_root / "data" / "benchmarks" / "ground_truth"
         if not gt_dir.exists():
+            with self._state_lock:
+                self._baseline_degraded = False
+                self._recompute_degraded_mode_locked()
             return
 
         baseline_has_degradation = False
+        baseline_chunks: List[Chunk] = []
+        baseline_ids: Set[str] = set()
+        baseline_docs: Dict[str, DocumentSummary] = {}
+        baseline_segments: Dict[str, Dict[int, List[SegmentSchema]]] = {}
 
         for gt_file in sorted(gt_dir.glob("*.json")):
             try:
@@ -116,12 +165,12 @@ class DocumentService:
                     pdf_path=pdf_path if pdf_path.exists() else Path(f"{doc_id}.pdf"),
                 )
 
-                self._apply_degraded_mode_checks(enriched_elements)
+                self._apply_degraded_mode_checks(enriched_elements, activate_global_flag=False)
                 if any(e.routing and e.routing.is_degraded for e in enriched_elements):
                     baseline_has_degradation = True
 
                 segments = self._elements_to_segments(enriched_elements, page_no)
-                self.page_segments.setdefault(doc_id, {})[page_no] = segments
+                baseline_segments.setdefault(doc_id, {})[page_no] = segments
 
                 file_hash = (
                     enriched_elements[0].provenance.source_file_hash
@@ -129,7 +178,8 @@ class DocumentService:
                     else None
                 )
                 chunks = self.chunker.chunk_elements(enriched_elements, doc_id=doc_id, file_hash=file_hash)
-                self.all_chunks.extend(chunks)
+                baseline_chunks.extend(chunks)
+                baseline_ids.add(doc_id)
 
                 category = self._infer_category(doc_id)
                 text_count = sum(1 for e in elements if e.type in (ElementType.TEXT, ElementType.HEADING))
@@ -137,7 +187,7 @@ class DocumentService:
                 figure_count = sum(1 for e in elements if e.type == ElementType.FIGURE)
                 heading_count = sum(1 for e in elements if e.type == ElementType.HEADING)
 
-                self.documents[doc_id] = DocumentSummary(
+                baseline_docs[doc_id] = DocumentSummary(
                     document_id=doc_id,
                     title=f"{doc_id.upper()}_{category.replace(' ', '_')}.pdf",
                     category=category,
@@ -163,79 +213,28 @@ class DocumentService:
                 self.record_error(f"Failed to initialize baseline doc from {gt_file.name}: {e}", "startup")
                 baseline_has_degradation = True
 
-        upload_dir = self.repo_root / "data" / "uploads"
-        if upload_dir.exists():
-            for up_file in sorted(upload_dir.glob("doc-*.pdf")):
-                try:
-                    parts = up_file.stem.split("_", 1)
-                    if len(parts) >= 2 and parts[0].startswith("doc-"):
-                        try:
-                            doc_num = int(parts[0].split("-")[1])
-                            if doc_num < 100:
-                                continue
-                        except (ValueError, IndexError):
-                            continue
-                        up_doc_id = parts[0]
-                        orig_filename = parts[1] + up_file.suffix
-                        if up_doc_id in self.documents:
-                            continue
-                        up_bytes = up_file.read_bytes()
-                        raw_elems = self.extractor.extract(up_file)
-                        ord_elems = self.layout_recovery.process(raw_elems)
-                        enr_elems = self.provenance_subsystem.process_elements(ord_elems, up_file)
-                        self._apply_degraded_mode_checks(enr_elems)
-                        doc_fitz = fitz.open(stream=up_bytes, filetype="pdf")
-                        tot_pages = max(1, len(doc_fitz))
-                        doc_fitz.close()
-                        pgs_dict: Dict[int, List[SegmentSchema]] = {}
-                        for p in range(1, tot_pages + 1):
-                            p_elems = [e for e in enr_elems if e.element.page == p]
-                            pgs_dict[p] = self._elements_to_segments(p_elems, p)
-                        self.page_segments[up_doc_id] = pgs_dict
-                        file_h = hashlib.sha256(up_bytes).hexdigest()
-                        c_chunks = self.chunker.chunk_elements(enr_elems, doc_id=up_doc_id, file_hash=file_h)
-                        self.all_chunks.extend(c_chunks)
-                        t_count = sum(1 for e in enr_elems if e.element.type in (ElementType.TEXT, ElementType.HEADING))
-                        tab_count = sum(1 for e in enr_elems if e.element.type == ElementType.TABLE)
-                        fig_count = sum(1 for e in enr_elems if e.element.type == ElementType.FIGURE)
-                        h_count = sum(1 for e in enr_elems if e.element.type == ElementType.HEADING)
-                        is_deg = any(e.routing and e.routing.is_degraded for e in enr_elems)
-                        sz_str = f"{len(up_bytes) / 1024:.1f} KB" if len(up_bytes) < 1024 * 1024 else f"{len(up_bytes) / (1024 * 1024):.2f} MB"
-                        self.documents[up_doc_id] = DocumentSummary(
-                            document_id=up_doc_id,
-                            title=orig_filename,
-                            category="User Upload",
-                            file_size=sz_str,
-                            pages_count=tot_pages,
-                            status="Processed (Degraded)" if is_deg else "Processed",
-                            parsing_accuracy=94.5 if is_deg else 99.2,
-                            metrics=DocumentMetrics(
-                                text_blocks=t_count,
-                                tables=tab_count,
-                                figures=fig_count,
-                                headings=h_count,
-                            ),
-                            uploaded_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                            file_hash=file_h,
-                            is_degraded=is_deg,
-                            extraction_status="Completed",
-                            indexing_status="Indexed",
-                            chunk_count=len(c_chunks),
-                            config_version=self.settings.config_version,
-                        )
-                        self.document_paths[up_doc_id] = up_file
-                except Exception as ex:
-                    self.record_error(f"Failed to index upload {up_file.name}: {ex}", "startup_uploads")
+        with self._state_lock:
+            prior_baseline = self._baseline_doc_ids | baseline_ids
+            non_baseline_chunks = [c for c in self.all_chunks if c.source_doc_id not in prior_baseline]
+            merged_chunks = baseline_chunks + non_baseline_chunks
 
-        try:
-            self.retriever.index(self.all_chunks)
-        except Exception as ex:
-            self.record_error(f"Failed to index baseline repository: {ex}", "startup_index")
-            baseline_has_degradation = True
+            for b_id, seg_map in baseline_segments.items():
+                self.page_segments.setdefault(b_id, {}).update(seg_map)
+            for b_id, summary in baseline_docs.items():
+                self.documents[b_id] = summary
+            self._baseline_doc_ids = baseline_ids
 
-        self.degraded_mode_active = baseline_has_degradation
-        if not baseline_has_degradation and self.last_error and self.last_error.get("endpoint") in ("startup", "startup_uploads", "startup_index"):
-            self.last_error = None
+            try:
+                self.retriever.index(merged_chunks)
+                self.all_chunks = merged_chunks
+            except Exception as ex:
+                self.record_error(f"Failed to index baseline repository: {ex}", "startup_index")
+                baseline_has_degradation = True
+
+            self._baseline_degraded = baseline_has_degradation
+            self._recompute_degraded_mode_locked()
+            if not self.degraded_mode_active and self.last_error and self.last_error.get("endpoint") in ("startup", "startup_index"):
+                self.last_error = None
 
     def _parse_ground_truth_to_elements(self, data: Dict[str, Any], page_no: int) -> List[Element]:
         """Convert benchmark JSON data to Element models."""
@@ -418,9 +417,10 @@ class DocumentService:
             temp_doc.close()
 
         file_hash = hashlib.sha256(file_bytes).hexdigest()
-        for existing_doc in self.documents.values():
-            if existing_doc.file_hash == file_hash:
-                return existing_doc
+        with self._state_lock:
+            for existing_doc in self.documents.values():
+                if existing_doc.file_hash == file_hash:
+                    return existing_doc
 
         try:
             doc_fitz = fitz.open(stream=file_bytes, filetype="pdf")
@@ -443,44 +443,41 @@ class DocumentService:
                 detail=f"Document exceeds maximum allowed limit of {self.settings.max_pages_per_document} pages (found {total_pages}).",
             )
 
-        existing_nums = [100]
-        for doc_key in self.documents.keys():
-            if doc_key.startswith("doc-"):
-                try:
-                    num = int(doc_key.split("-")[1])
-                    if num >= 100:
-                        existing_nums.append(num)
-                except (ValueError, IndexError):
-                    pass
-        next_num = max(existing_nums) + 1
-        new_doc_id = f"doc-{next_num:03d}"
-        while new_doc_id in self.documents:
-            next_num += 1
+        with self._state_lock:
+            existing_nums = [100]
+            for doc_key in self.documents.keys():
+                if doc_key.startswith("doc-"):
+                    try:
+                        num = int(doc_key.split("-")[1])
+                        if num >= 100:
+                            existing_nums.append(num)
+                    except (ValueError, IndexError):
+                        pass
+            next_num = max(existing_nums) + 1
             new_doc_id = f"doc-{next_num:03d}"
+            while new_doc_id in self.documents:
+                next_num += 1
+                new_doc_id = f"doc-{next_num:03d}"
 
-        upload_dir = self.repo_root / "data" / "uploads"
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        saved_path = upload_dir / f"{new_doc_id}_{filename}"
-        saved_path.write_bytes(file_bytes)
-        self.document_paths[new_doc_id] = saved_path
+            upload_dir = self.repo_root / "data" / "uploads"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            saved_path = upload_dir / f"{new_doc_id}_{filename}"
+            saved_path.write_bytes(file_bytes)
+            self.document_paths[new_doc_id] = saved_path
 
         try:
             raw_elements = self.extractor.extract(saved_path)
             ordered_elements = self.layout_recovery.process(raw_elements)
             enriched_elements = self.provenance_subsystem.process_elements(ordered_elements, saved_path)
 
-            self._apply_degraded_mode_checks(enriched_elements)
+            self._apply_degraded_mode_checks(enriched_elements, activate_global_flag=False)
 
             pages_dict: Dict[int, List[SegmentSchema]] = {}
             for p in range(1, total_pages + 1):
                 p_elems = [e for e in enriched_elements if e.element.page == p]
                 pages_dict[p] = self._elements_to_segments(p_elems, p)
 
-            self.page_segments[new_doc_id] = pages_dict
-
             new_chunks = self.chunker.chunk_elements(enriched_elements, doc_id=new_doc_id, file_hash=file_hash)
-            self.all_chunks.extend(new_chunks)
-            self.retriever.index(self.all_chunks)
 
             text_count = sum(1 for e in enriched_elements if e.element.type in (ElementType.TEXT, ElementType.HEADING))
             table_count = sum(1 for e in enriched_elements if e.element.type == ElementType.TABLE)
@@ -517,10 +514,20 @@ class DocumentService:
                 config_version=self.settings.config_version,
             )
 
-            self.documents[new_doc_id] = summary
+            with self._state_lock:
+                updated_chunks = [c for c in self.all_chunks if c.source_doc_id != new_doc_id]
+                updated_chunks.extend(new_chunks)
+                self.retriever.index(updated_chunks)
+                self.all_chunks = updated_chunks
+                self.page_segments[new_doc_id] = pages_dict
+                self.documents[new_doc_id] = summary
+                self._record_doc_mutation_locked(new_doc_id)
+                self._recompute_degraded_mode_locked()
             return summary
 
         except Exception as e:
+            with self._state_lock:
+                self.document_paths.pop(new_doc_id, None)
             self.record_error(f"Extraction failure on {filename}: {e}", "/api/v1/documents/upload")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -607,6 +614,7 @@ class DocumentService:
         document_id: str,
         file_path: Path,
         mode: str = "flat",
+        skip_indexing: bool = False,
     ) -> InternalExtractResponse:
         self.total_requests += 1
 
@@ -706,7 +714,7 @@ class DocumentService:
                     extractor_name=active_extractor.name,
                     extractor_version=active_extractor.version,
                 )
-                self._apply_degraded_mode_checks(enriched_elements)
+                self._apply_degraded_mode_checks(enriched_elements, activate_global_flag=False)
         except Exception as e:
             self.record_error(f"Layout or provenance failure on {document_id}: {e}", "/api/v1/internal/extract")
             raise HTTPException(
@@ -723,59 +731,9 @@ class DocumentService:
             p_elems = [e for e in enriched_elements if e.element.page == p]
             pages_dict[p] = self._elements_to_segments(p_elems, p)
 
-        self.page_segments[document_id] = pages_dict
-        self.document_paths[document_id] = file_path
-
-        indexing_status = "Indexed"
-        indexing_diagnostics = None
         extraction_warnings: List[str] = []
         if fallback_occurred:
             extraction_warnings.append(f"Fallback to {active_extractor.name}: {fallback_reason}")
-        saved_all_chunks = list(self.all_chunks)
-        saved_retriever_chunks = list(getattr(self.retriever, "chunks", []))
-        saved_faiss_index = getattr(self.retriever, "index_faiss", None)
-        try:
-            new_chunks = self.chunker.chunk_elements(enriched_elements, doc_id=document_id, file_hash=file_hash)
-            if new_chunks:
-                updated_chunks = [c for c in self.all_chunks if c.source_doc_id != document_id]
-                updated_chunks.extend(new_chunks)
-                self.retriever.index(updated_chunks)
-                self.all_chunks = updated_chunks
-                indexing_status = "Indexed"
-                indexing_diagnostics = {
-                    "vector_store": "FAISS",
-                    "latest_version_indexed": True,
-                    "previous_version_searchable": any(c.source_doc_id == document_id for c in saved_all_chunks),
-                    "searchable": True,
-                    "chunk_count": len(new_chunks),
-                }
-            else:
-                indexing_status = "Skipped"
-                prev_searchable = any(c.source_doc_id == document_id for c in saved_all_chunks)
-                indexing_diagnostics = {
-                    "vector_store": "FAISS",
-                    "latest_version_indexed": False,
-                    "previous_version_searchable": prev_searchable,
-                    "searchable": prev_searchable,
-                    "chunk_count": 0,
-                }
-        except Exception as idx_err:
-            self.all_chunks = saved_all_chunks
-            if hasattr(self.retriever, "chunks"):
-                self.retriever.chunks = saved_retriever_chunks
-            if hasattr(self.retriever, "index_faiss"):
-                self.retriever.index_faiss = saved_faiss_index
-            indexing_status = "Failed"
-            prev_searchable = any(c.source_doc_id == document_id for c in saved_all_chunks)
-            indexing_diagnostics = {
-                "error": str(idx_err),
-                "error_type": idx_err.__class__.__name__,
-                "vector_store": "FAISS",
-                "latest_version_indexed": False,
-                "previous_version_searchable": prev_searchable,
-                "searchable": prev_searchable,
-            }
-            extraction_warnings.append(f"FAISS indexing failed: {str(idx_err)}")
 
         is_doc_degraded = (
             any(e.routing and e.routing.is_degraded for e in enriched_elements)
@@ -784,8 +742,7 @@ class DocumentService:
         )
         if fallback_occurred:
             is_doc_degraded = True
-        if indexing_status == "Failed":
-            is_doc_degraded = True
+
         if mode in ("candidate", "candidate_ft"):
             for e in enriched_elements:
                 if e.routing and e.routing.reasons:
@@ -804,29 +761,97 @@ class DocumentService:
             else f"{len(file_bytes) / 1024:.1f} KB"
         )
 
-        summary = DocumentSummary(
-            document_id=document_id,
-            title=file_path.name,
-            category="User Upload",
-            file_size=file_size_str,
-            pages_count=total_pages,
-            status="Processed (Degraded)" if is_doc_degraded else "Processed",
-            parsing_accuracy=94.5 if is_doc_degraded else 99.2,
-            metrics=DocumentMetrics(
-                text_blocks=text_count,
-                tables=table_count,
-                figures=figure_count,
-                headings=heading_count,
-            ),
-            uploaded_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            file_hash=file_hash,
-            is_degraded=is_doc_degraded,
-            extraction_status="Completed",
-            indexing_status=indexing_status,
-            chunk_count=len(new_chunks) if "new_chunks" in locals() else 0,
-            config_version=self.settings.config_version,
-        )
-        self.documents[document_id] = summary
+        if skip_indexing:
+            indexing_status = "Skipped"
+            with self._state_lock:
+                prev_searchable = any(c.source_doc_id == document_id for c in self.all_chunks)
+            indexing_diagnostics = {
+                "vector_store": "FAISS",
+                "durable_on_disk": False,
+                "latest_version_indexed": False,
+                "previous_version_searchable": prev_searchable,
+                "searchable": prev_searchable,
+                "chunk_count": 0,
+                "skipped_reason": "deferred_until_mysql_persistence",
+            }
+            new_chunks = []
+        else:
+            new_chunks = self.chunker.chunk_elements(enriched_elements, doc_id=document_id, file_hash=file_hash)
+            with self._state_lock:
+                saved_all_chunks = list(self.all_chunks)
+                saved_retriever_chunks = list(getattr(self.retriever, "chunks", []))
+                saved_faiss_index = getattr(self.retriever, "index_faiss", None)
+                prev_searchable = any(c.source_doc_id == document_id for c in saved_all_chunks)
+                try:
+                    if new_chunks:
+                        updated_chunks = [c for c in saved_all_chunks if c.source_doc_id != document_id]
+                        updated_chunks.extend(new_chunks)
+                        self.retriever.index(updated_chunks)
+                        self.all_chunks = updated_chunks
+                        self.page_segments[document_id] = pages_dict
+                        self.document_paths[document_id] = file_path
+                        indexing_status = "Indexed"
+                        indexing_diagnostics = {
+                            "vector_store": "FAISS",
+                            "durable_on_disk": False,
+                            "latest_version_indexed": True,
+                            "previous_version_searchable": prev_searchable,
+                            "searchable": True,
+                            "chunk_count": len(new_chunks),
+                        }
+                        summary = DocumentSummary(
+                            document_id=document_id,
+                            title=file_path.name,
+                            category="User Upload",
+                            file_size=file_size_str,
+                            pages_count=total_pages,
+                            status="Processed (Degraded)" if is_doc_degraded else "Processed",
+                            parsing_accuracy=94.5 if is_doc_degraded else 99.2,
+                            metrics=DocumentMetrics(
+                                text_blocks=text_count,
+                                tables=table_count,
+                                figures=figure_count,
+                                headings=heading_count,
+                            ),
+                            uploaded_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                            file_hash=file_hash,
+                            is_degraded=is_doc_degraded,
+                            extraction_status="Completed",
+                            indexing_status=indexing_status,
+                            chunk_count=len(new_chunks),
+                            config_version=self.settings.config_version,
+                        )
+                        self.documents[document_id] = summary
+                        self._record_doc_mutation_locked(document_id)
+                        self._recompute_degraded_mode_locked()
+                    else:
+                        indexing_status = "Skipped"
+                        indexing_diagnostics = {
+                            "vector_store": "FAISS",
+                            "durable_on_disk": False,
+                            "latest_version_indexed": False,
+                            "previous_version_searchable": prev_searchable,
+                            "searchable": prev_searchable,
+                            "chunk_count": 0,
+                        }
+                except Exception as idx_err:
+                    self.all_chunks = saved_all_chunks
+                    if hasattr(self.retriever, "chunks"):
+                        self.retriever.chunks = saved_retriever_chunks
+                    if hasattr(self.retriever, "index_faiss"):
+                        self.retriever.index_faiss = saved_faiss_index
+                    indexing_status = "Failed"
+                    is_doc_degraded = True
+                    indexing_diagnostics = {
+                        "error": str(idx_err),
+                        "error_type": idx_err.__class__.__name__,
+                        "vector_store": "FAISS",
+                        "durable_on_disk": False,
+                        "latest_version_indexed": False,
+                        "previous_version_searchable": prev_searchable,
+                        "searchable": prev_searchable,
+                    }
+                    extraction_warnings.append(f"FAISS indexing failed: {str(idx_err)}")
 
         extracted_elements: List[ExtractedElementSchema] = []
         for idx, item in enumerate(enriched_elements):
@@ -946,38 +971,487 @@ class DocumentService:
             fallback=fallback_info,
         )
 
+    def _verify_index_ownership_with_express(
+        self,
+        document_id: str,
+        job_id: Optional[int],
+        worker_id: Optional[str],
+        claim_token: Optional[str],
+        lease_generation: Optional[int],
+        is_recovery: bool,
+    ) -> None:
+        express_url = (os.getenv("EXPRESS_SERVICE_URL") or "").strip().rstrip("/")
+        if not express_url:
+            return
+
+        internal_secret = (os.getenv("INTERNAL_API_SECRET") or self.settings.internal_api_secret or "").strip()
+        try:
+            resp = requests.post(
+                f"{express_url}/api/v1/internal/recovery/verify-index-ownership",
+                headers={"X-Internal-Secret": internal_secret},
+                json={
+                    "document_id": document_id,
+                    "job_id": job_id,
+                    "worker_id": worker_id,
+                    "claim_token": claim_token,
+                    "lease_generation": lease_generation,
+                    "is_recovery": bool(is_recovery),
+                },
+                timeout=3.0,
+            )
+            if not resp.ok:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=json.dumps(
+                        {
+                            "message": f"Authoritative ownership verification returned HTTP {resp.status_code}",
+                            "indexing_status": "Rejected",
+                        }
+                    ),
+                )
+            body = resp.json()
+            data = body.get("data") if isinstance(body, dict) else None
+            if not isinstance(data, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=json.dumps(
+                        {
+                            "message": "Invalid ownership verification response from Express",
+                            "indexing_status": "Rejected",
+                        }
+                    ),
+                )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=json.dumps(
+                    {
+                        "message": f"Authoritative ownership verification unavailable: {str(exc)}",
+                        "indexing_status": "Rejected",
+                    }
+                ),
+            )
+
+        if not data.get("authorized"):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=json.dumps(
+                    {
+                        "message": f"Stale or unauthorized indexing rejected: {data.get('reason', 'unauthorized')}",
+                        "reason": data.get("reason", "unauthorized"),
+                        "indexing_status": "Rejected",
+                        "current_lease_generation": data.get("current_lease_generation"),
+                    }
+                ),
+            )
+
+    def _prepare_persisted_elements(
+        self,
+        document_id: str,
+        file_hash: str,
+        filename: Optional[str],
+        mode: str,
+        is_degraded: bool,
+        page_count: int,
+        elements: List[Any],
+        extraction_warnings: Optional[List[str]] = None,
+    ) -> Tuple[List[EnrichedElement], List[Chunk], Dict[int, List[SegmentSchema]], DocumentSummary, bool]:
+        enriched_elements: List[EnrichedElement] = []
+        type_map = {
+            "text": ElementType.TEXT,
+            "heading": ElementType.HEADING,
+            "table": ElementType.TABLE,
+            "formula": ElementType.FORMULA,
+            "figure": ElementType.FIGURE,
+        }
+        doc_warnings = [str(w) for w in (extraction_warnings or []) if w]
+
+        for idx, item in enumerate(elements):
+            raw_type = (item.type or "text").strip().lower()
+            elem_type = type_map.get(raw_type, ElementType.TEXT)
+
+            raw_bbox = item.bbox
+            if isinstance(raw_bbox, dict):
+                x0 = max(0.0, float(raw_bbox.get("x_min", raw_bbox.get("x0", raw_bbox.get("x", 0.0)))))
+                y0 = max(0.0, float(raw_bbox.get("y_min", raw_bbox.get("y0", raw_bbox.get("y", 0.0)))))
+                w = float(raw_bbox.get("width", 0.0))
+                h = float(raw_bbox.get("height", 0.0))
+                x1 = max(x0, float(raw_bbox.get("x_max", raw_bbox.get("x1", x0 + w))))
+                y1 = max(y0, float(raw_bbox.get("y_max", raw_bbox.get("y1", y0 + h))))
+            elif isinstance(raw_bbox, (list, tuple)) and len(raw_bbox) >= 4:
+                x0 = max(0.0, float(raw_bbox[0]))
+                y0 = max(0.0, float(raw_bbox[1]))
+                x1 = max(x0, float(raw_bbox[2]))
+                y1 = max(y0, float(raw_bbox[3]))
+            else:
+                x0, y0, x1, y1 = 0.0, 0.0, 0.0, 0.0
+
+            bbox_obj = ExtractorBoundingBox(x_min=x0, y_min=y0, x_max=x1, y_max=y1)
+
+            table_cells_list = None
+            formula_obj = None
+            if isinstance(item.structured, dict):
+                if elem_type == ElementType.TABLE:
+                    headers = item.structured.get("headers") or []
+                    rows = item.structured.get("rows") or []
+                    cells: List[TableCell] = []
+                    row_offset = 0
+                    if isinstance(headers, list) and headers:
+                        for c_idx, h_val in enumerate(headers):
+                            cells.append(
+                                TableCell(
+                                    row_index=0,
+                                    col_index=c_idx,
+                                    text=str(h_val),
+                                    is_header=True,
+                                )
+                            )
+                        row_offset = 1
+                    if isinstance(rows, list):
+                        for r_idx, row_vals in enumerate(rows):
+                            if isinstance(row_vals, list):
+                                for c_idx, cell_val in enumerate(row_vals):
+                                    cells.append(
+                                        TableCell(
+                                            row_index=r_idx + row_offset,
+                                            col_index=c_idx,
+                                            text=str(cell_val),
+                                            is_header=False,
+                                        )
+                                    )
+                    if cells:
+                        table_cells_list = cells
+                elif elem_type == ElementType.FORMULA and item.structured.get("latex"):
+                    formula_obj = FormulaData(
+                        latex=str(item.structured["latex"]),
+                        raw_text=item.text,
+                    )
+
+            conf_val = min(1.0, max(0.0, float(item.confidence if item.confidence is not None else 1.0)))
+            prov_dict = item.provenance if isinstance(item.provenance, dict) else {}
+            elem_id = str(prov_dict.get("element_id") or f"{document_id}_el_{idx}")
+
+            raw_flags = item.flags
+            item_degraded = bool(prov_dict.get("is_degraded", False))
+            reasons_list: List[str] = []
+            if isinstance(raw_flags, list):
+                item_degraded = item_degraded or ("is_degraded" in raw_flags)
+                for f in raw_flags:
+                    if f != "is_degraded" and str(f) not in reasons_list:
+                        reasons_list.append(str(f))
+            elif isinstance(raw_flags, dict):
+                item_degraded = item_degraded or bool(raw_flags.get("is_degraded", False))
+                for r in raw_flags.get("degraded_reasons") or []:
+                    if r and str(r) not in reasons_list:
+                        reasons_list.append(str(r))
+
+            if isinstance(prov_dict.get("degraded_reasons"), list):
+                for r in prov_dict.get("degraded_reasons"):
+                    if r and str(r) not in reasons_list:
+                        reasons_list.append(str(r))
+
+            elem_obj = Element(
+                type=elem_type,
+                page=max(1, int(item.page)),
+                bbox=bbox_obj,
+                reading_order=max(0, int(item.reading_order)),
+                text=str(item.text or ""),
+                table_cells=table_cells_list,
+                formula=formula_obj,
+                raw_confidence=conf_val,
+                metadata={"element_id": elem_id, "mode": mode},
+            )
+
+            prov_record = ProvenanceRecord(
+                element_id=elem_id,
+                source_file_hash=str(prov_dict.get("source_file_hash") or file_hash),
+                page_number=max(1, int(item.page)),
+                bbox=bbox_obj,
+                extractor_name=str(prov_dict.get("extractor_name") or "PyMuPDF"),
+                extractor_version=str(prov_dict.get("extractor_version") or item.model_version or "1.0.0"),
+                config_id=str(prov_dict.get("config_id") or self.settings.config_id),
+            )
+
+            cal_conf = prov_dict.get("calibrated_confidence")
+            conf_signals = None
+            if cal_conf is not None:
+                cal_float = min(1.0, max(0.0, float(cal_conf)))
+                conf_signals = ConfidenceSignals(
+                    raw_confidence=conf_val,
+                    combined_confidence=cal_float,
+                    calibrated_confidence=cal_float,
+                )
+
+            routing_rec = None
+            if item_degraded or reasons_list:
+                routing_rec = DegradedRoutingRecord(
+                    is_degraded=item_degraded,
+                    routing_action="DEGRADED_FALLBACK" if item_degraded else "STANDARD_PASS",
+                    reasons=reasons_list,
+                    fallback_strategy="RAW_SLICE_FALLBACK" if item_degraded else "NONE",
+                )
+
+            enriched_elements.append(
+                EnrichedElement(
+                    element=elem_obj,
+                    provenance=prov_record,
+                    confidence_signals=conf_signals,
+                    routing=routing_rec,
+                )
+            )
+
+        has_element_degraded = any(e.routing and e.routing.is_degraded for e in enriched_elements)
+        if is_degraded and not has_element_degraded:
+            fallback_reasons = doc_warnings if doc_warnings else ["Document marked degraded during persisted extraction"]
+            for e in enriched_elements:
+                if e.routing:
+                    e.routing.is_degraded = True
+                    e.routing.routing_action = "DEGRADED_FALLBACK"
+                    e.routing.fallback_strategy = "RAW_SLICE_FALLBACK"
+                    for r in fallback_reasons:
+                        if r not in e.routing.reasons:
+                            e.routing.reasons.append(r)
+                else:
+                    e.routing = DegradedRoutingRecord(
+                        is_degraded=True,
+                        routing_action="DEGRADED_FALLBACK",
+                        reasons=list(fallback_reasons),
+                        fallback_strategy="RAW_SLICE_FALLBACK",
+                    )
+        elif is_degraded and doc_warnings:
+            for e in enriched_elements:
+                if e.routing and e.routing.is_degraded and not e.routing.reasons:
+                    e.routing.reasons.extend(doc_warnings)
+
+        new_chunks = self.chunker.chunk_elements(enriched_elements, doc_id=document_id, file_hash=file_hash)
+        if not new_chunks:
+            raise ValueError("StructuredElementChunker produced zero indexable chunks from persisted elements")
+
+        total_pages = max(1, int(page_count or 1), max(e.element.page for e in enriched_elements))
+        pages_dict: Dict[int, List[SegmentSchema]] = {}
+        for p in range(1, total_pages + 1):
+            p_elems = [e for e in enriched_elements if e.element.page == p]
+            if p_elems:
+                pages_dict[p] = self._elements_to_segments(p_elems, p)
+
+        text_count = sum(1 for e in enriched_elements if e.element.type in (ElementType.TEXT, ElementType.HEADING))
+        table_count = sum(1 for e in enriched_elements if e.element.type == ElementType.TABLE)
+        figure_count = sum(1 for e in enriched_elements if e.element.type == ElementType.FIGURE)
+        heading_count = sum(1 for e in enriched_elements if e.element.type == ElementType.HEADING)
+        effective_degraded = bool(is_degraded or any(e.routing and e.routing.is_degraded for e in enriched_elements))
+
+        summary = DocumentSummary(
+            document_id=document_id,
+            title=filename or f"{document_id}.pdf",
+            category="User Upload",
+            file_size="N/A",
+            pages_count=total_pages,
+            status="Processed (Degraded)" if effective_degraded else "Processed",
+            parsing_accuracy=94.5 if effective_degraded else 99.2,
+            metrics=DocumentMetrics(
+                text_blocks=text_count,
+                tables=table_count,
+                figures=figure_count,
+                headings=heading_count,
+            ),
+            uploaded_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            file_hash=file_hash,
+            is_degraded=effective_degraded,
+            extraction_status="Completed",
+            indexing_status="Indexed",
+            chunk_count=len(new_chunks),
+            config_version=self.settings.config_version,
+        )
+        return enriched_elements, new_chunks, pages_dict, summary, effective_degraded
+
+    def index_persisted_elements(
+        self,
+        document_id: str,
+        file_hash: str,
+        filename: Optional[str] = None,
+        mode: str = "flat",
+        is_degraded: bool = False,
+        page_count: int = 1,
+        elements: Optional[List[Any]] = None,
+        job_id: Optional[int] = None,
+        worker_id: Optional[str] = None,
+        claim_token: Optional[str] = None,
+        lease_generation: Optional[int] = None,
+        is_recovery: bool = False,
+        extraction_warnings: Optional[List[str]] = None,
+        skip_remote_verify: bool = False,
+    ) -> InternalIndexResponse:
+        if not elements:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot build retrieval index from zero persisted elements.",
+            )
+
+        if not skip_remote_verify:
+            self._verify_index_ownership_with_express(
+                document_id=document_id,
+                job_id=job_id,
+                worker_id=worker_id,
+                claim_token=claim_token,
+                lease_generation=lease_generation,
+                is_recovery=bool(is_recovery),
+            )
+
+        t0 = time.perf_counter()
+        try:
+            enriched_elements, new_chunks, pages_dict, summary, _ = self._prepare_persisted_elements(
+                document_id=document_id,
+                file_hash=file_hash,
+                filename=filename,
+                mode=mode,
+                is_degraded=is_degraded,
+                page_count=page_count,
+                elements=elements,
+                extraction_warnings=extraction_warnings,
+            )
+        except Exception as prep_err:
+            with self._state_lock:
+                prev_searchable = any(c.source_doc_id == document_id for c in self.all_chunks)
+            self.record_error(f"Persisted element indexing failed on {document_id}: {prep_err}", "/api/v1/internal/index")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=json.dumps(
+                    {
+                        "message": f"FAISS indexing failed: {str(prep_err)}",
+                        "indexing_status": "Failed",
+                        "indexing_diagnostics": {
+                            "error": str(prep_err),
+                            "error_type": prep_err.__class__.__name__,
+                            "vector_store": "FAISS",
+                            "durable_on_disk": False,
+                            "latest_version_indexed": False,
+                            "previous_version_searchable": prev_searchable,
+                            "searchable": prev_searchable,
+                        },
+                    }
+                ),
+            )
+
+        incoming_ver: Optional[Tuple[int, int]] = None
+        if job_id is not None:
+            incoming_ver = (int(job_id), int(lease_generation if lease_generation is not None else 0))
+
+        with self._state_lock:
+            existing_ver = self._indexed_versions.get(document_id)
+            if incoming_ver is not None and existing_ver is not None and incoming_ver < existing_ver:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=json.dumps(
+                        {
+                            "message": f"Stale indexing rejected for '{document_id}': version {incoming_ver} < {existing_ver}",
+                            "reason": "stale_in_memory_version",
+                            "indexing_status": "Rejected",
+                        }
+                    ),
+                )
+
+            saved_all_chunks = list(self.all_chunks)
+            saved_retriever_chunks = list(getattr(self.retriever, "chunks", []))
+            saved_faiss_index = getattr(self.retriever, "index_faiss", None)
+            prev_searchable = any(c.source_doc_id == document_id for c in saved_all_chunks)
+
+            try:
+                updated_chunks = [c for c in saved_all_chunks if c.source_doc_id != document_id]
+                updated_chunks.extend(new_chunks)
+                self.retriever.index(updated_chunks)
+                self.all_chunks = updated_chunks
+                self.page_segments[document_id] = pages_dict
+                self.documents[document_id] = summary
+                if incoming_ver is not None:
+                    self._indexed_versions[document_id] = incoming_ver
+                self._record_doc_mutation_locked(document_id)
+                self._recompute_degraded_mode_locked()
+            except Exception as idx_err:
+                self.all_chunks = saved_all_chunks
+                if hasattr(self.retriever, "chunks"):
+                    self.retriever.chunks = saved_retriever_chunks
+                if hasattr(self.retriever, "index_faiss"):
+                    self.retriever.index_faiss = saved_faiss_index
+                self.record_error(f"Persisted element indexing failed on {document_id}: {idx_err}", "/api/v1/internal/index")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=json.dumps(
+                        {
+                            "message": f"FAISS indexing failed: {str(idx_err)}",
+                            "indexing_status": "Failed",
+                            "indexing_diagnostics": {
+                                "error": str(idx_err),
+                                "error_type": idx_err.__class__.__name__,
+                                "vector_store": "FAISS",
+                                "durable_on_disk": False,
+                                "latest_version_indexed": False,
+                                "previous_version_searchable": prev_searchable,
+                                "searchable": prev_searchable,
+                            },
+                        }
+                    ),
+                )
+
+        duration_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        diagnostics = {
+            "vector_store": "FAISS",
+            "durable_on_disk": False,
+            "latest_version_indexed": True,
+            "previous_version_searchable": prev_searchable,
+            "searchable": True,
+            "chunk_count": len(new_chunks),
+            "persisted_elements_indexed": len(enriched_elements),
+        }
+
+        return InternalIndexResponse(
+            document_id=document_id,
+            mode=mode,
+            indexing_status="Indexed",
+            indexing_diagnostics=diagnostics,
+            chunk_count=len(new_chunks),
+            searchable=True,
+            processing_time_ms=duration_ms,
+        )
+
     def get_batch_status(self, batch_id: str) -> Optional[BatchUploadResponse]:
         """Fetch tracking records for a specific upload batch."""
         return self.batches.get(batch_id)
 
     def delete_document(self, document_id: str) -> Dict[str, Any]:
         """Eradicate a document, its disk cache, page segments, and all associated FAISS vectors."""
-        if document_id not in self.documents and document_id not in self.document_paths:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document with ID '{document_id}' not found.",
-            )
+        with self._state_lock:
+            if document_id not in self.documents and document_id not in self.document_paths:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Document with ID '{document_id}' not found.",
+                )
 
-        self.documents.pop(document_id, None)
-        self.page_segments.pop(document_id, None)
-        pdf_path = self.document_paths.pop(document_id, None)
-        if pdf_path and pdf_path.exists() and "uploads" in str(pdf_path):
-            try:
-                pdf_path.unlink()
-            except Exception:
-                pass
+            self.documents.pop(document_id, None)
+            self.page_segments.pop(document_id, None)
+            self._indexed_versions.pop(document_id, None)
+            pdf_path = self.document_paths.pop(document_id, None)
+            if pdf_path and pdf_path.exists() and "uploads" in str(pdf_path):
+                try:
+                    pdf_path.unlink()
+                except Exception:
+                    pass
 
-        self.retriever.remove_document(document_id)
-        self.all_chunks = [c for c in self.all_chunks if c.source_doc_id != document_id]
+            remaining_chunks = [c for c in self.all_chunks if c.source_doc_id != document_id]
+            self.retriever.index(remaining_chunks)
+            self.all_chunks = remaining_chunks
+            self._record_doc_mutation_locked(document_id)
+            self._recompute_degraded_mode_locked()
 
-        return {
-            "document_id": document_id,
-            "deleted": True,
-            "remaining_documents": len(self.documents),
-            "remaining_chunks": len(self.all_chunks),
-        }
+            return {
+                "document_id": document_id,
+                "deleted": True,
+                "remaining_documents": len(self.documents),
+                "remaining_chunks": len(self.all_chunks),
+            }
 
-    def _apply_degraded_mode_checks(self, elements: List[EnrichedElement]) -> None:
+    def _apply_degraded_mode_checks(self, elements: List[EnrichedElement], activate_global_flag: bool = True) -> None:
         """Inspect elements for confidence drops, scrambled reading order, or flattened tables."""
         for item in elements:
             reasons = []
@@ -996,7 +1470,8 @@ class DocumentService:
                     reasons.append("Flattened table anomaly: table detected with no structured cell grid")
 
             if reasons:
-                self.degraded_mode_active = True
+                if activate_global_flag:
+                    self.degraded_mode_active = True
                 if not item.routing:
                     from backend.provenance.schema import DegradedRoutingRecord
 
@@ -1028,7 +1503,10 @@ class DocumentService:
         elif document_id and document_id.lower() != "all":
             target_ids = [document_id]
 
-        raw_results = self.retriever.retrieve(query, top_k=top_k * 3, document_ids=target_ids)
+        with self._state_lock:
+            raw_results = self.retriever.retrieve(query, top_k=top_k * 3, document_ids=target_ids)
+            docs_snapshot = dict(self.documents)
+
         search_items: List[SearchResultItem] = []
 
         query_tokens = [w.lower() for w in re.findall(r"\w+", query)]
@@ -1054,7 +1532,7 @@ class DocumentService:
             if min_score is not None and res.score < min_score:
                 continue
 
-            doc_meta = self.documents.get(chunk.source_doc_id)
+            doc_meta = docs_snapshot.get(chunk.source_doc_id)
             doc_title = doc_meta.title if doc_meta else f"{chunk.source_doc_id}.pdf"
             category = doc_meta.category if doc_meta else "General Document"
 
@@ -1088,8 +1566,8 @@ class DocumentService:
                     "config_id": self.settings.config_id,
                 }
 
-            degraded_reasons = []
-            if chunk.is_degraded:
+            degraded_reasons = list((chunk.metadata or {}).get("degraded_reasons") or [])
+            if chunk.is_degraded and not degraded_reasons:
                 degraded_reasons.append("Element flagged below operational threshold or topological anomaly")
 
             search_items.append(
@@ -1131,16 +1609,17 @@ class DocumentService:
         top_k: int = 10,
     ) -> MultiDocumentSearchResponse:
         """Consolidate ranked cross-document evidence, identifying consensus and contradictions."""
-        results = self.search(
-            query=query,
-            document_id=document_id,
-            document_ids=document_ids,
-            content_type=content_type,
-            min_score=min_score,
-            top_k=top_k * 2,
-        )
+        with self._state_lock:
+            results = self.search(
+                query=query,
+                document_id=document_id,
+                document_ids=document_ids,
+                content_type=content_type,
+                min_score=min_score,
+                top_k=top_k * 2,
+            )
+            active_docs = list(self.documents.keys())
 
-        active_docs = list(self.documents.keys())
         searched_docs = (
             [d for d in document_ids if d and d.lower() != "all"]
             if document_ids and any(d.lower() != "all" for d in document_ids)
@@ -1229,20 +1708,22 @@ class DocumentService:
 
     def get_dashboard_analytics(self) -> Dict[str, Any]:
         """Compute real live analytics and element counts across all actual documents in the repository."""
-        tot_docs = len(self.documents)
-        tot_chunks = len(self.all_chunks)
-        tot_pages = sum(d.pages_count for d in self.documents.values())
-        tot_text = sum(d.metrics.text_blocks for d in self.documents.values())
-        tot_tables = sum(d.metrics.tables for d in self.documents.values())
-        tot_figures = sum(d.metrics.figures for d in self.documents.values())
-        tot_headings = sum(d.metrics.headings for d in self.documents.values())
+        with self._state_lock:
+            docs = list(self.documents.values())
+            tot_chunks = len(self.all_chunks)
+        tot_docs = len(docs)
+        tot_pages = sum(d.pages_count for d in docs)
+        tot_text = sum(d.metrics.text_blocks for d in docs)
+        tot_tables = sum(d.metrics.tables for d in docs)
+        tot_figures = sum(d.metrics.figures for d in docs)
+        tot_headings = sum(d.metrics.headings for d in docs)
         avg_acc = (
-            round(sum(d.parsing_accuracy for d in self.documents.values()) / tot_docs, 1)
+            round(sum(d.parsing_accuracy for d in docs) / tot_docs, 1)
             if tot_docs > 0
             else 0.0
         )
-        degraded_count = sum(1 for d in self.documents.values() if d.is_degraded)
-        user_uploads_count = sum(1 for d in self.documents.values() if d.category == "User Upload")
+        degraded_count = sum(1 for d in docs if d.is_degraded)
+        user_uploads_count = sum(1 for d in docs if d.category == "User Upload")
 
         return {
             "total_documents": tot_docs,
@@ -1261,45 +1742,252 @@ class DocumentService:
 
     def get_page_layout(self, document_id: str, page_number: int) -> List[SegmentSchema]:
         """Fetch real extracted layout segments for a specific document and page."""
-        if document_id not in self.documents and document_id not in self.page_segments:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document with ID '{document_id}' not found.",
-            )
+        with self._state_lock:
+            if document_id not in self.documents and document_id not in self.page_segments:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Document with ID '{document_id}' not found.",
+                )
 
-        doc_pages = self.page_segments.get(document_id, {})
-        if page_number not in doc_pages:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Page {page_number} not found for document '{document_id}'. Document contains {len(doc_pages)} page(s).",
-            )
+            doc_pages = self.page_segments.get(document_id, {})
+            if page_number not in doc_pages:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Page {page_number} not found for document '{document_id}'. Document contains {len(doc_pages)} page(s).",
+                )
 
-        return doc_pages[page_number]
+            return list(doc_pages[page_number])
 
     def reload_accepted_bundle(self) -> Dict[str, Any]:
         """Reload the accepted model and configuration bundle, resetting degraded states."""
-        self.degraded_mode_active = False
-        self.last_error = None
-        self.provenance_subsystem = ProvenanceSubsystem(
-            config=ProvenanceConfig(
-                enabled=True,
-                provenance_tracking_enabled=True,
-                calibration_enabled=True,
-                low_confidence_threshold=0.75,
-                critical_scene_strict_threshold=0.85,
+        with self._state_lock:
+            self.documents.clear()
+            self.page_segments.clear()
+            self.document_paths.clear()
+            self._indexed_versions.clear()
+            self._baseline_doc_ids.clear()
+            self._baseline_degraded = False
+            self.degraded_mode_active = False
+            self.last_error = None
+            self.provenance_subsystem = ProvenanceSubsystem(
+                config=ProvenanceConfig(
+                    enabled=True,
+                    provenance_tracking_enabled=True,
+                    calibration_enabled=True,
+                    low_confidence_threshold=0.75,
+                    critical_scene_strict_threshold=0.85,
+                )
             )
-        )
-        self.all_chunks = []
+            self.all_chunks = []
         self._initialize_baseline_repository()
+        with self._state_lock:
+            reindexed_count = len(self.all_chunks)
+            degraded_active = self.degraded_mode_active
 
         return {
             "status": "success",
             "message": "Accepted model and configuration bundle reloaded successfully.",
             "config_id": self.settings.config_id,
             "config_version": self.settings.config_version,
-            "reindexed_chunks": len(self.all_chunks),
-            "degraded_mode_active": self.degraded_mode_active,
+            "reindexed_chunks": reindexed_count,
+            "degraded_mode_active": degraded_active,
         }
+
+    def purge_document_from_memory(self, document_id: str) -> bool:
+        with self._state_lock:
+            removed = False
+            if document_id in self.documents:
+                self.documents.pop(document_id, None)
+                removed = True
+            if document_id in self.page_segments:
+                self.page_segments.pop(document_id, None)
+                removed = True
+            if document_id in self.document_paths:
+                self.document_paths.pop(document_id, None)
+            if document_id in self._indexed_versions:
+                self._indexed_versions.pop(document_id, None)
+            remaining_chunks = [c for c in self.all_chunks if c.source_doc_id != document_id]
+            if len(remaining_chunks) != len(self.all_chunks):
+                self.retriever.index(remaining_chunks)
+                self.all_chunks = remaining_chunks
+                removed = True
+            self._record_doc_mutation_locked(document_id)
+            self._recompute_degraded_mode_locked()
+            return removed
+
+    def _run_recovery_sync_once(self, clean_url: str, internal_secret: str) -> Dict[str, Any]:
+        with self._state_lock:
+            pre_doc_seq = dict(self._doc_seq)
+
+        try:
+            resp = requests.get(
+                f"{clean_url}/api/v1/internal/recovery/documents",
+                headers={"X-Internal-Secret": internal_secret},
+                timeout=5.0,
+            )
+            if not resp.ok:
+                return {"synced": False, "recovered_count": 0, "status_code": resp.status_code}
+            parsed_json = resp.json()
+            payload = parsed_json.get("data") if isinstance(parsed_json, dict) else None
+            if not isinstance(payload, dict):
+                return {"synced": False, "recovered_count": 0, "reason": "invalid_recovery_payload"}
+        except Exception as exc:
+            return {"synced": False, "recovered_count": 0, "reason": str(exc)}
+
+        deleted_ids: Set[str] = {
+            d.strip() for d in (payload.get("deleted_document_ids") or []) if isinstance(d, str) and d.strip()
+        }
+        ineligible_ids: Set[str] = {
+            d.strip() for d in (payload.get("ineligible_document_ids") or []) if isinstance(d, str) and d.strip()
+        }
+
+        prepared_records: List[Dict[str, Any]] = []
+        authoritative_doc_ids: Set[str] = set()
+        for item in payload.get("documents") or []:
+            if not isinstance(item, dict):
+                continue
+            doc_id = str(item.get("document_id") or "").strip()
+            raw_elems = item.get("elements") or []
+            if not doc_id or not raw_elems:
+                continue
+            parsed_elems = [PersistedElementIndexItem(**el) for el in raw_elems]
+            _, new_chunks, pages_dict, summary, _ = self._prepare_persisted_elements(
+                document_id=doc_id,
+                file_hash=str(item["file_hash"]),
+                filename=item.get("filename"),
+                mode=str(item.get("mode") or "flat"),
+                is_degraded=bool(item.get("is_degraded", False)),
+                page_count=int(item.get("page_count") or 1),
+                elements=parsed_elems,
+                extraction_warnings=item.get("extraction_warnings"),
+            )
+            raw_job_id = item.get("job_id")
+            raw_lease_gen = item.get("lease_generation")
+            incoming_ver: Optional[Tuple[int, int]] = None
+            if raw_job_id is not None:
+                incoming_ver = (int(raw_job_id), int(raw_lease_gen if raw_lease_gen is not None else 0))
+
+            authoritative_doc_ids.add(doc_id)
+            prepared_records.append(
+                {
+                    "document_id": doc_id,
+                    "chunks": new_chunks,
+                    "pages_dict": pages_dict,
+                    "summary": summary,
+                    "incoming_ver": incoming_ver,
+                }
+            )
+
+        with self._state_lock:
+            saved_all_chunks = list(self.all_chunks)
+            saved_retriever_chunks = list(getattr(self.retriever, "chunks", []))
+            saved_faiss_index = getattr(self.retriever, "index_faiss", None)
+
+            known_non_baseline = (
+                set(self.documents.keys())
+                | set(self.page_segments.keys())
+                | set(self.document_paths.keys())
+                | {c.source_doc_id for c in saved_all_chunks}
+            ) - self._baseline_doc_ids
+
+            purge_ids: Set[str] = set(deleted_ids)
+            for inel_id in ineligible_ids:
+                if self._doc_seq.get(inel_id, 0) == pre_doc_seq.get(inel_id, 0):
+                    purge_ids.add(inel_id)
+            for doc_id in known_non_baseline:
+                if doc_id not in authoritative_doc_ids and self._doc_seq.get(doc_id, 0) == pre_doc_seq.get(doc_id, 0):
+                    purge_ids.add(doc_id)
+
+            applied_records: List[Dict[str, Any]] = []
+            for rec in prepared_records:
+                doc_id = rec["document_id"]
+                if doc_id in deleted_ids:
+                    continue
+                existing_ver = self._indexed_versions.get(doc_id)
+                incoming_ver = rec["incoming_ver"]
+                if incoming_ver is not None and existing_ver is not None and incoming_ver < existing_ver:
+                    continue
+                applied_records.append(rec)
+
+            replaced_ids = purge_ids | {r["document_id"] for r in applied_records}
+            merged_chunks = [c for c in saved_all_chunks if c.source_doc_id not in replaced_ids]
+            for rec in applied_records:
+                merged_chunks.extend(rec["chunks"])
+
+            try:
+                self.retriever.index(merged_chunks)
+                self.all_chunks = merged_chunks
+                for pid in purge_ids:
+                    self.documents.pop(pid, None)
+                    self.page_segments.pop(pid, None)
+                    self.document_paths.pop(pid, None)
+                    self._indexed_versions.pop(pid, None)
+                    self._record_doc_mutation_locked(pid)
+                for rec in applied_records:
+                    doc_id = rec["document_id"]
+                    self.documents[doc_id] = rec["summary"]
+                    self.page_segments[doc_id] = rec["pages_dict"]
+                    if rec["incoming_ver"] is not None:
+                        self._indexed_versions[doc_id] = rec["incoming_ver"]
+                    self._record_doc_mutation_locked(doc_id)
+                self._recompute_degraded_mode_locked()
+            except Exception as idx_err:
+                self.all_chunks = saved_all_chunks
+                if hasattr(self.retriever, "chunks"):
+                    self.retriever.chunks = saved_retriever_chunks
+                if hasattr(self.retriever, "index_faiss"):
+                    self.retriever.index_faiss = saved_faiss_index
+                self.record_error(f"Recovery FAISS rebuild failed: {idx_err}", "/api/v1/internal/recovery")
+                return {"synced": False, "recovered_count": 0, "reason": str(idx_err)}
+
+            return {
+                "synced": True,
+                "recovered_count": len(applied_records),
+                "purged_count": len(purge_ids),
+            }
+
+    def sync_from_express_recovery(
+        self,
+        express_url: str,
+        internal_secret: str,
+        force: bool = False,
+    ) -> Dict[str, Any]:
+        clean_url = (express_url or "").strip().rstrip("/")
+        if not clean_url:
+            return {"synced": False, "recovered_count": 0, "reason": "express_url_empty"}
+
+        with self._recovery_cond:
+            if force:
+                self._recovery_force_pending = True
+            if self._recovery_in_flight:
+                wait_target = self._recovery_epoch + (1 if force else 0)
+                while self._recovery_in_flight:
+                    self._recovery_cond.wait(timeout=30.0)
+                if not force or self._recovery_epoch > wait_target or not self._recovery_force_pending:
+                    return dict(self._last_recovery_summary)
+            self._recovery_in_flight = True
+            self._recovery_force_pending = False
+
+        try:
+            while True:
+                summary = self._run_recovery_sync_once(clean_url, internal_secret)
+                with self._recovery_cond:
+                    self._recovery_epoch += 1
+                    self._last_recovery_summary = dict(summary)
+                    if self._recovery_force_pending:
+                        self._recovery_force_pending = False
+                        continue
+                    self._recovery_in_flight = False
+                    self._recovery_cond.notify_all()
+                    return dict(summary)
+        except Exception as exc:
+            with self._recovery_cond:
+                self._recovery_epoch += 1
+                self._last_recovery_summary = {"synced": False, "recovered_count": 0, "reason": str(exc)}
+                self._recovery_in_flight = False
+                self._recovery_force_pending = False
+                self._recovery_cond.notify_all()
+            return {"synced": False, "recovered_count": 0, "reason": str(exc)}
 
     def get_health_metrics(self) -> HealthData:
         """Construct /metrics-style health payload."""
@@ -1315,9 +2003,15 @@ class DocumentService:
             else:
                 mem_mb = 18.5
 
+        with self._state_lock:
+            index_size = self.retriever.index_faiss.ntotal if self.retriever.index_faiss else len(self.all_chunks)
+            documents_count = len(self.documents)
+            degraded_active = self.degraded_mode_active
+            last_error_copy = dict(self.last_error) if self.last_error else None
+
         return HealthData(
             service=self.settings.app_name,
-            status="degraded" if self.degraded_mode_active else "healthy",
+            status="degraded" if degraded_active else "healthy",
             environment=self.settings.environment,
             config_version=self.settings.config_version,
             config_id=self.settings.config_id,
@@ -1327,10 +2021,10 @@ class DocumentService:
                 "layout_engine": "LayoutOrderRecovery:v1.0.0",
                 "provenance_subsystem": f"O3:{self.settings.config_id}",
             },
-            index_size=self.retriever.index_faiss.ntotal if self.retriever.index_faiss else len(self.all_chunks),
-            documents_count=len(self.documents),
-            degraded_mode_active=self.degraded_mode_active,
-            last_error=self.last_error,
+            index_size=index_size,
+            documents_count=documents_count,
+            degraded_mode_active=degraded_active,
+            last_error=last_error_copy,
             uptime_seconds=uptime,
             memory_usage_mb=mem_mb,
             ocr_engine=self.settings.ocr_engine,
@@ -1338,6 +2032,7 @@ class DocumentService:
             confidence_threshold=self.settings.confidence_threshold,
             max_upload_size_mb=self.settings.max_upload_size_mb,
             max_pages_per_document=self.settings.max_pages_per_document,
+            instance_id=self.instance_id,
         )
 
 

@@ -653,6 +653,259 @@ export async function _executeHeartbeatJobForTest(jobId, workerId, claimTokenOrO
   return _heartbeatJobCore(jobId, workerId, claimTokenOrOptions, internalHooks);
 }
 
+export async function verifyLeaseOwnership(jobId, workerId, claimTokenOrOptions) {
+  const numericId = normalizePositiveJobId(jobId);
+  const normalizedWorkerId = normalizeWorkerId(workerId);
+  const { claimToken, leaseGeneration } = extractClaimOptions(claimTokenOrOptions);
+
+  const conn = await getConnection();
+  try {
+    await conn.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(`SELECT * FROM jobs WHERE id = ? LIMIT 1 FOR SHARE`, [numericId]);
+    if (!rows || rows.length === 0) {
+      throw new LeaseOwnershipError(`Job ${numericId} not found.`);
+    }
+
+    const current = rows[0];
+    if (current.status !== 'running') {
+      throw new InvalidJobTransitionError(
+        `Worker '${normalizedWorkerId}' cannot index job ${numericId}: status is '${current.status}', expected 'running'.`
+      );
+    }
+    if (current.locked_by !== normalizedWorkerId) {
+      throw new LeaseOwnershipError(
+        `Worker '${normalizedWorkerId}' does not own job ${numericId} (locked_by='${current.locked_by || 'none'}').`
+      );
+    }
+    if (!current.claim_token || current.claim_token !== claimToken) {
+      throw new LeaseOwnershipError(
+        `Worker '${normalizedWorkerId}' presented stale or mismatched claim token for job ${numericId}.`
+      );
+    }
+    if (leaseGeneration !== undefined && Number(current.lease_generation) !== leaseGeneration) {
+      throw new LeaseOwnershipError(
+        `Worker '${normalizedWorkerId}' presented stale lease generation ${leaseGeneration} for job ${numericId} (current=${current.lease_generation}).`
+      );
+    }
+
+    const [newerRows] = await conn.query(
+      `SELECT id
+       FROM jobs
+       WHERE doc_id = ? AND id > ? AND status IN ('running', 'done', 'degraded')
+       LIMIT 1
+       FOR SHARE`,
+      [current.doc_id, numericId]
+    );
+    if (newerRows && newerRows.length > 0) {
+      throw new LeaseOwnershipError(
+        `Job ${numericId} superseded by newer job ${newerRows[0].id} for document ${current.doc_id}.`
+      );
+    }
+
+    const [docRows] = await conn.query(
+      `SELECT id, document_id, status, deleted_at FROM documents WHERE id = ? LIMIT 1 FOR SHARE`,
+      [current.doc_id]
+    );
+    if (!docRows || docRows.length === 0 || docRows[0].deleted_at !== null) {
+      throw new InvalidJobTransitionError(`Parent document ${current.doc_id} was deleted.`);
+    }
+
+    await conn.commit();
+    return {
+      job: mapJobRow(current),
+      leaseGeneration: Number(current.lease_generation),
+      documentId: docRows[0].document_id,
+    };
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    if (err instanceof LeaseOwnershipError || err instanceof InvalidJobTransitionError) {
+      throw err;
+    }
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function verifyIndexOwnershipForDocument(details = {}) {
+  const documentId = typeof details?.document_id === 'string' ? details.document_id.trim() : '';
+  if (!documentId) {
+    return { authorized: false, reason: 'missing_document_id' };
+  }
+  const isRecovery = Boolean(details?.is_recovery);
+  const rawJobId = details?.job_id !== undefined && details?.job_id !== null ? Number(details.job_id) : null;
+  const rawLeaseGen =
+    details?.lease_generation !== undefined && details?.lease_generation !== null
+      ? Number(details.lease_generation)
+      : null;
+
+  const conn = await getConnection();
+  try {
+    await conn.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    await conn.beginTransaction();
+
+    if (isRecovery) {
+      const [docLookup] = await conn.query(
+        `SELECT id FROM documents WHERE document_id = ? LIMIT 1`,
+        [documentId]
+      );
+      if (!docLookup || docLookup.length === 0) {
+        await conn.commit();
+        return { authorized: false, reason: 'document_not_found' };
+      }
+      const docPk = docLookup[0].id;
+      const [latestJobRows] = await conn.query(
+        `SELECT id, status, lease_generation
+         FROM jobs
+         WHERE doc_id = ? AND status IN ('done', 'degraded')
+         ORDER BY id DESC
+         LIMIT 1
+         FOR SHARE`,
+        [docPk]
+      );
+      const [docRows] = await conn.query(
+        `SELECT id, document_id, status, deleted_at
+         FROM documents
+         WHERE id = ?
+         LIMIT 1
+         FOR SHARE`,
+        [docPk]
+      );
+      await conn.commit();
+
+      if (!docRows || docRows.length === 0 || docRows[0].deleted_at !== null) {
+        return { authorized: false, reason: 'document_deleted_or_missing' };
+      }
+      const docStatus = String(docRows[0].status || '').toLowerCase();
+      if (docStatus !== 'ready' && docStatus !== 'degraded') {
+        return { authorized: false, reason: `ineligible_document_status:${docStatus}` };
+      }
+      if (latestJobRows && latestJobRows.length > 0) {
+        const latestJob = latestJobRows[0];
+        if (rawJobId !== null && Number(latestJob.id) > rawJobId) {
+          return {
+            authorized: false,
+            reason: 'stale_recovery_job',
+            current_lease_generation: Number(latestJob.lease_generation || 0),
+          };
+        }
+        if (
+          rawJobId !== null &&
+          Number(latestJob.id) === rawJobId &&
+          rawLeaseGen !== null &&
+          Number(latestJob.lease_generation || 0) > rawLeaseGen
+        ) {
+          return {
+            authorized: false,
+            reason: 'stale_recovery_lease_generation',
+            current_lease_generation: Number(latestJob.lease_generation || 0),
+          };
+        }
+      }
+      return {
+        authorized: true,
+        document_id: documentId,
+        job_id: rawJobId,
+        lease_generation: rawLeaseGen,
+      };
+    }
+
+    if (!Number.isInteger(rawJobId) || rawJobId <= 0) {
+      await conn.commit();
+      return { authorized: false, reason: 'missing_job_id' };
+    }
+
+    const [jobRows] = await conn.query(`SELECT * FROM jobs WHERE id = ? LIMIT 1 FOR SHARE`, [rawJobId]);
+    if (!jobRows || jobRows.length === 0) {
+      await conn.commit();
+      return { authorized: false, reason: 'job_not_found' };
+    }
+
+    const jobRow = jobRows[0];
+    const workerId = typeof details?.worker_id === 'string' ? details.worker_id.trim() : '';
+    const claimToken = typeof details?.claim_token === 'string' ? details.claim_token.trim() : '';
+
+    if (jobRow.status !== 'running') {
+      await conn.commit();
+      return {
+        authorized: false,
+        reason: `job_not_running:${jobRow.status}`,
+        job_status: jobRow.status,
+        current_lease_generation: Number(jobRow.lease_generation || 0),
+      };
+    }
+    if (!workerId || jobRow.locked_by !== workerId) {
+      await conn.commit();
+      return {
+        authorized: false,
+        reason: 'worker_ownership_mismatch',
+        job_status: jobRow.status,
+        current_lease_generation: Number(jobRow.lease_generation || 0),
+      };
+    }
+    if (!claimToken || !jobRow.claim_token || jobRow.claim_token !== claimToken) {
+      await conn.commit();
+      return {
+        authorized: false,
+        reason: 'claim_token_mismatch',
+        job_status: jobRow.status,
+        current_lease_generation: Number(jobRow.lease_generation || 0),
+      };
+    }
+    if (!Number.isInteger(rawLeaseGen) || Number(jobRow.lease_generation) !== rawLeaseGen) {
+      await conn.commit();
+      return {
+        authorized: false,
+        reason: 'lease_generation_mismatch',
+        job_status: jobRow.status,
+        current_lease_generation: Number(jobRow.lease_generation || 0),
+      };
+    }
+
+    const [newerJobRows] = await conn.query(
+      `SELECT id, lease_generation
+       FROM jobs
+       WHERE doc_id = ? AND id > ? AND status IN ('running', 'done', 'degraded')
+       LIMIT 1
+       FOR SHARE`,
+      [jobRow.doc_id, rawJobId]
+    );
+    const [docRows] = await conn.query(
+      `SELECT id, document_id, status, deleted_at FROM documents WHERE id = ? LIMIT 1 FOR SHARE`,
+      [jobRow.doc_id]
+    );
+    await conn.commit();
+
+    if (newerJobRows && newerJobRows.length > 0) {
+      return {
+        authorized: false,
+        reason: 'superseded_by_newer_job',
+        current_lease_generation: Number(newerJobRows[0].lease_generation || 0),
+      };
+    }
+    if (!docRows || docRows.length === 0 || docRows[0].deleted_at !== null) {
+      return { authorized: false, reason: 'document_deleted_or_missing' };
+    }
+    if (docRows[0].document_id !== documentId) {
+      return { authorized: false, reason: 'document_id_mismatch' };
+    }
+
+    return {
+      authorized: true,
+      document_id: documentId,
+      job_id: rawJobId,
+      lease_generation: Number(jobRow.lease_generation),
+    };
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    throw sanitizeError(err);
+  } finally {
+    conn.release();
+  }
+}
+
 async function _completeJobCore(jobId, workerId, details = {}, internalHooks = {}) {
   const numericId = normalizePositiveJobId(jobId);
   const normalizedWorkerId = normalizeWorkerId(workerId);

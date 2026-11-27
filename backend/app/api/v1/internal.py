@@ -1,11 +1,19 @@
 import os
-from pathlib import Path
 import secrets
+from pathlib import Path
 from typing import Optional
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+
 from backend.app.config import Settings, get_settings
 from backend.app.schemas.common import BaseResponse
-from backend.app.schemas.internal import InternalExtractRequest, InternalExtractResponse
+from backend.app.schemas.internal import (
+    InternalExtractRequest,
+    InternalExtractResponse,
+    InternalIndexRequest,
+    InternalIndexResponse,
+    InternalPurgeRequest,
+)
 from backend.app.services import DocumentService, get_document_service
 
 router = APIRouter(prefix="/internal", tags=["Internal"])
@@ -115,7 +123,7 @@ def validate_pdf_path(raw_path_str: str, upload_dir_str: str, repo_root: Path) -
                 header = f.read(5)
         except Exception:
             raise
-    except OSError as e:
+    except OSError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to securely read file: access denied or link encountered",
@@ -142,10 +150,57 @@ def internal_extract(
         document_id=payload.document_id,
         file_path=validated_path,
         mode=payload.mode,
+        skip_indexing=payload.skip_indexing,
     )
     status_msg = "Document extraction completed successfully" if result.status == "processed" else "Document extraction completed with degraded status"
     return BaseResponse[InternalExtractResponse](
         status="success",
         message=status_msg,
         data=result,
+    )
+
+
+@router.post("/index", response_model=BaseResponse[InternalIndexResponse])
+def internal_index(
+    payload: InternalIndexRequest,
+    authenticated: bool = Depends(verify_internal_auth),
+    doc_service: DocumentService = Depends(get_document_service),
+) -> BaseResponse[InternalIndexResponse]:
+    result = doc_service.index_persisted_elements(
+        document_id=payload.document_id,
+        file_hash=payload.file_hash,
+        filename=payload.filename,
+        mode=payload.mode,
+        is_degraded=payload.is_degraded,
+        page_count=payload.page_count,
+        elements=payload.elements,
+        job_id=payload.job_id,
+        worker_id=payload.worker_id,
+        claim_token=payload.claim_token,
+        lease_generation=payload.lease_generation,
+        is_recovery=payload.is_recovery,
+        extraction_warnings=payload.extraction_warnings,
+    )
+    return BaseResponse[InternalIndexResponse](
+        status="success",
+        message="Persisted extraction indexed and replacement FAISS index built",
+        data=result,
+    )
+
+
+@router.post("/recovery/purge")
+def internal_recovery_purge(
+    payload: InternalPurgeRequest,
+    authenticated: bool = Depends(verify_internal_auth),
+    doc_service: DocumentService = Depends(get_document_service),
+) -> BaseResponse[dict]:
+    purged_count = 0
+    for doc_id in payload.document_ids:
+        clean_id = (doc_id or "").strip()
+        if clean_id and doc_service.purge_document_from_memory(clean_id):
+            purged_count += 1
+    return BaseResponse[dict](
+        status="success",
+        message=f"Purged {purged_count} ineligible document(s) from Python memory",
+        data={"purged_count": purged_count},
     )
